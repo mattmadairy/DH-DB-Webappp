@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Club Member Management</title>
+</head>
+<body>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo" style="height:80px;">
+        </div>
+        <h1>Club Member List</h1>
+        <form method="get" action="{{ url_for('index') }}" style="width:100%; max-width:600px; margin-bottom:10px;">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or badge" style="width:60%;">
+            <button type="submit">Search</button>
+            <button type="button" onclick="window.location='{{ url_for('index') }}'">Reset</button>
+        </form>
+        <div style="margin-bottom:18px; text-align:center;">
+            {% for mt in member_types %}
+                <a href="{{ url_for('index', member_type=mt, search=search) }}" style="display:inline-block; padding:8px 22px; margin:0 4px; border-radius:6px; border:1px solid #ccc; background-color:{% if mt == member_type %}#e0e0e0{% else %}#f8f8f8{% endif %}; color:#333; text-decoration:none; font-weight:{% if mt == member_type %}bold{% else %}normal{% endif %}; box-shadow:0 1px 2px rgba(0,0,0,0.04);">{{ mt }}</a>
+            {% endfor %}
+        </div>
+        <p>
+            <a href="{{ url_for('add_member') }}">➕ Add Member</a>
+            &nbsp;|&nbsp;
+            <a href="{{ url_for('recycle_bin') }}">🗑️ View Recycle Bin</a>
+        </p>
+    <table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px;">
+        <tr>
+            <th>Badge #</th>
+            <th>Type</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Primary Email</th>
+            <th>Secondary Email</th>
+            <th>Primary Phone</th>
+            <th>Secondary Phone</th>
+            <th>Actions</th>
+        </tr>
+        {% for member in members %}
+    <tr ondblclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'" style="cursor:pointer;">
+<script>
+// Restore double-click navigation for member rows
+</script>
+            <td>{{ member['badge_number'] }}</td>
+            <td>{{ member['membership_type'] }}</td>
+            <td>{{ member['first_name'] }}</td>
+            <td>{{ member['last_name'] }}</td>
+            <td>{{ member['email'] }}</td>
+            <td>{{ member['email2'] }}</td>
+            <td style="min-width:130px;">{{ member['phone'] }}</td>
+            <td style="min-width:130px;">{{ member['phone2'] }}</td>
+            <td>
+                <form action="{{ url_for('edit_member', member_id=member['id']) }}" method="get" style="display:inline;">
+                    <button type="submit">✏️ Edit</button>
+                </form>
+                <form action="{{ url_for('member_report', member_id=member['id']) }}" method="get" style="display:inline; margin-bottom:4px;">
+                    <button type="submit">📄 Report</button>
+                </form>
+                <form action="{{ url_for('delete_member', member_id=member['id']) }}" method="post" style="display:inline;">
+                    <button type="submit" onclick="return confirm('Move to recycle bin?')">�️ Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    </div>
+    <!-- Recycle bin link moved to top -->
+</body>
+</html>

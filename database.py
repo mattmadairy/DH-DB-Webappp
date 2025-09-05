@@ -281,39 +281,7 @@ def soft_delete_member_by_id(member_id):
     conn.commit()
     conn.close()
     
-def delete_member_permanently(member_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM members WHERE id=?", (member_id,))
-    conn.commit()
-    conn.close()
 
-
-def permanently_delete_member_by_id(member_id):
-    conn = sqlite3.connect("members.db")
-    c = conn.cursor()
-    try:
-        # Get member data from recycle_bin
-        c.execute("SELECT * FROM recycle_bin WHERE id=?", (member_id,))
-        member = c.fetchone()
-        if not member:
-            return  # nothing to delete
-
-        # Insert into deleted_members table for logging
-        c.execute("""
-            INSERT INTO deleted_members (
-                id, badge, membership_type, first_name, last_name,
-                date_of_birth, email_address, email_address_2, phone_number,
-                address, city, state, zip_code, join_date, sponsor,
-                card_fob_internal, card_fob_external, deleted_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, member + (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),))
-
-        # Delete from recycle_bin
-        c.execute("DELETE FROM recycle_bin WHERE id=?", (member_id,))
-        conn.commit()
-    finally:
-        conn.close()
 
 
 def log_and_delete_member(recycle_id, db_path="members.db"):
@@ -422,19 +390,7 @@ def restore_member_from_recycle_bin(recycle_id, db_path="members.db"):
     conn.commit()
     conn.close()
 
-def restore_member(member_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("UPDATE members SET deleted=0 WHERE id=?", (member_id,))
-    conn.commit()
-    conn.close()
-
-def restore_member_by_id(member_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE members SET deleted=0 WHERE id=?", (member_id,))
-    conn.commit()
-    conn.close()
+    # robust restore_member_by_id is defined elsewhere
 
 def get_member_by_id(member_id):
     conn = sqlite3.connect("members.db")

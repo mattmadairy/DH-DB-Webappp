@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>{{ member['first_name'] }} {{ member['last_name'] }} - Member Details</title>
+</head>
+<body>
+	<div style="display:flex; flex-direction:column; align-items:center;">
+		<div style="text-align:center; margin-bottom:20px;">
+			<img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo" style="height:80px;">
+		</div>
+	<h1>Member Details - {{ member['first_name'] }} {{ member['last_name'] }}</h1>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed;">
+			<tr><th colspan="2" style="background:#f0f0f0;">Personal Info</th></tr>
+			<tr><td><b>First Name:</b></td><td>{{ member['first_name'] }}</td></tr>
+			<tr><td><b>Middle Name:</b></td><td>{{ member['middle_name'] }}</td></tr>
+			<tr><td><b>Last Name:</b></td><td>{{ member['last_name'] }}</td></tr>
+			<tr><td><b>Suffix:</b></td><td>{{ member['suffix'] }}</td></tr>
+			<tr><td><b>Nickname:</b></td><td>{{ member['nickname'] }}</td></tr>
+			<tr><td><b>Date of Birth:</b></td><td>{{ member['dob'] }}</td></tr>
+		</table>
+		<br>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed;">
+			<tr><th colspan="2" style="background:#f0f0f0;">Membership Info</th></tr>
+			<tr><td><b>Badge Number:</b></td><td>{{ member['badge_number'] }}</td></tr>
+			<tr><td><b>Membership Type:</b></td><td>{{ member['membership_type'] }}</td></tr>
+			<tr><td><b>Join Date:</b></td><td>{{ member['join_date'] }}</td></tr>
+			<tr><td><b>Sponsor:</b></td><td>{{ member['sponsor'] }}</td></tr>
+			<tr><td><b>Card/Fob Internal Number:</b></td><td>{{ member['card_internal'] }}</td></tr>
+			<tr><td><b>Card/Fob External Number:</b></td><td>{{ member['card_external'] }}</td></tr>
+		</table>
+		<br>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed;">
+			<tr><th colspan="2" style="background:#f0f0f0;">Contact Info</th></tr>
+			<tr><td><b>Primary Email:</b></td><td>{{ member['email'] }}</td></tr>
+			<tr><td><b>Secondary Email:</b></td><td>{{ member['email2'] }}</td></tr>
+			<tr><td><b>Primary Phone:</b></td><td>{{ member['phone'] }}</td></tr>
+			<tr><td><b>Secondary Phone:</b></td><td>{{ member['phone2'] }}</td></tr>
+		</table>
+		<br>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed;">
+			<tr><th colspan="2" style="background:#f0f0f0;">Address Info</th></tr>
+			<tr><td><b>Address:</b></td><td>{{ member['address'] }}</td></tr>
+			<tr><td><b>City:</b></td><td>{{ member['city'] }}</td></tr>
+			<tr><td><b>State:</b></td><td>{{ member['state'] }}</td></tr>
+			<tr><td><b>Zip Code:</b></td><td>{{ member['zip'] }}</td></tr>
+		</table>
+		<br>
+		<h2>Dues</h2>
+		<table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:600px;">
+			<tr><th>Payment Date</th><th>Amount</th></tr>
+			{% for due in dues %}
+			<tr><td>{{ due['payment_date'] }}</td><td>{{ due['amount'] }}</td></tr>
+			{% endfor %}
+		</table>
+		<br>
+		<h2>Work Hours</h2>
+		<table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:600px;">
+			<tr><th>Date</th><th>Hours</th></tr>
+			{% for wh in work_hours %}
+			<tr><td>{{ wh['date'] }}</td><td>{{ wh['hours'] }}</td></tr>
+			{% endfor %}
+		</table>
+		<br>
+		<h2>Meeting Attendance</h2>
+		<table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:600px;">
+			<tr><th>Meeting Date</th><th>Attended</th></tr>
+			{% for att in attendance %}
+			<tr><td>{{ att['meeting_date'] }}</td><td>{{ att['attended'] }}</td></tr>
+			{% endfor %}
+		</table>
+		<br>
+		<h2>Role</h2>
+		<table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:600px;">
+			<tr><th>Role</th></tr>
+			<tr><td>{{ role['role'] if role else '' }}</td></tr>
+		</table>
+		<br>
+		<h2>Committees</h2>
+		<table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:600px;">
+			<tr><th>Committee</th></tr>
+			{% for key, value in committees.items() %}
+			<tr><td>{{ key }}: {{ value }}</td></tr>
+			{% endfor %}
+		</table>
+		<br>
+		<a href="{{ url_for('index') }}">Back to Member List</a>
+	</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Member</title>
+</head>
+<body>
+    <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="text-align:center; margin-bottom:20px;">
+            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo" style="height:80px;">
+        </div>
+        <h1>Edit Member</h1>
+        <form method="post" style="width:100%; max-width:500px;">
+            <table style="margin:auto; width:100%;">
+                <tr><td style="padding-right:40px;"><label for="badge_number"><b>Badge Number:</b></label></td><td><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" required></td></tr>
+                <tr><td style="padding-right:40px;"><label for="membership_type"><b>Membership Type:</b></label></td><td>
+                    <select id="membership_type" name="membership_type" required style="width: 100%; box-sizing: border-box;">
+                        {% set types = ["Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"] %}
+                        {% for t in types %}
+                            <option value="{{ t }}" {% if member['membership_type'] == t %}selected{% endif %}>{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </td></tr>
+                <tr><td colspan="2">&nbsp;</td></tr>
+                <tr><td style="padding-right:40px;"><label for="first_name"><b>First Name:</b></label></td><td><input type="text" id="first_name" name="first_name" value="{{ member['first_name'] }}" required></td></tr>
+                <tr><td style="padding-right:40px;"><label for="middle_name"><b>Middle Name:</b></label></td><td><input type="text" id="middle_name" name="middle_name" value="{{ member['middle_name'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="last_name"><b>Last Name:</b></label></td><td><input type="text" id="last_name" name="last_name" value="{{ member['last_name'] }}" required></td></tr>
+                <tr><td style="padding-right:40px;"><label for="suffix"><b>Suffix:</b></label></td><td><input type="text" id="suffix" name="suffix" value="{{ member['suffix'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="nickname"><b>Nickname:</b></label></td><td><input type="text" id="nickname" name="nickname" value="{{ member['nickname'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="dob"><b>Date of Birth:</b></label></td><td><input type="text" id="dob" name="dob" value="{{ member['dob'] }}"></td></tr>
+                <tr><td colspan="2">&nbsp;</td></tr>
+                <tr><td style="padding-right:40px;"><label for="email"><b>Primary Email:</b></label></td><td><input type="email" id="email" name="email" value="{{ member['email'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="email2"><b>Secondary Email:</b></label></td><td><input type="email" id="email2" name="email2" value="{{ member['email2'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="phone"><b>Primary Phone:</b></label></td><td><input type="text" id="phone" name="phone" value="{{ member['phone'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="phone2"><b>Secondary Phone:</b></label></td><td><input type="text" id="phone2" name="phone2" value="{{ member['phone2'] }}"></td></tr>
+                <tr><td colspan="2">&nbsp;</td></tr>
+                <tr><td style="padding-right:40px;"><label for="address"><b>Address:</b></label></td><td><input type="text" id="address" name="address" value="{{ member['address'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="city"><b>City:</b></label></td><td><input type="text" id="city" name="city" value="{{ member['city'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="state"><b>State:</b></label></td><td><input type="text" id="state" name="state" value="{{ member['state'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="zip"><b>Zip Code:</b></label></td><td><input type="text" id="zip" name="zip" value="{{ member['zip'] }}"></td></tr>
+                <tr><td colspan="2">&nbsp;</td></tr>
+                <tr><td style="padding-right:40px;"><label for="join_date"><b>Join Date:</b></label></td><td><input type="text" id="join_date" name="join_date" value="{{ member['join_date'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="sponsor"><b>Sponsor:</b></label></td><td><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="card_internal"><b>Card/Fob Internal Number:</b></label></td><td><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}"></td></tr>
+                <tr><td style="padding-right:40px;"><label for="card_external"><b>Card/Fob External Number:</b></label></td><td><input type="text" id="card_external" name="card_external" value="{{ member['card_external'] }}"></td></tr>
+            </table>
+            <br>
+            <div style="text-align:center;">
+                    <button type="submit">Save Changes</button>
+                    <button type="button" onclick="window.location.href='{{ url_for('index') }}'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
