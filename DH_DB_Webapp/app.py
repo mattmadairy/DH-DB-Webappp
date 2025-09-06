@@ -3,6 +3,20 @@ import database
 
 app = Flask(__name__)
 
+# Jinja filter to format ISO date as mm-dd-yyyy
+
+def format_mmddyyyy(value):
+    if not value:
+        return ''
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(value, '%Y-%m-%d')
+        return dt.strftime('%m-%d-%Y')
+    except Exception:
+        return value
+
+app.jinja_env.filters['format_mmddyyyy'] = format_mmddyyyy
+
 @app.route('/', methods=['GET'])
 def index():
 	search = request.args.get('search', '').strip()
@@ -143,6 +157,81 @@ def add_member():
 		database.add_member(data)
 		return redirect(url_for('index'))
 	return render_template('add_member.html')
+
+# Edit Section route
+@app.route('/edit_section/<int:member_id>', methods=['GET', 'POST'])
+def edit_section(member_id):
+    section = request.args.get('section')
+    member = database.get_member_by_id(member_id)
+    if not member:
+        return "Member not found", 404
+    if request.method == 'POST':
+        # Update only the requested section
+        if section == 'personal':
+            database.update_member_section(member_id, {
+                'first_name': request.form['first_name'],
+                'middle_name': request.form['middle_name'],
+                'last_name': request.form['last_name'],
+                'suffix': request.form['suffix'],
+                'nickname': request.form['nickname'],
+                'dob': request.form['dob'],
+            })
+        elif section == 'membership':
+            database.update_member_section(member_id, {
+                'badge_number': request.form['badge_number'],
+                'membership_type': request.form['membership_type'],
+                'join_date': request.form['join_date'],
+                'sponsor': request.form['sponsor'],
+                'card_internal': request.form['card_internal'],
+                'card_external': request.form['card_external'],
+            })
+        elif section == 'contact':
+            database.update_member_section(member_id, {
+                'email': request.form['email'],
+                'email2': request.form['email2'],
+                'phone': request.form['phone'],
+                'phone2': request.form['phone2'],
+            })
+        elif section == 'address':
+            database.update_member_section(member_id, {
+                'address': request.form['address'],
+                'city': request.form['city'],
+                'state': request.form['state'],
+                'zip': request.form['zip'],
+            })
+        elif section == 'dues':
+            database.add_due(member_id, request.form['payment_date'], request.form['amount'])
+        return ('', 204)  # AJAX expects empty response
+    # For GET, just show a message (should not be used with popup)
+    return f"Edit {section} for member {member_id}"  # Replace with render_template as needed
+
+@app.route('/get_due/<int:due_id>')
+def get_due(due_id):
+    due = database.get_due_by_id(due_id)
+    if not due:
+        return {"error": "Due not found"}, 404
+    return {
+        "id": due["id"],
+        "payment_date": due["payment_date"],
+        "amount": due["amount"]
+    }
+
+@app.route('/edit_due/<int:due_id>', methods=['POST'])
+def edit_due(due_id):
+    payment_date = request.form['payment_date']
+    amount = request.form['amount']
+    database.update_due(due_id, payment_date, amount)
+    return ('', 204)
+
+@app.route('/delete_due/<int:due_id>', methods=['POST'])
+def delete_due(due_id):
+    database.delete_due(due_id)
+    return ('', 204)
+
+@app.route('/delete_member_permanently/<int:member_id>', methods=['POST'])
+def delete_member_permanently(member_id):
+    database.delete_member_permanently(member_id)
+    return redirect(url_for('recycle_bin'))
 
 if __name__ == '__main__':
 	app.run(debug=True)

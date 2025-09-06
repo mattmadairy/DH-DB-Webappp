@@ -3,7 +3,7 @@
 <head>
     <title>Edit Member</title>
 </head>
-<body>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
     <div style="display:flex; flex-direction:column; align-items:center;">
         <div style="text-align:center; margin-bottom:20px;">
             <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo" style="height:80px;">
@@ -49,6 +49,9 @@
                     <button type="button" onclick="window.location.href='{{ url_for('index') }}'">Cancel</button>
             </div>
         </form>
+    <div style="position:absolute; top:24px; left:32px; z-index:10;">
+        <a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
+    </div>
     </div>
 </body>
 </html>

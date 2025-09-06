@@ -90,12 +90,23 @@ def update_member(member_id, data):
 	conn.commit()
 	conn.close()
 
+def update_member_section(member_id, fields):
+    conn = get_connection()
+    c = conn.cursor()
+    set_clause = ', '.join([f'{key}=?' for key in fields.keys()])
+    values = list(fields.values())
+    values.append(member_id)
+    c.execute(f"UPDATE members SET {set_clause} WHERE id=?", values)
+    conn.commit()
+    conn.close()
+
 def soft_delete_member_by_id(member_id):
-	conn = get_connection()
-	c = conn.cursor()
-	c.execute("UPDATE members SET deleted=1 WHERE id=?", (member_id,))
-	conn.commit()
-	conn.close()
+    conn = get_connection()
+    c = conn.cursor()
+    deleted_on = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("UPDATE members SET deleted=1, deleted_on=? WHERE id=?", (deleted_on, member_id))
+    conn.commit()
+    conn.close()
 
 def get_deleted_members():
 	conn = get_connection()
@@ -111,3 +122,41 @@ def restore_member_by_id(member_id):
 	c.execute("UPDATE members SET deleted=0 WHERE id=?", (member_id,))
 	conn.commit()
 	conn.close()
+
+# Add a due for a member
+
+def add_due(member_id, payment_date, amount):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("INSERT INTO dues (member_id, payment_date, amount) VALUES (?, ?, ?)", (member_id, payment_date, amount))
+    conn.commit()
+    conn.close()
+
+def get_due_by_id(due_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM dues WHERE id=?", (due_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def update_due(due_id, payment_date, amount):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE dues SET payment_date=?, amount=? WHERE id=?", (payment_date, amount, due_id))
+    conn.commit()
+    conn.close()
+
+def delete_due(due_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM dues WHERE id=?", (due_id,))
+    conn.commit()
+    conn.close()
+
+def delete_member_permanently(member_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM members WHERE id=?", (member_id,))
+    conn.commit()
+    conn.close()
