@@ -1,3 +1,73 @@
+	<!-- Edit Work Hours Modal -->
+	<div id="editWorkHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+			<h3 style="margin-top:0;">Edit Work Hours</h3>
+			<form id="editWorkHoursForm">
+				<input type="hidden" id="edit_wh_id" name="wh_id">
+				<label for="edit_work_date">Date:</label><br>
+				<input type="date" id="edit_work_date" name="work_date" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="edit_activity">Activity:</label><br>
+				<select id="edit_activity" name="activity" required style="width:100%; margin-bottom:10px;">
+					{% for cname in committee_names %}
+						<option value="{{ cname }}">{{ cname }}</option>
+					{% endfor %}
+				</select><br>
+				<label for="edit_work_hours">Hours:</label><br>
+				<input type="number" id="edit_work_hours" name="work_hours" min="0" step="0.1" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="edit_notes">Notes:</label><br>
+				<input type="text" id="edit_notes" name="notes" style="width:100%; margin-bottom:10px;"><br>
+				<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Save</button>
+				<button type="button" onclick="closeModal('editWorkHoursModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+			</form>
+		</div>
+	</div>
+
+	<script>
+	function editWorkHours(id) {
+		fetch('/get_work_hours/' + id)
+			.then(response => response.json())
+			.then(data => {
+				document.getElementById('edit_wh_id').value = data.id;
+				document.getElementById('edit_work_date').value = data.date;
+				document.getElementById('edit_activity').value = data.activity;
+				document.getElementById('edit_work_hours').value = data.hours;
+				document.getElementById('edit_notes').value = data.notes;
+				openModal('editWorkHoursModal');
+			});
+	}
+	document.getElementById('editWorkHoursForm').onsubmit = function(e) {
+		e.preventDefault();
+		var id = document.getElementById('edit_wh_id').value;
+		var date = document.getElementById('edit_work_date').value;
+		var activity = document.getElementById('edit_activity').value;
+		var hours = document.getElementById('edit_work_hours').value;
+		var notes = document.getElementById('edit_notes').value;
+		fetch('/edit_work_hours/' + id, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: 'date=' + encodeURIComponent(date) + '&activity=' + encodeURIComponent(activity) + '&hours=' + encodeURIComponent(hours) + '&notes=' + encodeURIComponent(notes)
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to edit work hours');
+			}
+		});
+	};
+
+	function deleteWorkHours(id) {
+		if (!confirm('Are you sure you want to delete this work hours entry?')) return;
+		fetch('/delete_work_hours/' + id, {
+			method: 'POST'
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to delete work hours');
+			}
+		});
+	}
+	</script>
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,18 +80,27 @@
 			<div style="text-align:center;">
 				<h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
 				<h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
-				<h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">Member Details - {{ member['first_name'] }} {{ member['last_name'] }}</h2>
+				<h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">
+					Member Details -
+					{% if position and position['position'] %}
+						{{ position['position'] }}
+					{% endif %}
+					{{ member['first_name'] }} {{ member['last_name'] }}
+					{% if member['badge_number'] %}
+						(#{{ member['badge_number'] }})
+					{% endif %}
+				</h2>
 			</div>
 			<img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:80px; margin-left:32px;">
 		</div>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th colspan="2" style="background:#f0f0f0;">Personal Info</th></tr>
-			<tr><td><b>First Name:</b></td><td>{{ member['first_name'] }}</td></tr>
-			<tr><td><b>Middle Name:</b></td><td>{{ member['middle_name'] }}</td></tr>
-			<tr><td><b>Last Name:</b></td><td>{{ member['last_name'] }}</td></tr>
-			<tr><td><b>Suffix:</b></td><td>{{ member['suffix'] }}</td></tr>
-			<tr><td><b>Nickname:</b></td><td>{{ member['nickname'] }}</td></tr>
-			<tr><td><b>Date of Birth:</b></td><td>{{ member['dob']|format_mmddyyyy }}</td></tr>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Personal Info</th></tr>
+			<tr><td style="border:2px solid #222;"><b>First Name:</b></td><td style="border:2px solid #222;">{{ member['first_name'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Middle Name:</b></td><td style="border:2px solid #222;">{{ member['middle_name'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Last Name:</b></td><td style="border:2px solid #222;">{{ member['last_name'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Suffix:</b></td><td style="border:2px solid #222;">{{ member['suffix'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Nickname:</b></td><td style="border:2px solid #222;">{{ member['nickname'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Date of Birth:</b></td><td style="border:2px solid #222;">{{ member['dob']|format_mmddyyyy }}</td></tr>
 		</table>
 		<div style="text-align:right; max-width:700px; margin:auto;">
 			<button onclick="openModal('personalModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Personal Info</button>
@@ -30,36 +109,54 @@
 		<div style="position:absolute; top:24px; left:32px; z-index:10;">
 			<a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
 		</div>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th colspan="2" style="background:#f0f0f0;">Membership Info</th></tr>
-			<tr><td><b>Badge Number:</b></td><td>{{ member['badge_number'] }}</td></tr>
-			<tr><td><b>Membership Type:</b></td><td>{{ member['membership_type'] }}</td></tr>
-			<tr><td><b>Join Date:</b></td><td>{{ member['join_date']|format_mmddyyyy }}</td></tr>
-			<tr><td><b>Sponsor:</b></td><td>{{ member['sponsor'] }}</td></tr>
-			<tr><td><b>Card/Fob Internal Number:</b></td><td>{{ member['card_internal'] }}</td></tr>
-			<tr><td><b>Card/Fob External Number:</b></td><td>{{ member['card_external'] }}</td></tr>
-		</table>
-		<div style="text-align:right; max-width:700px; margin:auto;">
-			<button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
-		</div>
-		<br>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th colspan="2" style="background:#f0f0f0;">Contact Info</th></tr>
-			<tr><td><b>Primary Email:</b></td><td>{{ member['email'] }}</td></tr>
-			<tr><td><b>Secondary Email:</b></td><td>{{ member['email2'] }}</td></tr>
-			<tr><td><b>Primary Phone:</b></td><td>{{ member['phone'] }}</td></tr>
-			<tr><td><b>Secondary Phone:</b></td><td>{{ member['phone2'] }}</td></tr>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+		<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Membership Info</th></tr>
+		<tr><td style="border:2px solid #222;"><b>Badge Number:</b></td><td style="border:2px solid #222;">{{ member['badge_number'] }}</td></tr>
+		<tr><td style="border:2px solid #222;"><b>Membership Type:</b></td><td style="border:2px solid #222;">{{ member['membership_type'] }}</td></tr>
+		<tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
+		<tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
+	</tr>
+		<tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
+		<tr><td style="border:2px solid #222;"><b>Card/Fob External Number:</b></td><td style="border:2px solid #222;">{{ member['card_external'] }}</td></tr>
+		<tr>
+			<td style="border:2px solid #222;"><b>Executive Role:</b></td>
+			<td style="border:2px solid #222;">
+				{{ position['position'] if position else '' }}
+				{% if position and (position['term_start'] or position['term_end']) %}
+					<span style="font-style:italic; color:#444;">&nbsp;
+						{% if position['term_start'] and position['term_end'] %}
+							({{ position['term_start']|format_mmddyyyy }} until {{ position['term_end']|format_mmddyyyy }})
+						{% elif position['term_start'] %}
+							({{ position['term_start']|format_mmddyyyy }})
+						{% elif position['term_end'] %}
+							(until {{ position['term_end']|format_mmddyyyy }})
+						{% endif %}
+					</span>
+				{% endif %}
+			</td>
+		</tr>
+	</table>
+	<div style="text-align:right; max-width:700px; margin:auto;">
+		<button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
+	</div>
+	<br>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Contact Info</th></tr>
+			<tr><td style="border:2px solid #222;"><b>Primary Email:</b></td><td style="border:2px solid #222;">{{ member['email'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Secondary Email:</b></td><td style="border:2px solid #222;">{{ member['email2'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Primary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Secondary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone2'] }}</td></tr>
 		</table>
 		<div style="text-align:right; max-width:700px; margin:auto;">
 			<button onclick="openModal('contactModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Contact Info</button>
 		</div>
 		<br>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th colspan="2" style="background:#f0f0f0;">Address Info</th></tr>
-			<tr><td><b>Address:</b></td><td>{{ member['address'] }}</td></tr>
-			<tr><td><b>City:</b></td><td>{{ member['city'] }}</td></tr>
-			<tr><td><b>State:</b></td><td>{{ member['state'] }}</td></tr>
-			<tr><td><b>Zip Code:</b></td><td>{{ member['zip'] }}</td></tr>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Address Info</th></tr>
+			<tr><td style="border:2px solid #222;"><b>Address:</b></td><td style="border:2px solid #222;">{{ member['address'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>City:</b></td><td style="border:2px solid #222;">{{ member['city'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>State:</b></td><td style="border:2px solid #222;">{{ member['state'] }}</td></tr>
+			<tr><td style="border:2px solid #222;"><b>Zip Code:</b></td><td style="border:2px solid #222;">{{ member['zip'] }}</td></tr>
 		</table>
 		<div style="text-align:right; max-width:700px; margin:auto;">
 			<button onclick="openModal('addressModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Address Info</button>
@@ -69,13 +166,13 @@
 	<div style="text-align:right; max-width:700px; margin:auto;">
 	<button onclick="openModal('duesModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Dues Payment</button>
 	</div>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th>Payment Date</th><th>Amount</th><th>Actions</th></tr>
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th style="border:2px solid #222;">Payment Date</th><th style="border:2px solid #222;">Amount</th><th style="border:2px solid #222;">Actions</th></tr>
 			{% for due in dues %}
 			<tr>
-				<td>{{ due['payment_date']|format_mmddyyyy }}</td>
-				<td>{{ '%.2f'|format(due['amount']) }}</td>
-				<td style="text-align:center;">
+				<td style="border:2px solid #222;">{{ due['payment_date']|format_mmddyyyy }}</td>
+				<td style="border:2px solid #222;">{{ '%.2f'|format(due['amount']) }}</td>
+				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
 					<button onclick="editDue({{ due['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
 					<button onclick="deleteDue({{ due['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
 				</td>
@@ -83,37 +180,251 @@
 			{% endfor %}
 		</table>
 		<br>
-	<h2 style="color:#f5f5f5;">Work Hours</h2>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th>Date</th><th>Hours</th></tr>
+	<h2 id="work-hours" style="color:#f5f5f5;">Work Hours</h2>
+	<div style="text-align:right; max-width:700px; margin:auto;">
+		<button onclick="openModal('workHoursModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Work Hours</button>
+	</div>
+
+	<!-- Work Hours Modal -->
+	<div id="workHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+			<h3 style="margin-top:0;">Add Work Hours</h3>
+			<form id="addWorkHoursForm">
+				<label for="work_date">Date:</label><br>
+				<input type="date" id="work_date" name="work_date" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="work_activity">Activity:</label><br>
+				<select id="work_activity" name="activity" required style="width:100%; margin-bottom:10px;">
+					{% for cname in committee_names %}
+						<option value="{{ cname }}">{{ cname }}</option>
+					{% endfor %}
+				</select><br>
+				<label for="work_hours">Hours:</label><br>
+				<input type="number" id="work_hours" name="work_hours" min="0" step="0.1" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="work_notes">Notes:</label><br>
+				<input type="text" id="work_notes" name="notes" style="width:100%; margin-bottom:10px;"><br>
+				<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add</button>
+				<button type="button" onclick="closeModal('workHoursModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+			</form>
+		</div>
+	</div>
+
+	<script>
+	function openModal(id) {
+		document.getElementById(id).style.display = 'block';
+	}
+	function closeModal(id) {
+		document.getElementById(id).style.display = 'none';
+	}
+	document.getElementById('addWorkHoursForm').onsubmit = function(e) {
+		e.preventDefault();
+		var date = document.getElementById('work_date').value;
+		var activity = document.getElementById('work_activity').value;
+		var hours = document.getElementById('work_hours').value;
+		var notes = document.getElementById('work_notes').value;
+		fetch("/add_work_hours/{{ member['id'] }}", {
+			method: "POST",
+			headers: {"Content-Type": "application/x-www-form-urlencoded"},
+			body: "date=" + encodeURIComponent(date) + "&activity=" + encodeURIComponent(activity) + "&hours=" + encodeURIComponent(hours) + "&notes=" + encodeURIComponent(notes)
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to add work hours');
+			}
+		});
+	};
+	</script>
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr>
+				<th style="border:2px solid #222;">Date</th>
+				<th style="border:2px solid #222;">Activity</th>
+				<th style="border:2px solid #222;">Hours</th>
+				<th style="border:2px solid #222;">Notes</th>
+				<th style="border:2px solid #222;">Actions</th>
+			</tr>
 			{% for wh in work_hours %}
-			<tr><td>{{ wh['date']|format_mmddyyyy }}</td><td>{{ wh['hours'] }}</td></tr>
+			<tr>
+				<td style="border:2px solid #222;">{{ wh['date']|format_mmddyyyy }}</td>
+				<td style="border:2px solid #222;">{{ wh['activity'] }}</td>
+				<td style="border:2px solid #222;">{{ wh['hours'] }}</td>
+				<td style="border:2px solid #222;">{{ wh['notes'] }}</td>
+				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
+					<button onclick="editWorkHours({{ wh['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button onclick="deleteWorkHours({{ wh['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+				</td>
+			</tr>
 			{% endfor %}
+			<tr style="background:#eaeaea; font-weight:bold;">
+				<td colspan="2" style="text-align:right; border:2px solid #222;">Total Hours:</td>
+				<td style="border:2px solid #222;">{{ total_work_hours }}</td>
+				<td style="border:2px solid #222;"></td>
+				<td style="border:2px solid #222;"></td>
+			</tr>
 		</table>
 		<br>
 	<h2 style="color:#f5f5f5;">Meeting Attendance</h2>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th>Meeting Date</th><th>Attended</th></tr>
-			{% for att in attendance %}
-			<tr><td>{{ att['meeting_date']|format_mmddyyyy }}</td><td>{{ att['attended'] }}</td></tr>
-			{% endfor %}
-		</table>
+	<div style="text-align:right; max-width:700px; margin:auto;">
+		<button onclick="openModal('addMeetingModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Meeting</button>
+	</div>
+	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+		<tr>
+			<th style="border:2px solid #222;">Meeting Date</th>
+			<th style="border:2px solid #222;">Status</th>
+			<th style="border:2px solid #222;">Actions</th>
+		</tr>
+		{% for att in attendance %}
+		<tr>
+			<td style="border:2px solid #222;">{{ att['meeting_date']|format_mmddyyyy }}</td>
+			<td style="border:2px solid #222;">{{ att['status'] }}</td>
+			<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
+				<button onclick="editMeeting({{ att['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+				<button onclick="deleteMeeting({{ att['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+			</td>
+		</tr>
+		{% endfor %}
+		<tr style="background:#eaeaea; font-weight:bold;">
+			<td style="text-align:right; border:2px solid #222;">Total Meetings:</td>
+			<td style="border:2px solid #222;">{{ total_meetings }}</td>
+			<td style="border:2px solid #222;"></td>
+		</tr>
+	</table>
+
+	<!-- Add Meeting Modal -->
+	<div id="addMeetingModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+			<h3 style="margin-top:0;">Add Meeting Attendance</h3>
+			<form id="addMeetingForm">
+				<label for="meeting_date">Date:</label><br>
+				<input type="date" id="meeting_date" name="meeting_date" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="meeting_status">Status:</label><br>
+				<select id="meeting_status" name="meeting_status" required style="width:100%; margin-bottom:10px;">
+					<option value="Attended">Attended</option>
+					<option value="Exempt">Exempt</option>
+				</select><br>
+				<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add</button>
+				<button type="button" onclick="closeModal('addMeetingModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+			</form>
+		</div>
+	</div>
+
+	<!-- Edit Meeting Modal -->
+	<div id="editMeetingModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+			<h3 style="margin-top:0;">Edit Meeting Attendance</h3>
+			<form id="editMeetingForm">
+				<input type="hidden" id="edit_meeting_id" name="meeting_id">
+				<label for="edit_meeting_date">Date:</label><br>
+				<input type="date" id="edit_meeting_date" name="meeting_date" required style="width:100%; margin-bottom:10px;"><br>
+				<label for="edit_meeting_status">Status:</label><br>
+				<select id="edit_meeting_status" name="meeting_status" required style="width:100%; margin-bottom:10px;">
+					<option value="Attended">Attended</option>
+					<option value="Exempt">Exempt</option>
+				</select><br>
+				<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Save</button>
+				<button type="button" onclick="closeModal('editMeetingModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+			</form>
+		</div>
+	</div>
+
+	<script>
+	document.getElementById('addMeetingForm').onsubmit = function(e) {
+		e.preventDefault();
+		var date = document.getElementById('meeting_date').value;
+		var status = document.getElementById('meeting_status').value;
+		fetch("/add_meeting_attendance/{{ member['id'] }}", {
+			method: "POST",
+			headers: {"Content-Type": "application/x-www-form-urlencoded"},
+			body: "date=" + encodeURIComponent(date) + "&status=" + encodeURIComponent(status)
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to add meeting attendance');
+			}
+		});
+	};
+
+	function editMeeting(id) {
+		fetch('/get_meeting_attendance/' + id)
+			.then(response => response.json())
+			.then(data => {
+				document.getElementById('edit_meeting_id').value = data.id;
+				document.getElementById('edit_meeting_date').value = data.meeting_date;
+					document.getElementById('edit_meeting_status').value = data.status;
+				openModal('editMeetingModal');
+			});
+	}
+	document.getElementById('editMeetingForm').onsubmit = function(e) {
+		e.preventDefault();
+		var id = document.getElementById('edit_meeting_id').value;
+		var date = document.getElementById('edit_meeting_date').value;
+		var status = document.getElementById('edit_meeting_status').value;
+		fetch('/edit_meeting_attendance/' + id, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: 'date=' + encodeURIComponent(date) + '&status=' + encodeURIComponent(status)
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to edit meeting attendance');
+			}
+		});
+	};
+
+	function deleteMeeting(id) {
+		if (!confirm('Are you sure you want to delete this meeting attendance entry?')) return;
+		fetch('/delete_meeting_attendance/' + id, {
+			method: 'POST'
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Failed to delete meeting attendance');
+			}
+		});
+	}
+	</script>
 		<br>
-	<h2 style="color:#f5f5f5;">Role</h2>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th>Role</th></tr>
-			<tr><td>{{ role['role'] if role else '' }}</td></tr>
-		</table>
-		<br>
-	<h2 style="color:#f5f5f5;">Committees</h2>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5;">
-			<tr><th>Committee</th></tr>
-			{% for key, value in committees.items() %}
-			<tr><td>{{ key }}: {{ value }}</td></tr>
+		<h2 style="color:#f5f5f5;">Committees</h2>
+		<div style="text-align:right; max-width:700px; margin:auto;">
+			<button onclick="openModal('editCommitteesModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Committees</button>
+		</div>
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th style="border:2px solid #222;">Committee</th></tr>
+			{% set committee_rows = [] %}
+			{% for key in committee_names|sort %}
+				{% if committees[key]|default(0) == 1 %}
+					{% set _ = committee_rows.append('<tr><td style="border:2px solid #222;">' ~ committee_display_names[key] ~ '</td></tr>') %}
+				{% endif %}
 			{% endfor %}
+			{% if committee_rows|length > 0 %}
+				{{ committee_rows|join('\n')|safe }}
+			{% else %}
+				<tr><td style="border:2px solid #222; color:#888; font-style:italic;">No committee memberships</td></tr>
+			{% endif %}
 		</table>
 		<br>
 		<a href="{{ url_for('index') }}">Back to Member List</a>
+<!-- Edit Committees Modal -->
+<div id="editCommitteesModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<h3 style="text-align:center;">Edit Committee Memberships</h3>
+		<form id="editCommitteesForm">
+			<input type="hidden" name="member_id" value="{{ member['id'] }}">
+			<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:center;">
+				{% for cname in committee_names|sort %}
+					<label for="committee_{{ cname }}">{{ committee_display_names[cname] }}</label>
+					<input type="checkbox" id="committee_{{ cname }}" name="committee_{{ cname }}" value="1" {% if committees[cname]|default(0) == 1 %}checked{% endif %}>
+				{% endfor %}
+			</div>
+			<div style="margin-top:18px; text-align:center;">
+				<button type="button" onclick="submitSection('committees')" style="margin-right:12px;">Save</button>
+				<button type="button" onclick="closeModal('editCommitteesModal')">Cancel</button>
+			</div>
+		</form>
+	</div>
+</div>
 	</div>
 <!-- Popup Modals for Editing Sections -->
 <div id="personalModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
@@ -145,10 +456,21 @@
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
 				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}">
 				<label for="membership_type">Membership Type:</label><input type="text" id="membership_type" name="membership_type" value="{{ member['membership_type'] }}">
-		<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date" value="{{ member['join_date'] }}">
+				<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date" value="{{ member['join_date'] }}">
 				<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}">
 				<label for="card_internal">Card Internal:</label><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}">
 				<label for="card_external">Card External:</label><input type="text" id="card_external" name="card_external" value="{{ member['card_external'] }}">
+				<label for="position">Executive Role:</label>
+				<select id="position" name="position" style="width:100%;">
+					<option value="" {% if not position or not position['position'] %}selected{% endif %}></option>
+					<option value="President" {% if position and position['position'] == 'President' %}selected{% endif %}>President</option>
+					<option value="Vice President" {% if position and position['position'] == 'Vice President' %}selected{% endif %}>Vice President</option>
+					<option value="Treasurer" {% if position and position['position'] == 'Treasurer' %}selected{% endif %}>Treasurer</option>
+					<option value="Secretary" {% if position and position['position'] == 'Secretary' %}selected{% endif %}>Secretary</option>
+					<option value="Trustee" {% if position and position['position'] == 'Trustee' %}selected{% endif %}>Trustee</option>
+				</select>
+				<label for="term_start">Term Start:</label><input type="date" id="term_start" name="term_start" value="{{ position['term_start'] if position and position['term_start'] else '' }}">
+				<label for="term_end">Term End:</label><input type="date" id="term_end" name="term_end" value="{{ position['term_end'] if position and position['term_end'] else '' }}">
 			</div>
 					<div style="margin-top:18px; text-align:center;">
 						<button type="button" onclick="submitSection('membership')" style="margin-right:12px;">Save</button>
@@ -284,9 +606,16 @@ function closeModal(id) {
 }
 
 function submitSection(section) {
-	var form = document.getElementById(section + 'Form');
+	var formId = section === 'committees' ? 'editCommitteesForm' : section + 'Form';
+	var form = document.getElementById(formId);
 	var formData = new FormData(form);
-	fetch(`/edit_section/${formData.get('member_id')}?section=${section}`, {
+	let url;
+	if (section === 'committees') {
+		url = `/edit_committees/${formData.get('member_id')}`;
+	} else {
+		url = `/edit_section/${formData.get('member_id')}?section=${section}`;
+	}
+	fetch(url, {
 		method: 'POST',
 		body: formData
 	}).then(response => {

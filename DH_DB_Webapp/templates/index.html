@@ -14,7 +14,7 @@
             <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:120px; margin-left:32px;">
         </div>
         <form method="get" action="{{ url_for('index') }}" style="width:100%; max-width:700px; margin-bottom:10px; display:flex; justify-content:center; align-items:center;">
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by name or badge" style="width:400px; height:38px; font-size:1.2em; padding:0 16px; border-radius:6px; border:1px solid #ccc; margin-right:12px;">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search all columns..." style="width:400px; height:38px; font-size:1.2em; padding:0 16px; border-radius:6px; border:1px solid #ccc; margin-right:12px;">
             <button type="submit" style="height:38px; font-size:1em; margin-right:8px;">Search</button>
             <button type="button" onclick="window.location='{{ url_for('index') }}'" style="height:38px; font-size:1em;">Reset</button>
         </form>
