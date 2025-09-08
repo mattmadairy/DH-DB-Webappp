@@ -8,9 +8,9 @@
 				<input type="date" id="edit_work_date" name="work_date" required style="width:100%; margin-bottom:10px;"><br>
 				<label for="edit_activity">Activity:</label><br>
 				<select id="edit_activity" name="activity" required style="width:100%; margin-bottom:10px;">
-					{% for cname in committee_names %}
-						<option value="{{ cname }}">{{ cname }}</option>
-					{% endfor %}
+					   {% for cname in committee_names|sort %}
+						   <option value="{{ cname }}">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</option>
+					   {% endfor %}
 				</select><br>
 				<label for="edit_work_hours">Hours:</label><br>
 				<input type="number" id="edit_work_hours" name="work_hours" min="0" step="0.1" required style="width:100%; margin-bottom:10px;"><br>
@@ -71,101 +71,185 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script>
+function showTab(event, tabName) {
+	event.preventDefault();
+	// Remove active from all tablinks
+	document.querySelectorAll('.tablink').forEach(function(link) {
+		link.classList.remove('active');
+	});
+	// Hide all tabcontent except modals
+	document.querySelectorAll('.tabcontent').forEach(function(content) {
+		content.classList.remove('active');
+	});
+	// Show selected tabcontent
+	var selected = document.getElementById('tab-' + tabName);
+	if (selected) {
+		selected.classList.add('active');
+	}
+	// Set active tablink
+	event.target.classList.add('active');
+	// Save selected tab to localStorage
+	localStorage.setItem('selectedTab', tabName);
+}
+
+// Restore selected tab on page load
+document.addEventListener('DOMContentLoaded', function() {
+	var tabName = localStorage.getItem('selectedTab');
+	if (tabName && document.getElementById('tab-' + tabName)) {
+		// Find the tablink for this tab
+		var tablink = document.querySelector('.tablink[data-tab="' + tabName + '"]');
+		if (tablink) {
+			tablink.click();
+		}
+	}
+});
+
+// Ensure modals are always visible above tabs
+function openModal(id) {
+	document.getElementById(id).style.display = 'block';
+	document.getElementById(id).style.zIndex = 2000;
+}
+</script>
 	<title>{{ member['first_name'] }} {{ member['last_name'] }} - Member Details</title>
+<style>
+	.tabbar {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 32px;
+	}
+	.tablink {
+		display: inline-block;
+		min-width: 100px;
+		padding: 8px 0;
+		margin: 0 4px;
+		border-radius: 6px;
+		border: 1px solid #ccc;
+		background-color: #f8f8f8;
+		color: #333;
+		text-decoration: none;
+		font-weight: normal;
+		box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+		cursor: pointer;
+		text-align: center;
+	}
+	.tablink.active {
+		background-color: rgb(255,255,0);
+		font-weight: bold;
+	}
+	.tabcontent { display: none; }
+	.tabcontent.active { display: block; }
+</style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
-	<div style="display:flex; flex-direction:column; align-items:center;">
-		<div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
-			<img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Left" style="height:80px; margin-right:32px;">
-			<div style="text-align:center;">
-				<h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
-				<h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
-				<h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">
-					Member Details -
-					{% if position and position['position'] %}
-						{{ position['position'] }}
-					{% endif %}
-					{{ member['first_name'] }} {{ member['last_name'] }}
-					{% if member['badge_number'] %}
-						(#{{ member['badge_number'] }})
-					{% endif %}
-				</h2>
-			</div>
-			<img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:80px; margin-left:32px;">
-		</div>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Personal Info</th></tr>
-			<tr><td style="border:2px solid #222;"><b>First Name:</b></td><td style="border:2px solid #222;">{{ member['first_name'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Middle Name:</b></td><td style="border:2px solid #222;">{{ member['middle_name'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Last Name:</b></td><td style="border:2px solid #222;">{{ member['last_name'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Suffix:</b></td><td style="border:2px solid #222;">{{ member['suffix'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Nickname:</b></td><td style="border:2px solid #222;">{{ member['nickname'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Date of Birth:</b></td><td style="border:2px solid #222;">{{ member['dob']|format_mmddyyyy }}</td></tr>
-		</table>
-		<div style="text-align:right; max-width:700px; margin:auto;">
-			<button onclick="openModal('personalModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Personal Info</button>
-		</div>
-		<br>
-		<div style="position:absolute; top:24px; left:32px; z-index:10;">
-			<a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
-		</div>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-		<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Membership Info</th></tr>
-		<tr><td style="border:2px solid #222;"><b>Badge Number:</b></td><td style="border:2px solid #222;">{{ member['badge_number'] }}</td></tr>
-		<tr><td style="border:2px solid #222;"><b>Membership Type:</b></td><td style="border:2px solid #222;">{{ member['membership_type'] }}</td></tr>
-		<tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
-		<tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
-	</tr>
-		<tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
-		<tr><td style="border:2px solid #222;"><b>Card/Fob External Number:</b></td><td style="border:2px solid #222;">{{ member['card_external'] }}</td></tr>
-		<tr>
-			<td style="border:2px solid #222;"><b>Executive Role:</b></td>
-			<td style="border:2px solid #222;">
-				{{ position['position'] if position else '' }}
-				{% if position and (position['term_start'] or position['term_end']) %}
-					<span style="font-style:italic; color:#444;">&nbsp;
-						{% if position['term_start'] and position['term_end'] %}
-							({{ position['term_start']|format_mmddyyyy }} until {{ position['term_end']|format_mmddyyyy }})
-						{% elif position['term_start'] %}
-							({{ position['term_start']|format_mmddyyyy }})
-						{% elif position['term_end'] %}
-							(until {{ position['term_end']|format_mmddyyyy }})
-						{% endif %}
-					</span>
-				{% endif %}
-			</td>
-		</tr>
-	</table>
-	<div style="text-align:right; max-width:700px; margin:auto;">
-		<button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
-	</div>
-	<br>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Contact Info</th></tr>
-			<tr><td style="border:2px solid #222;"><b>Primary Email:</b></td><td style="border:2px solid #222;">{{ member['email'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Secondary Email:</b></td><td style="border:2px solid #222;">{{ member['email2'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Primary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Secondary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone2'] }}</td></tr>
-		</table>
-		<div style="text-align:right; max-width:700px; margin:auto;">
-			<button onclick="openModal('contactModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Contact Info</button>
-		</div>
-		<br>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Address Info</th></tr>
-			<tr><td style="border:2px solid #222;"><b>Address:</b></td><td style="border:2px solid #222;">{{ member['address'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>City:</b></td><td style="border:2px solid #222;">{{ member['city'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>State:</b></td><td style="border:2px solid #222;">{{ member['state'] }}</td></tr>
-			<tr><td style="border:2px solid #222;"><b>Zip Code:</b></td><td style="border:2px solid #222;">{{ member['zip'] }}</td></tr>
-		</table>
-		<div style="text-align:right; max-width:700px; margin:auto;">
-			<button onclick="openModal('addressModal')" style="display:inline-block; padding:6px 18px; margin-top:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Address Info</button>
-		</div>
-		<br>
-	<h2 style="color:#f5f5f5;">Dues</h2>
-	<div style="text-align:right; max-width:700px; margin:auto;">
-	<button onclick="openModal('duesModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Dues Payment</button>
-	</div>
+	   <div style="display:flex; flex-direction:column; align-items:center;">
+		   <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+			   <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Left" style="height:80px; margin-right:32px;">
+			   <div style="text-align:center;">
+				   <h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
+				   <h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
+				   <h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">
+					   Member Details -
+					   {% if position and position['position'] %}
+						   {{ position['position'] }}
+					   {% endif %}
+					   {{ member['first_name'] }} {{ member['last_name'] }}
+					   {% if member['badge_number'] %}
+						   (#{{ member['badge_number'] }})
+					   {% endif %}
+				   </h2>
+			   </div>
+			   <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:80px; margin-left:32px;">
+		   </div>
+		   <!-- Tabs Navigation -->
+		   <div class="tabbar" style="width:100%; max-width:700px; margin:auto;">
+			   <a href="#" class="tablink active" data-tab="personal" onclick="showTab(event, 'personal')">Personal</a>
+			   <a href="#" class="tablink" data-tab="membership" onclick="showTab(event, 'membership')">Membership</a>
+			   <a href="#" class="tablink" data-tab="contact" onclick="showTab(event, 'contact')">Contact</a>
+			   <a href="#" class="tablink" data-tab="address" onclick="showTab(event, 'address')">Address</a>
+			   <a href="#" class="tablink" data-tab="dues" onclick="showTab(event, 'dues')">Dues</a>
+			   <a href="#" class="tablink" data-tab="workhours" onclick="showTab(event, 'workhours')">Work Hours</a>
+			   <a href="#" class="tablink" data-tab="meetings" onclick="showTab(event, 'meetings')">Meetings</a>
+			   <a href="#" class="tablink" data-tab="committees" onclick="showTab(event, 'committees')">Committees</a>
+		   </div>
+		   <div style="height:24px;"></div>
+		   <!-- Tab Content -->
+		<div id="tab-personal" class="tabcontent active">
+		   <!-- Personal Info Section -->
+		   <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Personal Info</th></tr>
+			   <tr><td style="border:2px solid #222;"><b>First Name:</b></td><td style="border:2px solid #222;">{{ member['first_name'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Middle Name:</b></td><td style="border:2px solid #222;">{{ member['middle_name'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Last Name:</b></td><td style="border:2px solid #222;">{{ member['last_name'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Suffix:</b></td><td style="border:2px solid #222;">{{ member['suffix'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Nickname:</b></td><td style="border:2px solid #222;">{{ member['nickname'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Date of Birth:</b></td><td style="border:2px solid #222;">{{ member['dob']|format_mmddyyyy }}</td></tr>
+		   </table>
+		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			   <button onclick="openModal('personalModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Personal Info</button>
+		   </div>
+	   </div>
+	<div id="tab-membership" class="tabcontent">
+		   <!-- Membership Info Section -->
+		   <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Membership Info</th></tr>
+			   <tr><td style="border:2px solid #222;"><b>Badge Number:</b></td><td style="border:2px solid #222;">{{ member['badge_number'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Membership Type:</b></td><td style="border:2px solid #222;">{{ member['membership_type'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Card/Fob External Number:</b></td><td style="border:2px solid #222;">{{ member['card_external'] }}</td></tr>
+			   <tr>
+				   <td style="border:2px solid #222;"><b>Executive Role:</b></td>
+				   <td style="border:2px solid #222;">
+					   {{ position['position'] if position else '' }}
+					   {% if position and (position['term_start'] or position['term_end']) %}
+						   <span style="font-style:italic; color:#444;">&nbsp;
+							   {% if position['term_start'] and position['term_end'] %}
+								   ({{ position['term_start']|format_mmddyyyy }} until {{ position['term_end']|format_mmddyyyy }})
+							   {% elif position['term_start'] %}
+								   ({{ position['term_start']|format_mmddyyyy }})
+							   {% elif position['term_end'] %}
+								   (until {{ position['term_end']|format_mmddyyyy }})
+							   {% endif %}
+						   </span>
+					   {% endif %}
+				   </td>
+			   </tr>
+		   </table>
+		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			   <button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
+		   </div>
+	   </div>
+	<div id="tab-contact" class="tabcontent">
+		   <!-- Contact Info Section -->
+		   <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Contact Info</th></tr>
+			   <tr><td style="border:2px solid #222;"><b>Primary Email:</b></td><td style="border:2px solid #222;">{{ member['email'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Secondary Email:</b></td><td style="border:2px solid #222;">{{ member['email2'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Primary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Secondary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone2'] }}</td></tr>
+		   </table>
+		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			   <button onclick="openModal('contactModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Contact Info</button>
+		   </div>
+	   </div>
+	<div id="tab-address" class="tabcontent">
+		   <!-- Address Info Section -->
+		   <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Address Info</th></tr>
+			   <tr><td style="border:2px solid #222;"><b>Address:</b></td><td style="border:2px solid #222;">{{ member['address'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>City:</b></td><td style="border:2px solid #222;">{{ member['city'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>State:</b></td><td style="border:2px solid #222;">{{ member['state'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Zip Code:</b></td><td style="border:2px solid #222;">{{ member['zip'] }}</td></tr>
+		   </table>
+		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			   <button onclick="openModal('addressModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Address Info</button>
+		   </div>
+	   </div>
+	<div id="tab-dues" class="tabcontent">
+		   <!-- Dues Section -->
+           
 		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
 			<tr><th style="border:2px solid #222;">Payment Date</th><th style="border:2px solid #222;">Amount</th><th style="border:2px solid #222;">Actions</th></tr>
 			{% for due in dues %}
@@ -179,12 +263,75 @@
 			</tr>
 			{% endfor %}
 		</table>
-		<br>
-	<h2 id="work-hours" style="color:#f5f5f5;">Work Hours</h2>
-	<div style="text-align:right; max-width:700px; margin:auto;">
-		<button onclick="openModal('workHoursModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Work Hours</button>
+		<div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			<button onclick="openModal('duesModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Dues Payment</button>
+		</div>
 	</div>
 
+	<div id="tab-workhours" class="tabcontent">
+        
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th>Date</th><th>Activity</th><th>Hours</th><th>Notes</th><th>Actions</th></tr>
+			{% for wh in work_hours %}
+			<tr>
+				<td style="border:2px solid #222;">{{ wh['date']|format_mmddyyyy }}</td>
+				<td style="border:2px solid #222;">{{ (work_activity_display_names[wh['activity']] if work_activity_display_names and wh['activity'] in work_activity_display_names else wh['activity']).replace('_', ' ').title() }}</td>
+				<td style="border:2px solid #222;">{{ wh['hours'] }}</td>
+				<td style="border:2px solid #222;">{{ wh['notes'] }}</td>
+				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
+					<button onclick="editWorkHours({{ wh['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button onclick="deleteWorkHours({{ wh['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+				</td>
+			</tr>
+			{% endfor %}
+		</table>
+		<div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			<button onclick="openModal('workHoursModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Work Hours</button>
+		</div>
+	</div>
+
+	<div id="tab-meetings" class="tabcontent">
+        
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th>Date</th><th>Status</th><th>Actions</th></tr>
+			{% for mtg in meetings %}
+			<tr>
+				<td style="border:2px solid #222;">{{ mtg['meeting_date']|format_mmddyyyy }}</td>
+				<td style="border:2px solid #222;">{{ mtg['status'] }}</td>
+				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
+					<button onclick="editMeeting({{ mtg['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button onclick="deleteMeeting({{ mtg['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+				</td>
+			</tr>
+			{% endfor %}
+		</table>
+		<div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			<button onclick="openModal('addMeetingModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Meeting Attendance</button>
+		</div>
+	</div>
+
+	<div id="tab-committees" class="tabcontent">
+        
+		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr><th>Committee</th><th>Member?</th></tr>
+			{% for cname in committee_names|sort %}
+			<tr>
+				<td style="border:2px solid #222;">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</td>
+				<td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default(0) == 1 %}✔️{% else %}—{% endif %}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		<div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
+			<button onclick="openModal('editCommitteesModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Committees</button>
+		</div>
+	</div>
+	</div>
+		<!-- Committees Section only inside tab-committees tabcontent -->
+	   </div>
+		<div style="position:absolute; top:24px; left:32px; z-index:10;">
+			<a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
+		</div>
+	<!-- All main tables/sections are now inside their respective tabcontent divs above. Removed duplicate tables outside tabcontent. -->
 	<!-- Work Hours Modal -->
 	<div id="workHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
@@ -194,9 +341,9 @@
 				<input type="date" id="work_date" name="work_date" required style="width:100%; margin-bottom:10px;"><br>
 				<label for="work_activity">Activity:</label><br>
 				<select id="work_activity" name="activity" required style="width:100%; margin-bottom:10px;">
-					{% for cname in committee_names %}
-						<option value="{{ cname }}">{{ cname }}</option>
-					{% endfor %}
+					   {% for cname in committee_names|sort %}
+						   <option value="{{ cname }}">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</option>
+					   {% endfor %}
 				</select><br>
 				<label for="work_hours">Hours:</label><br>
 				<input type="number" id="work_hours" name="work_hours" min="0" step="0.1" required style="width:100%; margin-bottom:10px;"><br>
@@ -234,61 +381,7 @@
 		});
 	};
 	</script>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr>
-				<th style="border:2px solid #222;">Date</th>
-				<th style="border:2px solid #222;">Activity</th>
-				<th style="border:2px solid #222;">Hours</th>
-				<th style="border:2px solid #222;">Notes</th>
-				<th style="border:2px solid #222;">Actions</th>
-			</tr>
-			{% for wh in work_hours %}
-			<tr>
-				<td style="border:2px solid #222;">{{ wh['date']|format_mmddyyyy }}</td>
-				<td style="border:2px solid #222;">{{ wh['activity'] }}</td>
-				<td style="border:2px solid #222;">{{ wh['hours'] }}</td>
-				<td style="border:2px solid #222;">{{ wh['notes'] }}</td>
-				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-					<button onclick="editWorkHours({{ wh['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-					<button onclick="deleteWorkHours({{ wh['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
-				</td>
-			</tr>
-			{% endfor %}
-			<tr style="background:#eaeaea; font-weight:bold;">
-				<td colspan="2" style="text-align:right; border:2px solid #222;">Total Hours:</td>
-				<td style="border:2px solid #222;">{{ total_work_hours }}</td>
-				<td style="border:2px solid #222;"></td>
-				<td style="border:2px solid #222;"></td>
-			</tr>
-		</table>
-		<br>
-	<h2 style="color:#f5f5f5;">Meeting Attendance</h2>
-	<div style="text-align:right; max-width:700px; margin:auto;">
-		<button onclick="openModal('addMeetingModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-weight:normal; cursor:pointer;">➕ Add Meeting</button>
-	</div>
-	<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-		<tr>
-			<th style="border:2px solid #222;">Meeting Date</th>
-			<th style="border:2px solid #222;">Status</th>
-			<th style="border:2px solid #222;">Actions</th>
-		</tr>
-		{% for att in attendance %}
-		<tr>
-			<td style="border:2px solid #222;">{{ att['meeting_date']|format_mmddyyyy }}</td>
-			<td style="border:2px solid #222;">{{ att['status'] }}</td>
-			<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-				<button onclick="editMeeting({{ att['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-				<button onclick="deleteMeeting({{ att['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
-			</td>
-		</tr>
-		{% endfor %}
-		<tr style="background:#eaeaea; font-weight:bold;">
-			<td style="text-align:right; border:2px solid #222;">Total Meetings:</td>
-			<td style="border:2px solid #222;">{{ total_meetings }}</td>
-			<td style="border:2px solid #222;"></td>
-		</tr>
-	</table>
-
+	<!-- Removed Dues and Meeting Attendance tables/headers outside tabcontent. These sections now only show in their respective tabs. -->
 	<!-- Add Meeting Modal -->
 	<div id="addMeetingModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
@@ -385,27 +478,7 @@
 		});
 	}
 	</script>
-		<br>
-		<h2 style="color:#f5f5f5;">Committees</h2>
-		<div style="text-align:right; max-width:700px; margin:auto;">
-			<button onclick="openModal('editCommitteesModal')" style="display:inline-block; padding:6px 18px; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Committees</button>
-		</div>
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th style="border:2px solid #222;">Committee</th></tr>
-			{% set committee_rows = [] %}
-			{% for key in committee_names|sort %}
-				{% if committees[key]|default(0) == 1 %}
-					{% set _ = committee_rows.append('<tr><td style="border:2px solid #222;">' ~ committee_display_names[key] ~ '</td></tr>') %}
-				{% endif %}
-			{% endfor %}
-			{% if committee_rows|length > 0 %}
-				{{ committee_rows|join('\n')|safe }}
-			{% else %}
-				<tr><td style="border:2px solid #222; color:#888; font-style:italic;">No committee memberships</td></tr>
-			{% endif %}
-		</table>
-		<br>
-		<a href="{{ url_for('index') }}">Back to Member List</a>
+	<!-- Committees section removed from here; only inside tab-committees tabcontent. -->
 <!-- Edit Committees Modal -->
 <div id="editCommitteesModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
@@ -419,7 +492,24 @@
 				{% endfor %}
 			</div>
 			<div style="margin-top:18px; text-align:center;">
-				<button type="button" onclick="submitSection('committees')" style="margin-right:12px;">Save</button>
+				<button type="button" onclick="submitCommittees()" style="margin-right:12px;">Save</button>
+<script>
+function submitCommittees() {
+	var form = document.getElementById('editCommitteesForm');
+	var formData = new FormData(form);
+	var memberId = form.member_id.value;
+	fetch(`/edit_section/${memberId}?section=committees`, {
+		method: 'POST',
+		body: formData
+	}).then(function(resp) {
+		if (resp.ok) {
+			location.reload();
+		} else {
+			alert('Error saving committee changes');
+		}
+	});
+}
+</script>
 				<button type="button" onclick="closeModal('editCommitteesModal')">Cancel</button>
 			</div>
 		</form>

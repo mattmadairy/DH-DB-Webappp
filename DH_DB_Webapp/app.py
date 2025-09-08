@@ -53,45 +53,47 @@ def index():
 
 @app.route('/member/<int:member_id>')
 def member_details(member_id):
-    member = database.get_member_by_id(member_id)
-    if not member:
-        return "Member not found", 404
-    member = dict(member) if member else None
-    dues = database.get_dues_by_member(member_id)
-    work_hours = database.get_work_hours_by_member(member_id)
-    total_work_hours = sum(wh['hours'] for wh in work_hours)
-    attendance = database.get_meeting_attendance(member_id)
-    position = database.get_member_position(member_id)
-    committees = database.get_member_committees(member_id)
-    total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
-    exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-    committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
-    committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-    return render_template(
-        'member_details.html',
-        member=member,
-        dues=dues,
-        work_hours=work_hours,
-        total_work_hours=total_work_hours,
-        attendance=attendance,
-        position=position,
-        committees=committees,
-        committee_names=committee_names,
-        committee_display_names=committee_display_names,
-        total_meetings=total_meetings
-    )
-
-@app.route('/edit_committees/<int:member_id>', methods=['POST'])
-def edit_committees(member_id):
-    committees = database.get_member_committees(member_id)
-    exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-    committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys]
-    updates = {}
-    for cname in committee_names:
-        form_key = f'committee_{cname}'
-        updates[cname] = 1 if request.form.get(form_key) == '1' else 0
-    database.update_member_committees(member_id, updates)
-    return ('', 204)
+	member = database.get_member_by_id(member_id)
+	if not member:
+		return "Member not found", 404
+	member = dict(member) if member else None
+	dues = database.get_dues_by_member(member_id)
+	work_hours = database.get_work_hours_by_member(member_id)
+	total_work_hours = sum(wh['hours'] for wh in work_hours)
+	attendance = database.get_meeting_attendance(member_id)
+	position = database.get_member_position(member_id)
+	committees = database.get_member_committees(member_id)
+	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
+	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
+	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+	# Map raw activity names to display names
+	activity_display_names = {
+		'general_maintenance': 'General Maintenance',
+		'event_setup': 'Event Setup',
+		'event_cleanup': 'Event Cleanup',
+		'fundraising': 'Fundraising',
+		'committee_work': 'Committee Work',
+		'building_and_grounds': 'Building/Grounds',
+		'gun_bingo_social_events': 'Gun Bingo/Social Events',
+		'executive_committee': 'Executive',
+		'other': 'Other'
+	}
+	return render_template(
+		'member_details.html',
+		member=member,
+		dues=dues,
+		work_hours=work_hours,
+		total_work_hours=total_work_hours,
+		attendance=attendance,
+		meetings=attendance,
+		position=position,
+		committees=committees,
+		committee_names=committee_names,
+		committee_display_names=committee_display_names,
+		total_meetings=total_meetings,
+		work_activity_display_names=activity_display_names
+	)
 
 # Member Report route
 @app.route('/member_report/<int:member_id>')
@@ -245,6 +247,23 @@ def edit_section(member_id):
 			})
 		elif section == 'dues':
 			database.add_due(member_id, request.form['payment_date'], request.form['amount'])
+		elif section == 'committees':
+			import logging
+			logging.basicConfig(level=logging.DEBUG)
+			committees = database.get_member_committees(member_id)
+			exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+			committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys]
+			updates = {}
+			for cname in committee_names:
+				form_key = f'committee_{cname}'
+				value = request.form.get(form_key)
+				updates[cname] = 1 if value == '1' else 0
+				logging.debug(f"Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
+			logging.debug(f"Updates dict: {updates}")
+			try:
+				database.update_member_committees(member_id, updates)
+			except Exception as e:
+				logging.error(f"Error updating committees for member {member_id}: {e}")
 		return ('', 204)  # AJAX expects empty response
 	# For GET, just show a message (should not be used with popup)
 	return f"Edit {section} for member {member_id}"  # Replace with render_template as needed
@@ -258,8 +277,7 @@ def get_due(due_id):
         "id": due["id"],
         "payment_date": due["payment_date"],
         "amount": due["amount"]
-    }
-
+	}
 @app.route('/edit_due/<int:due_id>', methods=['POST'])
 def edit_due(due_id):
     payment_date = request.form['payment_date']

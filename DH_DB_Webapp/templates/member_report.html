@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Member Report - {{ member['first_name'] }} {{ member['last_name'] }}</title>
+	<style>
+		body { background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222; }
+		h1, h2 { text-align:center; }
+		table { margin:auto; width:100%; max-width:800px; border-collapse:collapse; background:#f9f9f9; }
+		th, td { border:1px solid #888; padding:8px; }
+		th { background:#eee; }
+		.section { margin:32px 0 16px 0; }
+	</style>
+</head>
+<body>
+	<h1>Member Report</h1>
+	<h2>{{ member['first_name'] }} {{ member['last_name'] }} (Badge #{{ member['badge_number'] }})</h2>
+	<div class="section">
+		<table>
+			<tr><th colspan="2">Personal Info</th></tr>
+			<tr><td><b>Membership Type:</b></td><td>{{ member['membership_type'] }}</td></tr>
+			<tr><td><b>Nickname:</b></td><td>{{ member['nickname'] }}</td></tr>
+			<tr><td><b>Date of Birth:</b></td><td>{{ member['dob'] }}</td></tr>
+			<tr><td><b>Email:</b></td><td>{{ member['email'] }}</td></tr>
+			<tr><td><b>Phone:</b></td><td>{{ member['phone'] }}</td></tr>
+			<tr><td><b>Address:</b></td><td>{{ member['address'] }}, {{ member['city'] }}, {{ member['state'] }} {{ member['zip'] }}</td></tr>
+			<tr><td><b>Join Date:</b></td><td>{{ member['join_date'] }}</td></tr>
+			<tr><td><b>Sponsor:</b></td><td>{{ member['sponsor'] }}</td></tr>
+		</table>
+	</div>
+	<div class="section">
+		<table>
+			<tr><th colspan="3">Dues Payments</th></tr>
+			<tr><th>Date</th><th>Amount</th></tr>
+			{% for due in dues %}
+			<tr>
+				<td>{{ due['payment_date']|format_mmddyyyy }}</td>
+				<td>{{ '%.2f'|format(due['amount']) }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+	<div class="section">
+		<table>
+			<tr><th colspan="4">Work Hours</th></tr>
+			<tr><th>Date</th><th>Activity</th><th>Hours</th><th>Notes</th></tr>
+			{% for wh in work_hours %}
+			<tr>
+				<td>{{ wh['date']|format_mmddyyyy }}</td>
+				<td>{{ wh['activity'].replace('_', ' ').title() }}</td>
+				<td>{{ wh['hours'] }}</td>
+				<td>{{ wh['notes'] }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+	<div class="section">
+		<table>
+			<tr><th colspan="3">Meeting Attendance</th></tr>
+			<tr><th>Date</th><th>Status</th></tr>
+			{% for mtg in attendance %}
+			<tr>
+				<td>{{ mtg['meeting_date']|format_mmddyyyy }}</td>
+				<td>{{ mtg['status'] }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+	<div class="section">
+		<table>
+			<tr><th colspan="2">Committees</th></tr>
+			<tr><th>Committee</th><th>Member?</th></tr>
+			{% for cname, val in committees.items() %}
+			<tr>
+				<td>{{ cname.replace('_', ' ').title() }}</td>
+				<td>{% if val == 1 %}✔️{% else %}—{% endif %}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+</body>
+</html>
