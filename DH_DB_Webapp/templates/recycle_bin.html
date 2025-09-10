@@ -4,20 +4,30 @@
     <title>Recycle Bin - Dug Hill Rod & Gun Club</title>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
-    <div style="display:flex; flex-direction:column; align-items:center;">
-        <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
-            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Left" style="height:80px; margin-right:32px;">
-            <div style="text-align:center;">
-                <h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
-                <h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
-                <h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">Recycle Bin</h2>
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <!-- Reports button removed on recycle bin page -->
+            <form action="{{ url_for('recycle_bin_restore_all') }}" method="post" style="width:170px; margin-bottom:12px;">
+                <button type="submit" onclick="return confirm('Restore ALL members from the recycle bin?')" style="width:100%; padding:8px 0; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer;">↩️ Restore All</button>
+            </form>
+            <form action="{{ url_for('recycle_bin_delete_all') }}" method="post" style="width:170px; margin-bottom:12px;">
+                <button type="submit" onclick="return confirm('Permanently DELETE ALL members in the recycle bin? This cannot be undone.')" style="width:100%; padding:8px 0; border-radius:6px; border:1px solid #c00; background-color:#ffeaea; color:#c00; cursor:pointer;">🗑️ Permanently Delete All</button>
+            </form>
+        </div>
+        <!-- Main content area shifted right to accommodate side menu -->
+        <div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+            <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+                <div style="text-align:center; width:100%;">
+                    <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                    <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+                    <h2 style="margin-top:2em; margin-bottom:0.4em; color:#f5f5f5; font-weight:normal;">Recycle Bin</h2>
+                    <!-- Restore All and Permanently Delete All buttons moved to sidebar -->
+                </div>
             </div>
-            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:80px; margin-left:32px;">
-        </div>
-        <div style="position:absolute; top:24px; left:32px; z-index:10;">
-            <a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
-        </div>
-        <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:900px; table-layout:fixed; background-color:#f5f5f5;">
+            <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:900px; table-layout:fixed; background-color:#f5f5f5;">
             <tr>
                 <th style="width:70px;">Badge</th>
                 <th style="width:90px;">Type</th>

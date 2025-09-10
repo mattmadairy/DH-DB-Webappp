@@ -1,6 +1,7 @@
 	<!-- Edit Work Hours Modal -->
 	<div id="editWorkHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('editWorkHoursModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="margin-top:0;">Edit Work Hours</h3>
 			<form id="editWorkHoursForm">
 				<input type="hidden" id="edit_wh_id" name="wh_id">
@@ -142,37 +143,46 @@ function openModal(id) {
 </style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
-	   <div style="display:flex; flex-direction:column; align-items:center;">
-		   <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
-			   <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Left" style="height:80px; margin-right:32px;">
-			   <div style="text-align:center;">
-				   <h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
-				   <h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
-				   <h2 style="margin-top:2em; margin-bottom:0em; color:#f5f5f5; font-weight:normal;">
-					   Member Details -
-					   {% if position and position['position'] %}
-						   {{ position['position'] }}
-					   {% endif %}
-					   {{ member['first_name'] }} {{ member['last_name'] }}
-					   {% if member['badge_number'] %}
-						   (#{{ member['badge_number'] }})
-					   {% endif %}
-				   </h2>
-			   </div>
-			   <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:80px; margin-left:32px;">
-		   </div>
-		   <!-- Tabs Navigation -->
-		   <div class="tabbar" style="width:100%; max-width:700px; margin:auto;">
-			   <a href="#" class="tablink active" data-tab="personal" onclick="showTab(event, 'personal')">Personal</a>
-			   <a href="#" class="tablink" data-tab="membership" onclick="showTab(event, 'membership')">Membership</a>
-			   <a href="#" class="tablink" data-tab="contact" onclick="showTab(event, 'contact')">Contact</a>
-			   <a href="#" class="tablink" data-tab="address" onclick="showTab(event, 'address')">Address</a>
-			   <a href="#" class="tablink" data-tab="dues" onclick="showTab(event, 'dues')">Dues</a>
-			   <a href="#" class="tablink" data-tab="workhours" onclick="showTab(event, 'workhours')">Work Hours</a>
-			   <a href="#" class="tablink" data-tab="meetings" onclick="showTab(event, 'meetings')">Meetings</a>
-			   <a href="#" class="tablink" data-tab="committees" onclick="showTab(event, 'committees')">Committees</a>
-		   </div>
-		   <div style="height:24px;"></div>
+	<div style="display:flex; flex-direction:row;">
+		<!-- Static Side Menu -->
+		<div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+			<img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+			<a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+			<a href="{{ url_for('member_report', member_id=member['id']) }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">� Member Report</a>
+		</div>
+		<!-- Main content area shifted right to accommodate side menu -->
+		<div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+			<div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+				<div style="text-align:center; width:100%;">
+					<h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+					<h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+				</div>
+			</div>
+			<h2 style="margin-top:-0.7em; margin-bottom:0.2em; color:#f5f5f5; font-weight:normal; text-align:center; font-size:2em;">Member Details</h2>
+			<div style="height:8px;"></div>
+			<h3 style="margin-top:0; margin-bottom:0.2em; color:#f5f5f5; font-weight:normal; text-align:center; font-size:1.5em;">
+				{% if position and position['position'] %}
+					{{ position['position'] }}
+				{% endif %}
+				{{ member['first_name'] }} {{ member['last_name'] }}
+				{% if member['badge_number'] %}
+					(#{{ member['badge_number'] }})
+				{% endif %}
+			</h3>
+			<div style="height:10px;"></div>
+			<!-- Member Report button moved to sidebar -->
+			<!-- Tabs Navigation -->
+			<div class="tabbar" style="width:100%; max-width:700px; margin:auto;">
+				<a href="#" class="tablink active" data-tab="personal" onclick="showTab(event, 'personal')">Personal</a>
+				<a href="#" class="tablink" data-tab="membership" onclick="showTab(event, 'membership')">Membership</a>
+				<a href="#" class="tablink" data-tab="contact" onclick="showTab(event, 'contact')">Contact</a>
+				<a href="#" class="tablink" data-tab="address" onclick="showTab(event, 'address')">Address</a>
+				<a href="#" class="tablink" data-tab="dues" onclick="showTab(event, 'dues')">Dues</a>
+				<a href="#" class="tablink" data-tab="workhours" onclick="showTab(event, 'workhours')">Work Hours</a>
+				<a href="#" class="tablink" data-tab="meetings" onclick="showTab(event, 'meetings')">Meetings</a>
+				<a href="#" class="tablink" data-tab="committees" onclick="showTab(event, 'committees')">Committees</a>
+			</div>
+			<div style="height:24px;"></div>
 		   <!-- Tab Content -->
 		<div id="tab-personal" class="tabcontent active">
 		   <!-- Personal Info Section -->
@@ -257,8 +267,8 @@ function openModal(id) {
 				<td style="border:2px solid #222;">{{ due['payment_date']|format_mmddyyyy }}</td>
 				<td style="border:2px solid #222;">{{ '%.2f'|format(due['amount']) }}</td>
 				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-					<button onclick="editDue({{ due['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-					<button onclick="deleteDue({{ due['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+					<button type="button" onclick="editDue({{ due['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button type="button" onclick="deleteDue({{ due['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
 				</td>
 			</tr>
 			{% endfor %}
@@ -279,8 +289,8 @@ function openModal(id) {
 				<td style="border:2px solid #222;">{{ wh['hours'] }}</td>
 				<td style="border:2px solid #222;">{{ wh['notes'] }}</td>
 				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-					<button onclick="editWorkHours({{ wh['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-					<button onclick="deleteWorkHours({{ wh['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+					<button type="button" onclick="editWorkHours({{ wh['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button type="button" onclick="deleteWorkHours({{ wh['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
 				</td>
 			</tr>
 			{% endfor %}
@@ -299,8 +309,8 @@ function openModal(id) {
 				<td style="border:2px solid #222;">{{ mtg['meeting_date']|format_mmddyyyy }}</td>
 				<td style="border:2px solid #222;">{{ mtg['status'] }}</td>
 				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-					<button onclick="editMeeting({{ mtg['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-					<button onclick="deleteMeeting({{ mtg['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+					<button type="button" onclick="editMeeting({{ mtg['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
+					<button type="button" onclick="deleteMeeting({{ mtg['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
 				</td>
 			</tr>
 			{% endfor %}
@@ -334,7 +344,8 @@ function openModal(id) {
 	<!-- All main tables/sections are now inside their respective tabcontent divs above. Removed duplicate tables outside tabcontent. -->
 	<!-- Work Hours Modal -->
 	<div id="workHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('workHoursModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="margin-top:0;">Add Work Hours</h3>
 			<form id="addWorkHoursForm">
 				<label for="work_date">Date:</label><br>
@@ -384,7 +395,8 @@ function openModal(id) {
 	<!-- Removed Dues and Meeting Attendance tables/headers outside tabcontent. These sections now only show in their respective tabs. -->
 	<!-- Add Meeting Modal -->
 	<div id="addMeetingModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('addMeetingModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="margin-top:0;">Add Meeting Attendance</h3>
 			<form id="addMeetingForm">
 				<label for="meeting_date">Date:</label><br>
@@ -402,7 +414,8 @@ function openModal(id) {
 
 	<!-- Edit Meeting Modal -->
 	<div id="editMeetingModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('editMeetingModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="margin-top:0;">Edit Meeting Attendance</h3>
 			<form id="editMeetingForm">
 				<input type="hidden" id="edit_meeting_id" name="meeting_id">
@@ -481,7 +494,8 @@ function openModal(id) {
 	<!-- Committees section removed from here; only inside tab-committees tabcontent. -->
 <!-- Edit Committees Modal -->
 <div id="editCommitteesModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+		<button onclick="closeModal('editCommitteesModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 		<h3 style="text-align:center;">Edit Committee Memberships</h3>
 		<form id="editCommitteesForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -518,7 +532,8 @@ function submitCommittees() {
 	</div>
 <!-- Popup Modals for Editing Sections -->
 <div id="personalModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('personalModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="text-align:center;">Edit Personal Info</h3>
 		<form id="personalForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -539,7 +554,8 @@ function submitCommittees() {
 </div>
 
 <div id="membershipModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('membershipModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="text-align:center;">Edit Membership Info</h3>
 		<form id="membershipForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -571,7 +587,8 @@ function submitCommittees() {
 </div>
 
 <div id="contactModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('contactModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="text-align:center;">Edit Contact Info</h3>
 		<form id="contactForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -590,7 +607,8 @@ function submitCommittees() {
 </div>
 
 <div id="addressModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('addressModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="text-align:center;">Edit Address Info</h3>
 		<form id="addressForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -609,7 +627,8 @@ function submitCommittees() {
 </div>
 
 <div id="duesModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+		<button onclick="closeModal('duesModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 		<h3 style="text-align:center;">Add Dues Payment</h3>
 		<form id="duesForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
@@ -627,7 +646,8 @@ function submitCommittees() {
 
 <!-- Edit Dues Payment Modal -->
 <div id="editDueModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px;">
+	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+		<button onclick="closeModal('editDueModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 		<h3 style="text-align:center;">Edit Dues Payment</h3>
 		<form id="editDueForm">
 			<input type="hidden" name="due_id" id="edit_due_id" value="">

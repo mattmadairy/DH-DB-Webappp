@@ -4,27 +4,40 @@
     <title>Dug Hill Rod & Gun Club Membership Database</title>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
-    <div style="display:flex; flex-direction:column; align-items:center;">
-        <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
-            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Left" style="height:120px; margin-right:32px;">
-            <div style="text-align:center;">
-                <h1 style="margin-bottom:0.2em; color:#f5f5f5;">Dug Hill Rod & Gun Club</h1>
-                <h1 style="margin-top:0.2em; color:#f5f5f5;">Membership Database</h1>
-            </div>
-            <img src="{{ url_for('static', filename='Club_logo_smaller-removebg-preview.png') }}" alt="Club Logo Right" style="height:120px; margin-left:32px;">
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+                <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <form onsubmit="return false;" style="width:180px; display:flex; flex-direction:row; align-items:center; margin-bottom:18px; justify-content:flex-start;">
+                <input type="text" id="dynamicSearch" placeholder="Search..." style="width:120px; height:32px; font-size:1em; padding:0 8px; border-radius:6px; border:1px solid #ccc; margin-left:4px; margin-right:6px;">
+                <button type="button" onclick="document.getElementById('dynamicSearch').value=''; filterMembers();" style="height:32px; font-size:1em; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; margin-left:2px;">✖</button>
+            </form>
+            <button onclick="openModal('addMemberModal')" style="width:170px; height:38px; font-size:1em; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">➕ Add Member</button>
+            <a href="{{ url_for('reports') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📊 Reports</a>
+            <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ View Recycle Bin</a>
         </div>
-        <form method="get" action="{{ url_for('index') }}" style="width:100%; max-width:700px; margin-bottom:10px; display:flex; justify-content:center; align-items:center;">
-            <input type="text" name="search" value="{{ search }}" placeholder="Search all columns..." style="width:400px; height:38px; font-size:1.2em; padding:0 16px; border-radius:6px; border:1px solid #ccc; margin-right:12px;">
-            <button type="submit" style="height:38px; font-size:1em; margin-right:8px;">Search</button>
-            <button type="button" onclick="window.location='{{ url_for('index') }}'" style="height:38px; font-size:1em;">Reset</button>
-        </form>
+        <!-- Main content area shifted right to accommodate side menu -->
+        <div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+        <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+            <div style="text-align:center; width:100%;">
+                <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+            </div>
+        </div>
+    <!-- Removed top menu buttons, now in side menu -->
+    <!-- Search bar moved to side menu -->
         <div style="margin-bottom:18px; text-align:center;">
-            <button onclick="openModal('addMemberModal')" style="display:inline-block; height:38px; font-size:1em; padding:8px 22px; margin:0 8px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">➕ Add Member</button>
-            <a href="{{ url_for('recycle_bin') }}" style="display:inline-block; padding:8px 22px; margin:0 8px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🗑️ View Recycle Bin</a>
+            {% for mt in member_types %}
+                <a href="{{ url_for('index', member_type=mt, search=search) }}"
+                   style="display:inline-block; padding:8px 22px; margin:0 4px; border-radius:6px; border:1px solid #ccc; background-color:{{ 'rgb(255,255,0)' if mt == member_type else '#f8f8f8' }}; color:#333; text-decoration:none; font-weight:{{ 'bold' if mt == member_type else 'normal' }}; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                    {{ mt }}
+                </a>
+            {% endfor %}
         </div>
 <!-- Add Member Modal -->
 <div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-    <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px;">
+    <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px; position:relative;">
+        <button onclick="closeModal('addMemberModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
         <h3 style="margin-top:0; text-align:center;">Add Member</h3>
         <form id="addMemberForm">
             <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
@@ -89,12 +102,25 @@ document.getElementById('addMemberForm').onsubmit = function(e) {
         }
     });
 };
+
+// Dynamic search bar logic
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('dynamicSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterMembers);
+    }
+});
+
+function filterMembers() {
+    var query = document.getElementById('dynamicSearch').value.toLowerCase();
+    var rows = document.querySelectorAll('table tr.member-row');
+    rows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+}
 </script>
-        <div style="margin-bottom:18px; text-align:center;">
-            {% for mt in member_types %}
-                <a href="{{ url_for('index', member_type=mt, search=search) }}" style="display:inline-block; padding:8px 22px; margin:0 4px; border-radius:6px; border:1px solid #ccc; background-color:{% if mt == member_type %}rgb(255,255,0){% else %}#f8f8f8{% endif %}; color:{% if mt == member_type %}#333{% else %}#333{% endif %}; text-decoration:none; font-weight:{% if mt == member_type %}bold{% else %}normal{% endif %}; box-shadow:0 1px 2px rgba(0,0,0,0.04);">{{ mt }}</a>
-            {% endfor %}
-        </div>
+    <!-- Only one tab section above the search/menu row -->
     <table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px; background-color:#f5f5f5;">
         <tr>
             <th onclick="sortTable(0)" id="th0">Badge</th>

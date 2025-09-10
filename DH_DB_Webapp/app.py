@@ -95,6 +95,11 @@ def member_details(member_id):
 		work_activity_display_names=activity_display_names
 	)
 
+# Add /reports route for the Reports page
+@app.route('/reports')
+def reports():
+	return render_template('reports.html')
+
 # Member Report route
 @app.route('/member_report/<int:member_id>')
 def member_report(member_id):
@@ -106,6 +111,22 @@ def member_report(member_id):
 	attendance = database.get_meeting_attendance(member_id)
 	position = database.get_member_position(member_id)
 	committees = database.get_member_committees(member_id)
+	import datetime
+	now = datetime.datetime.now()
+	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
+	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+	activity_display_names = {
+		'general_maintenance': 'General Maintenance',
+		'event_setup': 'Event Setup',
+		'event_cleanup': 'Event Cleanup',
+		'fundraising': 'Fundraising',
+		'committee_work': 'Committee Work',
+		'building_and_grounds': 'Building/Grounds',
+		'gun_bingo_social_events': 'Gun Bingo/Social Events',
+		'executive_committee': 'Executive',
+		'other': 'Other'
+	}
 	return render_template(
 		'member_report.html',
 		member=member,
@@ -113,7 +134,11 @@ def member_report(member_id):
 		work_hours=work_hours,
 		attendance=attendance,
 		position=position,
-		committees=committees
+		committees=committees,
+		committee_names=committee_names,
+		committee_display_names=committee_display_names,
+		work_activity_display_names=activity_display_names,
+		now=now
 	)
 
 # Soft delete member (move to recycle bin)
@@ -127,6 +152,29 @@ def delete_member(member_id):
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
 	return render_template('recycle_bin.html', deleted_members=deleted_members)
+
+# Restore ALL members from recycle bin
+@app.route('/recycle_bin/restore_all', methods=['POST'])
+def recycle_bin_restore_all():
+	deleted_members = database.get_deleted_members()
+	for m in deleted_members:
+		try:
+			database.restore_member_by_id(m['id'])
+		except Exception:
+			# Continue restoring others even if one fails
+			continue
+	return redirect(url_for('recycle_bin'))
+
+# Permanently DELETE ALL members in recycle bin
+@app.route('/recycle_bin/delete_all', methods=['POST'])
+def recycle_bin_delete_all():
+	deleted_members = database.get_deleted_members()
+	for m in deleted_members:
+		try:
+			database.delete_member_permanently(m['id'])
+		except Exception:
+			continue
+	return redirect(url_for('recycle_bin'))
 
 # Restore member from recycle bin
 @app.route('/restore_member/<int:member_id>', methods=['POST'])

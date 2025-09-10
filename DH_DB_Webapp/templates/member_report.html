@@ -1,81 +1,175 @@
 <!DOCTYPE html>
 <html>
 <head>
+		<style>
+			@media print {
+				.report-action-buttons {
+					display: none !important;
+				}
+				.side-menu {
+					display: none !important;
+				}
+				body, html {
+					margin: 0 !important;
+					padding: 0 !important;
+				}
+				.main-content {
+					margin-left: 0 !important;
+				}
+			}
+		</style>
 	<title>Member Report - {{ member['first_name'] }} {{ member['last_name'] }}</title>
-	<style>
-		body { background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222; }
-		h1, h2 { text-align:center; }
-		table { margin:auto; width:100%; max-width:800px; border-collapse:collapse; background:#f9f9f9; }
-		th, td { border:1px solid #888; padding:8px; }
-		th { background:#eee; }
-		.section { margin:32px 0 16px 0; }
-	</style>
+		<style>
+			body { background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222; }
+			h1, h2 { text-align:center; }
+			table { margin:auto; width:100%; max-width:700px; border-collapse:collapse; background:#f5f5f5; }
+			th, td { border:2px solid #222; padding:8px; }
+			th { background:#f0f0f0; }
+			.section { margin:32px 0 16px 0; }
+					@media print {
+						table { page-break-inside: avoid !important; }
+						.section { page-break-inside: avoid; }
+						.info-group { page-break-inside: avoid; }
+					}
+		</style>
 </head>
-<body>
-	<h1>Member Report</h1>
-	<h2>{{ member['first_name'] }} {{ member['last_name'] }} (Badge #{{ member['badge_number'] }})</h2>
-	<div class="section">
-		<table>
-			<tr><th colspan="2">Personal Info</th></tr>
-			<tr><td><b>Membership Type:</b></td><td>{{ member['membership_type'] }}</td></tr>
-			<tr><td><b>Nickname:</b></td><td>{{ member['nickname'] }}</td></tr>
-			<tr><td><b>Date of Birth:</b></td><td>{{ member['dob'] }}</td></tr>
-			<tr><td><b>Email:</b></td><td>{{ member['email'] }}</td></tr>
-			<tr><td><b>Phone:</b></td><td>{{ member['phone'] }}</td></tr>
-			<tr><td><b>Address:</b></td><td>{{ member['address'] }}, {{ member['city'] }}, {{ member['state'] }} {{ member['zip'] }}</td></tr>
-			<tr><td><b>Join Date:</b></td><td>{{ member['join_date'] }}</td></tr>
-			<tr><td><b>Sponsor:</b></td><td>{{ member['sponsor'] }}</td></tr>
-		</table>
+<body style="background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222;">
+	<div style="display:flex; flex-direction:row;">
+		<!-- Static Side Menu -->
+	<div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+			<img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+			<a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+			<a href="{{ url_for('member_details', member_id=member['id']) }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">← Back to Member Details</a>
+			<button onclick="window.print()" style="width:170px; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; cursor:pointer; font-size:1em; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🖨️ Print Report</button>
+		</div>
+		<!-- Main content area shifted right to accommodate side menu -->
+	<div class="main-content" style="flex:1; margin-left:210px;">
+			<div style="display:flex; align-items:center; justify-content:center; margin-top:24px; margin-bottom:8px;">
+				<img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Left" style="height:90px; margin-right:32px;">
+				<div>
+					<h1 style="margin-bottom:0; font-size:2.1em; color:#000;">Dug Hill Rod &amp; Gun Club</h1>
+					<h2 style="margin-top:0; margin-bottom:0; font-size:1.5em; color:#000;">Member Report</h2>
+					<div style="text-align:center; font-size:1em; color:#555; margin-top:0;">Generated: {{ now.strftime('%B %d, %Y %H:%M') }}</div>
+				</div>
+				<img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Right" style="height:90px; margin-left:32px;">
+			</div>
+				<h2 style="text-align:center; margin-bottom:0;">{{ member['first_name'] }} {{ member['last_name'] }} (Badge #{{ member['badge_number'] }})</h2>
+				<div style="height:24px;"></div>
+					<div class="section" style="margin-top:0; margin-bottom:24px; display:flex; flex-wrap:wrap; justify-content:center; gap:32px;">
+					<div style="flex:1 1 320px; max-width:340px; min-width:260px;">
+						 <!-- Removed Personal Info header -->
+						<table style="width:100%; max-width:340px;">
+						<tr><th colspan="2">Personal Info</th></tr>
+						<tr><td><b>First Name:</b></td><td>{{ member['first_name'] }}</td></tr>
+						<tr><td><b>Middle Name:</b></td><td>{{ member['middle_name'] }}</td></tr>
+						<tr><td><b>Last Name:</b></td><td>{{ member['last_name'] }}</td></tr>
+						<tr><td><b>Suffix:</b></td><td>{{ member['suffix'] }}</td></tr>
+						<tr><td><b>Nickname:</b></td><td>{{ member['nickname'] }}</td></tr>
+						<tr><td><b>Date of Birth:</b></td><td>{{ member['dob']|format_mmddyyyy }}</td></tr>
+					</table>
+					</div>
+					<div style="flex:1 1 320px; max-width:340px; min-width:260px;">
+					 <!-- Removed Contact Info header -->
+					   <table style="width:100%; max-width:340px;">
+						<tr><th colspan="2">Contact Info</th></tr>
+						<tr><td><b>Primary Email:</b></td><td>{{ member['email'] }}</td></tr>
+						<tr><td><b>Secondary Email:</b></td><td>{{ member['email2'] }}</td></tr>
+						<tr><td><b>Primary Phone:</b></td><td>{{ member['phone'] }}</td></tr>
+						<tr><td><b>Secondary Phone:</b></td><td>{{ member['phone2'] }}</td></tr>
+					</table>
+						</div>
+					</div>
+					<div class="section" style="margin-bottom:24px; display:flex; flex-wrap:wrap; justify-content:center; gap:32px;">
+						<div style="flex:1 1 320px; max-width:340px; min-width:260px;">
+							 <!-- Removed Membership Info header -->
+							<table style="width:100%; max-width:340px;">
+						<tr><th colspan="2">Membership Info</th></tr>
+						<tr><td><b>Badge Number:</b></td><td>{{ member['badge_number'] }}</td></tr>
+						<tr><td><b>Membership Type:</b></td><td>{{ member['membership_type'] }}</td></tr>
+						<tr><td><b>Join Date:</b></td><td>{{ member['join_date']|format_mmddyyyy }}</td></tr>
+						<tr><td><b>Sponsor:</b></td><td>{{ member['sponsor'] }}</td></tr>
+						<tr><td><b>Card/Fob Internal Number:</b></td><td>{{ member['card_internal'] }}</td></tr>
+						<tr><td><b>Card/Fob External Number:</b></td><td>{{ member['card_external'] }}</td></tr>
+						<tr><td><b>Executive Role:</b></td><td>{{ position['position'] if position else '' }}{% if position and (position['term_start'] or position['term_end']) %}<span style="font-style:italic; color:#444;">&nbsp;{% if position['term_start'] and position['term_end'] %}({{ position['term_start']|format_mmddyyyy }} until {{ position['term_end']|format_mmddyyyy }}){% elif position['term_start'] %}({{ position['term_start']|format_mmddyyyy }}){% elif position['term_end'] %}(until {{ position['term_end']|format_mmddyyyy }}){% endif %}</span>{% endif %}</td></tr>
+					</table>
+					</div>
+					<div style="flex:1 1 320px; max-width:340px; min-width:260px;">
+					 <!-- Removed Address Info header -->
+					   <table style="width:100%; max-width:340px;">
+						<tr><th colspan="2">Address Info</th></tr>
+						<tr><td><b>Address:</b></td><td>{{ member['address'] }}</td></tr>
+						<tr><td><b>City:</b></td><td>{{ member['city'] }}</td></tr>
+						<tr><td><b>State:</b></td><td>{{ member['state'] }}</td></tr>
+						<tr><td><b>Zip Code:</b></td><td>{{ member['zip'] }}</td></tr>
+					</table>
+		</div>
+	   </div>
+				</div>
+			</div>
+		</div>
 	</div>
-	<div class="section">
+		<div class="section" style="margin-bottom:48px; display:flex; flex-wrap:wrap; justify-content:center; gap:32px;">
+			<div style="flex:1 1 340px; max-width:340px; min-width:260px;">
+				<h2 style="text-align:center; margin-bottom:12px; font-size:1.3em; font-weight:bold; color:#000;">Dues</h2>
+				<table style="table-layout:fixed; width:340px; margin:auto;">
+					<colgroup>
+						<col style="width:50%;">
+						<col style="width:50%;">
+					</colgroup>
+					<tr><th style="border:2px solid #222; text-align:center;">Payment Date</th><th style="border:2px solid #222; text-align:center;">Amount</th></tr>
+					{% for due in dues %}
+					<tr>
+						<td style="border:2px solid #222; text-align:center;">{{ due['payment_date']|format_mmddyyyy }}</td>
+						<td style="border:2px solid #222; text-align:center;">{{ '%.2f'|format(due['amount']) }}</td>
+					</tr>
+					{% endfor %}
+				</table>
+			</div>
+			<div style="flex:1 1 340px; max-width:340px; min-width:260px;">
+				<h2 style="text-align:center; margin-bottom:12px; font-size:1.3em; font-weight:bold; color:#000;">Meeting Attendance</h2>
+				<table style="table-layout:fixed; width:340px; margin:auto;">
+					<colgroup>
+						<col style="width:50%;">
+						<col style="width:50%;">
+					</colgroup>
+					<tr><th style="border:2px solid #222; text-align:center;">Date</th><th style="border:2px solid #222; text-align:center;">Status</th></tr>
+					{% for mtg in attendance %}
+					<tr>
+						<td style="border:2px solid #222; text-align:center;">{{ mtg['meeting_date']|format_mmddyyyy }}</td>
+						<td style="border:2px solid #222; text-align:center;">{{ mtg['status'] }}</td>
+					</tr>
+					{% endfor %}
+				</table>
+			</div>
+		</div>
+
+	<div class="section" style="margin-bottom:48px;">
+		<h2 style="text-align:center; margin-bottom:12px; font-size:1.3em; font-weight:bold; color:#000;">Work Hours</h2>
 		<table>
-			<tr><th colspan="3">Dues Payments</th></tr>
-			<tr><th>Date</th><th>Amount</th></tr>
-			{% for due in dues %}
-			<tr>
-				<td>{{ due['payment_date']|format_mmddyyyy }}</td>
-				<td>{{ '%.2f'|format(due['amount']) }}</td>
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-	<div class="section">
-		<table>
-			<tr><th colspan="4">Work Hours</th></tr>
 			<tr><th>Date</th><th>Activity</th><th>Hours</th><th>Notes</th></tr>
 			{% for wh in work_hours %}
 			<tr>
-				<td>{{ wh['date']|format_mmddyyyy }}</td>
-				<td>{{ wh['activity'].replace('_', ' ').title() }}</td>
-				<td>{{ wh['hours'] }}</td>
-				<td>{{ wh['notes'] }}</td>
+				<td style="border:2px solid #222;">{{ wh['date']|format_mmddyyyy }}</td>
+				<td style="border:2px solid #222;">{{ (work_activity_display_names[wh['activity']] if work_activity_display_names and wh['activity'] in work_activity_display_names else wh['activity']).replace('_', ' ').title() }}</td>
+				<td style="border:2px solid #222;">{{ wh['hours'] }}</td>
+				<td style="border:2px solid #222;">{{ wh['notes'] }}</td>
 			</tr>
 			{% endfor %}
 		</table>
 	</div>
-	<div class="section">
-		<table>
-			<tr><th colspan="3">Meeting Attendance</th></tr>
-			<tr><th>Date</th><th>Status</th></tr>
-			{% for mtg in attendance %}
-			<tr>
-				<td>{{ mtg['meeting_date']|format_mmddyyyy }}</td>
-				<td>{{ mtg['status'] }}</td>
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
-	<div class="section">
-		<table>
-			<tr><th colspan="2">Committees</th></tr>
-			<tr><th>Committee</th><th>Member?</th></tr>
-			{% for cname, val in committees.items() %}
-			<tr>
-				<td>{{ cname.replace('_', ' ').title() }}</td>
-				<td>{% if val == 1 %}✔️{% else %}—{% endif %}</td>
-			</tr>
-			{% endfor %}
-		</table>
-	</div>
+
+		<div class="section" style="margin-bottom:48px;">
+			<h2 style="text-align:center; margin-bottom:12px; font-size:1.3em; font-weight:bold; color:#000;">Committees</h2>
+			<table>
+				<tr><th>Committee</th></tr>
+				{% for cname in committee_names|sort %}
+				{% if committees[cname]|default(0) == 1 %}
+				<tr>
+					<td style="border:2px solid #222;">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</td>
+				</tr>
+				{% endif %}
+				{% endfor %}
+			</table>
+		</div>
 </body>
 </html>
