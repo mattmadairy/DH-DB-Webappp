@@ -1,3 +1,28 @@
+def get_dues_years():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT strftime('%Y', payment_date) as year FROM dues ORDER BY year DESC")
+    years = [row['year'] for row in c.fetchall() if row['year']]
+    conn.close()
+    return years
+
+def get_all_dues_by_year(year=None):
+    conn = get_connection()
+    c = conn.cursor()
+    if year:
+        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 AND strftime('%Y', d.payment_date)=? ORDER BY d.payment_date ASC", (year,))
+    else:
+        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY d.payment_date ASC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+def get_all_dues():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY d.payment_date ASC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
 def update_member_committees(member_id, updates):
     print(f"Updating committees for member_id={member_id} with updates={updates}")
     conn = get_connection()

@@ -1,5 +1,7 @@
+
 from flask import Flask, render_template, request, redirect, url_for
 import database
+import datetime
 
 app = Flask(__name__)
 
@@ -16,7 +18,16 @@ def format_mmddyyyy(value):
 
 app.jinja_env.filters['format_mmddyyyy'] = format_mmddyyyy
 
+
 @app.route('/add_work_hours/<int:member_id>', methods=['POST'])
+@app.route('/dues_report')
+
+def dues_report():
+	year = request.args.get('year')
+	dues = database.get_all_dues_by_year(year)
+	years = database.get_dues_years()
+	now = datetime.datetime.now()
+	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now)
 def add_work_hours(member_id):
     date = request.form['date']
     activity = request.form['activity']
