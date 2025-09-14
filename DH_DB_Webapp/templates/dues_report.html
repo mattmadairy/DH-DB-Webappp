@@ -94,22 +94,34 @@
                     <tr style="background:#eaeaea; color:#222;">
                         <th id="th0" style="padding:8px; border:2px solid #384839; cursor:pointer; text-align:center;" onclick="sortTable(0)">Badge # <span></span></th>
                         <th id="th1" class="name-col" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(1)">Name <span></span></th>
-                        <th id="th2" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(2)">Payment Date <span></span></th>
-                        <th id="th3" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(3)">Amount <span></span></th>
+                        <th id="th2" style="padding:8px; border:2px solid #384839; cursor:pointer; text-align:center;" onclick="sortTable(2)">Year <span></span></th>
+                        <th id="th3" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(3)">Payment Date <span></span></th>
+                        <th id="th4" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(4)">Amount <span></span></th>
+                        <th id="th5" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(5)">Method <span></span></th>
+                        <th id="th6" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(6)">Notes <span></span></th>
                     </tr>
                     </thead>
                     <tbody>
                     {% for due in dues %}
-                    <tr>
+                    <tr style="cursor:pointer;" onclick="goToMemberDetails({{ due['member_id'] }})">
                         <td style="padding:8px; border:2px solid #384839; text-align:center;">{{ due['badge_number'] }}</td>
                         <td class="name-col" style="padding:8px; border:2px solid #384839;">{{ due['first_name'] }} {{ due['last_name'] }}</td>
-                        <td style="padding:8px; border:2px solid #384839;">{{ due['payment_date'] }}</td>
+                        <td style="padding:8px; border:2px solid #384839; text-align:center;">{{ due['year'] }}</td>
+                        <td style="padding:8px; border:2px solid #384839;">{{ due['payment_date']|format_mmddyyyy }}</td>
                         <td style="padding:8px; border:2px solid #384839;">${{ '%.2f'|format(due['amount']) }}</td>
+                        <td style="padding:8px; border:2px solid #384839;">{{ due['method'] }}</td>
+                        <td style="padding:8px; border:2px solid #384839;">{{ due['notes'] }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
                 <script>
+// Open member details page to Dues tab
+function goToMemberDetails(memberId) {
+    // Set localStorage so Dues tab is active
+    localStorage.setItem('activeTab', 'tab-dues');
+    window.location.href = '/member/' + memberId;
+}
                 // Hide names in print logic
                 function toggleHideNames() {
                     var checked = document.getElementById('hideNamesPrint').checked;
@@ -166,7 +178,7 @@
                     }
                 }
                 function updateSortArrows() {
-                    for (let i = 0; i < 4; i++) {
+                    for (let i = 0; i < 5; i++) {
                         let th = document.getElementById('th'+i);
                         let span = th.querySelector('span');
                         if (i === sortedCol) {
@@ -178,8 +190,12 @@
                 }
                 function compareCells(x, y, n) {
                     // Amount column
-                    if (n === 3) {
+                    if (n === 4) {
                         return parseFloat(x.innerText.replace(/[^\d\.]/g, '')) - parseFloat(y.innerText.replace(/[^\d\.]/g, ''));
+                    }
+                    // Year column
+                    if (n === 3) {
+                        return parseInt(x.innerText) - parseInt(y.innerText);
                     }
                     // Payment Date column
                     if (n === 2) {

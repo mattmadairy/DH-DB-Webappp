@@ -90,6 +90,8 @@ def member_details(member_id):
 		'executive_committee': 'Executive',
 		'other': 'Other'
 	}
+	import datetime
+	current_year = datetime.datetime.now().year
 	return render_template(
 		'member_details.html',
 		member=member,
@@ -103,7 +105,8 @@ def member_details(member_id):
 		committee_names=committee_names,
 		committee_display_names=committee_display_names,
 		total_meetings=total_meetings,
-		work_activity_display_names=activity_display_names
+		work_activity_display_names=activity_display_names,
+		current_year=current_year
 	)
 
 # Add /reports route for the Reports page
@@ -305,7 +308,14 @@ def edit_section(member_id):
 				'zip': request.form['zip'],
 			})
 		elif section == 'dues':
-			database.add_due(member_id, request.form['payment_date'], request.form['amount'])
+			database.add_due(
+				member_id,
+				request.form['payment_date'],
+				request.form['amount'],
+				request.form['year'],
+				request.form.get('method', ''),
+				request.form.get('notes', '')
+			)
 		elif section == 'committees':
 			import logging
 			logging.basicConfig(level=logging.DEBUG)
@@ -329,20 +339,26 @@ def edit_section(member_id):
 
 @app.route('/get_due/<int:due_id>')
 def get_due(due_id):
-    due = database.get_due_by_id(due_id)
-    if not due:
-        return {"error": "Due not found"}, 404
-    return {
-        "id": due["id"],
-        "payment_date": due["payment_date"],
-        "amount": due["amount"]
+	due = database.get_due_by_id(due_id)
+	if not due:
+		return {"error": "Due not found"}, 404
+	return {
+		"id": due["id"],
+		"payment_date": due["payment_date"],
+		"amount": due["amount"],
+		"year": due["year"],
+		"method": due["method"] if "method" in due.keys() else "",
+		"notes": due["notes"] if "notes" in due.keys() else ""
 	}
 @app.route('/edit_due/<int:due_id>', methods=['POST'])
 def edit_due(due_id):
-    payment_date = request.form['payment_date']
-    amount = request.form['amount']
-    database.update_due(due_id, payment_date, amount)
-    return ('', 204)
+	payment_date = request.form['payment_date']
+	amount = request.form['amount']
+	year = request.form['year']
+	method = request.form.get('method', '')
+	notes = request.form.get('notes', '')
+	database.update_due(due_id, payment_date, amount, year, method, notes)
+	return ('', 204)
 
 @app.route('/delete_due/<int:due_id>', methods=['POST'])
 def delete_due(due_id):

@@ -10,7 +10,7 @@ def get_all_dues_by_year(year=None):
     conn = get_connection()
     c = conn.cursor()
     if year:
-        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 AND strftime('%Y', d.payment_date)=? ORDER BY d.payment_date ASC", (year,))
+        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 AND d.year=? ORDER BY d.payment_date ASC", (year,))
     else:
         c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY d.payment_date ASC")
     rows = c.fetchall()
@@ -180,10 +180,10 @@ def restore_member_by_id(member_id):
 
 # Add a due for a member
 
-def add_due(member_id, payment_date, amount):
+def add_due(member_id, payment_date, amount, year, method, notes):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO dues (member_id, payment_date, amount) VALUES (?, ?, ?)", (member_id, payment_date, amount))
+    c.execute("INSERT INTO dues (member_id, payment_date, amount, year, method, notes) VALUES (?, ?, ?, ?, ?, ?)", (member_id, payment_date, amount, year, method, notes))
     conn.commit()
     conn.close()
 
@@ -193,12 +193,12 @@ def get_due_by_id(due_id):
     c.execute("SELECT * FROM dues WHERE id=?", (due_id,))
     row = c.fetchone()
     conn.close()
-    return row
+    return dict(row) if row else {}
 
-def update_due(due_id, payment_date, amount):
+def update_due(due_id, payment_date, amount, year, method, notes):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("UPDATE dues SET payment_date=?, amount=? WHERE id=?", (payment_date, amount, due_id))
+    c.execute("UPDATE dues SET payment_date=?, amount=?, year=?, method=?, notes=? WHERE id=?", (payment_date, amount, year, method, notes, due_id))
     conn.commit()
     conn.close()
 

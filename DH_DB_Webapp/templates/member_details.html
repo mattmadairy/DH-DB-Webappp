@@ -1,4 +1,4 @@
-	<!-- Edit Work Hours Modal -->
+<!-- Edit Work Hours Modal -->
 	<div id="editWorkHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
 			<button onclick="closeModal('editWorkHoursModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
@@ -27,7 +27,7 @@
 	function editWorkHours(id) {
 		fetch('/get_work_hours/' + id)
 			.then(response => response.json())
-			.then(data => {
+			.then data => {
 				document.getElementById('edit_wh_id').value = data.id;
 				document.getElementById('edit_work_date').value = data.date;
 				document.getElementById('edit_activity').value = data.activity;
@@ -260,15 +260,26 @@ function openModal(id) {
 	<div id="tab-dues" class="tabcontent">
 		   <!-- Dues Section -->
            
-		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th style="border:2px solid #222;">Payment Date</th><th style="border:2px solid #222;">Amount</th><th style="border:2px solid #222;">Actions</th></tr>
+		<table id="duesTable" border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
+			<tr>
+			<th id="dues-sort-0" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 0)">Year</th>
+			<th id="dues-sort-1" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 1)">Payment Date</th>
+			<th id="dues-sort-2" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 2)">Amount</th>
+			<th id="dues-sort-3" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 3)">Method</th>
+			<th id="dues-sort-4" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 4)">Notes</th>
+
+			<th style="border:2px solid #222;">Actions</th>
+			</tr>
 			{% for due in dues %}
 			<tr>
+				<td style="border:2px solid #222;">{{ due['year'] }}</td>
 				<td style="border:2px solid #222;">{{ due['payment_date']|format_mmddyyyy }}</td>
-				<td style="border:2px solid #222;">{{ '%.2f'|format(due['amount']) }}</td>
+				<td style="border:2px solid #222;">${{ '%.2f'|format(due['amount']) }}</td>
+				<td style="border:2px solid #222;">{{ due['method'] }}</td>
+				<td style="border:2px solid #222;">{{ due['notes'] }}</td>
 				<td style="text-align:center; background-color:#f5f5f5; border:2px solid #222;">
-					<button type="button" onclick="editDue({{ due['id'] }})" style="padding:2px 10px; margin-right:6px; border-radius:4px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Edit</button>
-					<button type="button" onclick="deleteDue({{ due['id'] }})" style="padding:2px 10px; border-radius:4px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer;">Delete</button>
+					<button type="button" onclick="editDue({{ due['id'] }})" style="padding:2px 10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; font-size:1em;">✏️ Edit</button>
+					<button type="button" onclick="deleteDue({{ due['id'] }})" style="padding:2px 10px; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; font-size:1em;">🗑️ Delete</button>
 				</td>
 			</tr>
 			{% endfor %}
@@ -634,7 +645,10 @@ function submitCommittees() {
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
 				<label for="payment_date">Payment Date:</label><input type="date" id="payment_date" name="payment_date" value="">
+				<label for="year">Year:</label><input type="text" id="year" name="year" value="{{ selected_year if selected_year else current_year }}">
 				<label for="amount">Amount:</label><input type="number" id="amount" name="amount" step="0.01">
+				<label for="method">Method:</label><input type="text" id="method" name="method" value="">
+				<label for="notes">Notes:</label><input type="text" id="notes" name="notes" value="">
 			</div>
 			<div style="margin-top:18px; text-align:center;">
 				<button type="button" onclick="submitSection('dues')" style="margin-right:12px;">Save</button>
@@ -653,7 +667,10 @@ function submitCommittees() {
 			<input type="hidden" name="due_id" id="edit_due_id" value="">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
 				<label for="edit_payment_date">Payment Date:</label><input type="date" id="edit_payment_date" name="payment_date" value="">
+				<label for="edit_year">Year:</label><input type="text" id="edit_year" name="year" value="">
 				<label for="edit_amount">Amount:</label><input type="number" id="edit_amount" name="amount" step="0.01">
+				<label for="edit_method">Method:</label><input type="text" id="edit_method" name="method" value="">
+				<label for="edit_due_notes">Notes:</label><input type="text" id="edit_due_notes" name="notes" value="">
 			</div>
 			<div style="margin-top:18px; text-align:center;">
 				<button type="button" onclick="submitEditDue()" style="margin-right:12px;">Save</button>
@@ -672,10 +689,19 @@ function editDue(dueId) {
 				alert(data.error);
 				return;
 			}
+			openModal('editDueModal');
 			document.getElementById('edit_due_id').value = data.id;
 			document.getElementById('edit_payment_date').value = data.payment_date;
+			document.getElementById('edit_year').value = data.year;
 			document.getElementById('edit_amount').value = parseFloat(data.amount).toFixed(2);
-			openModal('editDueModal');
+			document.getElementById('edit_method').value = data.method ? data.method : '';
+			const notesField = document.getElementById('edit_due_notes');
+			if (notesField) {
+				notesField.value = data.notes;
+				console.log('Notes field found, value set:', data.notes);
+			} else {
+				console.log('Notes field NOT found');
+			}
 		});
 }
 
@@ -735,5 +761,55 @@ function submitSection(section) {
 			alert('Error saving changes');
 		}
 	});
+}
+
+function sortTable(tableId, colIdx) {
+    var table = document.getElementById(tableId);
+    var rows = Array.from(table.rows).slice(1); // skip header
+    var asc = table.getAttribute('data-sort-col') == colIdx && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
+    rows.sort(function(a, b) {
+        var aText = a.cells[colIdx].innerText.trim();
+        var bText = b.cells[colIdx].innerText.trim();
+        // Numeric sort for Year and Amount
+        if (colIdx === 0) {
+            return asc ? (parseFloat(aText) - parseFloat(bText)) : (parseFloat(bText) - parseFloat(aText));
+        }
+        if (colIdx === 2) { // Amount column
+            aText = aText.replace(/[^\d.\-]/g, '');
+            bText = bText.replace(/[^\d.\-]/g, '');
+            return asc ? (parseFloat(aText) - parseFloat(bText)) : (parseFloat(bText) - parseFloat(aText));
+        }
+        // Date sort for Payment Date
+        if (colIdx === 1) {
+            var aDate = Date.parse(aText);
+            var bDate = Date.parse(bText);
+            return asc ? (aDate - bDate) : (bDate - aDate);
+        }
+        // String sort for Method/Notes
+        return asc ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+    // Remove old rows
+    for (var i = 1; i < table.rows.length; i++) {
+        table.deleteRow(1);
+    }
+    // Add sorted rows
+    rows.forEach(function(row) {
+        table.tBodies[0].appendChild(row);
+    });
+    table.setAttribute('data-sort-col', colIdx);
+    table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+    updateSortIcons(tableId, colIdx, asc);
+}
+
+function updateSortIcons(tableId, colIdx, asc) {
+    for (let i = 0; i < 5; i++) {
+        const th = document.getElementById('dues-sort-' + i);
+        if (th) {
+            th.textContent = th.textContent.replace(' ▲', '').replace(' ▼', '');
+        }
+    }
+    const arrow = asc ? ' ▲' : ' ▼';
+    const th = document.getElementById('dues-sort-' + colIdx);
+    if (th) th.textContent = th.textContent + arrow;
 }
 </script>
