@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, redirect, url_for
 import database
 import datetime
@@ -28,13 +27,32 @@ def dues_report():
 	years = database.get_dues_years()
 	now = datetime.datetime.now()
 	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now)
+
 def add_work_hours(member_id):
-    date = request.form['date']
-    activity = request.form['activity']
-    hours = request.form['hours']
-    notes = request.form['notes']
-    database.add_work_hours(member_id, date, activity, hours, notes)
-    return ('', 204)
+	date = request.form['date']
+	activity = request.form['activity']
+	hours = request.form['hours']
+	notes = request.form['notes']
+	database.add_work_hours(member_id, date, activity, hours, notes)
+	return ('', 204)
+
+# Work Hours Report route
+@app.route('/work_hours_report')
+def work_hours_report():
+	year = request.args.get('year')
+	# Get all work hours for all members for the selected year
+	if year:
+		start_date = f"{year}-01-01"
+		end_date = f"{year}-12-31"
+	else:
+		now = datetime.datetime.now()
+		year = now.year
+		start_date = f"{year}-01-01"
+		end_date = f"{year}-12-31"
+	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
+	years = database.get_dues_years()  # reuse dues years for dropdown
+	now = datetime.datetime.now()
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now)
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 def add_meeting_attendance(member_id):
@@ -419,6 +437,7 @@ def edit_meeting_attendance(att_id):
 def delete_meeting_attendance(att_id):
     database.delete_meeting_attendance(att_id)
     return ('', 204)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

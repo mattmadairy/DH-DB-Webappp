@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Work Hours Report</title>
+    <style>
+        @media print {
+            .side-menu, #side-menu, .print-hide {
+                display: none !important;
+            }
+            .print-btn, .hide-names-label {
+                display: none !important;
+            }
+            body, html {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+            .main-content {
+                margin-left: 0 !important;
+            }
+            .work-hours-header {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin-top: 24px !important;
+                margin-bottom: 8px !important;
+            }
+            .work-hours-header img {
+                height: 90px !important;
+                margin: 0 32px !important;
+            }
+            .work-hours-header-text {
+                text-align: center !important;
+            }
+            .work-hours-header-text h1, .work-hours-header-text h2 {
+                color: #000 !important;
+                margin: 0 !important;
+            }
+            table {
+                margin: auto !important;
+                width: 100% !important;
+                max-width: 700px !important;
+                border-collapse: collapse !important;
+                background: #f5f5f5 !important;
+            }
+            th, td {
+                border: 2px solid #222 !important;
+                padding: 8px !important;
+            }
+            th {
+                background: #f0f0f0 !important;
+            }
+            #hideNamesPrint, .hide-names-label { display: none !important; }
+            .hide-names-print .name-col { display: none !important; }
+        }
+    </style>
+</head>
+<body style="background-color:#f5f5f5; font-family:Arial, Helvetica, sans-serif;">
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+    <div class="side-menu print-hide" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="{{ url_for('reports') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📊 Reports</a>
+            <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
+            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🕒 Work Hours Report</a>
+        </div>
+        <!-- Main content area shifted right to accommodate side menu -->
+        <div class="main-content" style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+            <div class="work-hours-header" style="display:flex; align-items:center; justify-content:center; margin-top:24px; margin-bottom:8px;">
+                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Left" style="height:90px; margin-right:32px;">
+                <div class="work-hours-header-text" style="text-align:center;">
+                    <h1 style="margin-bottom:0; font-size:2.1em; color:#000;">Dug Hill Rod &amp; Gun Club</h1>
+                    <h2 style="margin-top:0; margin-bottom:0; font-size:1.5em; color:#000;">Work Hours Report</h2>
+                    <div style="text-align:center; font-size:1em; color:#555; margin-top:0;">Generated: {{ now.strftime('%B %d, %Y %H:%M') }}</div>
+                </div>
+                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Right" style="height:90px; margin-left:32px;">
+            </div>
+            <div style="background-color:#f5f5f5; border-radius:8px; padding:32px; min-width:400px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:40px; margin-top:24px; width:100%; max-width:800px;">
+                <form method="get" action="{{ url_for('work_hours_report') }}" style="margin-bottom:18px; display:inline-flex; align-items:center; gap:16px;">
+                    <label for="year" style="font-size:1.1em; color:#384839; margin-right:8px;">Year:</label>
+                    <select name="year" id="year" onchange="this.form.submit()" style="font-size:1.1em; padding:4px 12px; border-radius:6px; border:1px solid #384839;">
+                        <option value="" {% if not selected_year %}selected{% endif %}>All Years</option>
+                        {% for y in years %}
+                        <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="print-btn" onclick="printReport()" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">🖨️ Print Report</button>
+                    <label class="hide-names-label" style="font-size:1em; color:#384839; margin-left:12px;">
+                        <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
+                    </label>
+                </form>
+                <table id="workHoursTable" style="width:100%; max-width:700px; margin:auto; border-collapse:collapse;">
+                    <thead>
+                    <tr style="background:#eaeaea; color:#222;">
+                        <th id="th0" style="padding:8px; border:2px solid #384839; cursor:pointer; text-align:center;" onclick="sortTable(0)">Badge # <span></span></th>
+                        <th id="th1" class="name-col" style="padding:8px; border:2px solid #384839; cursor:pointer;" onclick="sortTable(1)">Name <span></span></th>
+                        <th id="th2" style="padding:8px; border:2px solid #384839; cursor:pointer; text-align:center;" onclick="sortTable(2)">Total Hours <span></span></th>
+                    </tr>
+                    </thead>
+                    <tbody id="workHoursBody">
+                    {% for wh in work_hours %}
+                    <tr data-member-id="{{ wh[4] }}">
+                        <td style="padding:8px; border:2px solid #384839; text-align:center;">{{ wh[0] }}</td>
+                        <td class="name-col" style="padding:8px; border:2px solid #384839;">{{ wh[2] }}, {{ wh[1] }}</td>
+                        <td style="padding:8px; border:2px solid #384839; text-align:center;">{{ wh[3] }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <script>
+                // Persistent array for table data
+                let tableData = [];
+                document.addEventListener('DOMContentLoaded', function() {
+                    let tbody = document.getElementById('workHoursBody');
+                    tableData = Array.from(tbody.rows).map(row => [
+                        row.cells[0].innerText,
+                        row.cells[1].innerText,
+                        row.cells[2].innerText,
+                        row.getAttribute('data-member-id')
+                    ]);
+                    // Add double-click event to each row
+                    Array.from(tbody.rows).forEach(row => {
+                        row.ondblclick = function() {
+                            const memberId = row.getAttribute('data-member-id');
+                            if (memberId) {
+                                window.location.href = `/member/${memberId}#workhours`;
+                            }
+                        };
+                    });
+                });
+                let sortedCol = null;
+                let sortDir = "asc";
+                function sortTable(n) {
+                    if (sortedCol === n) {
+                        sortDir = sortDir === "asc" ? "desc" : "asc";
+                    } else {
+                        sortDir = "asc";
+                    }
+                    sortedCol = n;
+                    updateSortArrows();
+                    tableData.sort(function(a, b) {
+                        var cmp;
+                        if (n === 0) {
+                            cmp = parseInt(a[0]) - parseInt(b[0]);
+                        } else if (n === 1) {
+                            cmp = a[1].localeCompare(b[1]);
+                        } else if (n === 2) {
+                            cmp = parseFloat(a[2]) - parseFloat(b[2]);
+                        } else {
+                            cmp = a[n].localeCompare(b[n]);
+                        }
+                        return sortDir === "asc" ? cmp : -cmp;
+                    });
+                    let tbody = document.getElementById('workHoursBody');
+                    while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+                    tableData.forEach(function(row) {
+                        let tr = document.createElement('tr');
+                        tr.setAttribute('data-member-id', row[3]);
+                        let td0 = document.createElement('td'); td0.style = "padding:8px; border:2px solid #384839; text-align:center;"; td0.innerText = row[0];
+                        let td1 = document.createElement('td'); td1.className = "name-col"; td1.style = "padding:8px; border:2px solid #384839;"; td1.innerText = row[1];
+                        let td2 = document.createElement('td'); td2.style = "padding:8px; border:2px solid #384839; text-align:center;"; td2.innerText = row[2];
+                        tr.appendChild(td0); tr.appendChild(td1); tr.appendChild(td2);
+                        tr.ondblclick = function() {
+                            const memberId = tr.getAttribute('data-member-id');
+                            if (memberId) {
+                                window.location.href = `/member_details/${memberId}#work-hours`;
+                            }
+                        };
+                        tbody.appendChild(tr);
+                    });
+                }
+                function updateSortArrows() {
+                    for (let i = 0; i < 3; i++) {
+                        let th = document.getElementById('th'+i);
+                        let span = th.querySelector('span');
+                        if (i === sortedCol) {
+                            span.innerHTML = sortDir === "asc" ? "&#x25B2;" : "&#x25BC;";
+                        } else {
+                            span.innerHTML = "";
+                        }
+                    }
+                }
+                function printReport() {
+                    // Make printReport globally available
+                    window.printReport = function() {
+                        if (window.focus) window.focus();
+                        if (window.print) {
+                            window.print();
+                        } else {
+                            alert('Print function not supported in this browser.');
+                        }
+                    }
+                    window.printReport();
+                }
+                function toggleHideNames() {
+                    var checked = document.getElementById('hideNamesPrint').checked;
+                    if (checked) {
+                        document.body.classList.add('hide-names-print');
+                    } else {
+                        document.body.classList.remove('hide-names-print');
+                    }
+                }
+                </script>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -96,6 +96,12 @@ function showTab(event, tabName) {
 
 // Restore selected tab on page load
 document.addEventListener('DOMContentLoaded', function() {
+	// If URL fragment is #workhours, activate that tab
+	if (window.location.hash === '#workhours') {
+		var tablink = document.querySelector('.tablink[data-tab="workhours"]');
+		if (tablink) tablink.click();
+		return;
+	}
 	var tabName = localStorage.getItem('selectedTab');
 	if (tabName && document.getElementById('tab-' + tabName)) {
 		// Find the tablink for this tab
@@ -289,6 +295,7 @@ function openModal(id) {
 		</div>
 	</div>
 
+	<a id="workhours"></a>
 	<div id="tab-workhours" class="tabcontent">
         
 		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">

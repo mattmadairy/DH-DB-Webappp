@@ -1,3 +1,29 @@
+def get_work_hours_report(start_date=None, end_date=None):
+    """
+    Return a list of (badge_number, first_name, last_name, total_hours, id)
+    for all members, optionally filtered by date range.
+    """
+    conn = get_connection()
+    c = conn.cursor()
+    query = """
+        SELECT m.badge_number, m.first_name, m.last_name,
+               IFNULL(SUM(w.hours), 0) as total_hours, m.id
+        FROM members m
+        LEFT JOIN work_hours w ON m.id = w.member_id
+        WHERE m.deleted = 0
+    """
+    params = []
+    if start_date:
+        query += " AND (w.date >= ? OR w.date IS NULL)"
+        params.append(start_date)
+    if end_date:
+        query += " AND (w.date <= ? OR w.date IS NULL)"
+        params.append(end_date)
+    query += " GROUP BY m.id ORDER BY m.last_name, m.first_name"
+    c.execute(query, params)
+    rows = c.fetchall()
+    conn.close()
+    return rows
 def get_dues_years():
     conn = get_connection()
     c = conn.cursor()
