@@ -6,41 +6,111 @@
 				.report-action-buttons {
 					display: none !important;
 				}
-				.side-menu {
-					display: none !important;
-				}
-				body, html {
-					margin: 0 !important;
-					padding: 0 !important;
-				}
-				.main-content {
-					margin-left: 0 !important;
-				}
+		</style>
+	<!-- JS test button and script to confirm JS is working -->
+	<button type="button" onclick="alert('JS is working!')" style="position:fixed; bottom:20px; right:20px; z-index:3000; padding:10px 20px; background:#eaeaea; color:#384839; border:2px solid #384839; border-radius:8px; font-size:1.2em;">Test JS</button>
+	<!-- Add Member Modal and script moved to end of body for proper overlay -->
+	<div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+		<div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px; position:relative;">
+			<button onclick="closeModal('addMemberModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+			<h3 style="margin-top:0; text-align:center;">Add Member</h3>
+			<form id="addMemberForm">
+				<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+					<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" required>
+					<label for="membership_type">Membership Type:</label>
+					<select id="membership_type" name="membership_type" required>
+						<option value="Probationary">Probationary</option>
+						<option value="Associate">Associate</option>
+						<option value="Active">Active</option>
+						<option value="Life">Life</option>
+						<option value="Honorary">Honorary</option>
+						<option value="Prospective">Prospective</option>
+						<option value="Wait List">Wait List</option>
+						<option value="Former">Former</option>
+					</select>
+					<label for="first_name">First Name:</label><input type="text" id="first_name" name="first_name" required>
+					<label for="middle_name">Middle Name:</label><input type="text" id="middle_name" name="middle_name">
+					<label for="last_name">Last Name:</label><input type="text" id="last_name" name="last_name" required>
+					<label for="suffix">Suffix:</label><input type="text" id="suffix" name="suffix">
+					<label for="nickname">Nickname:</label><input type="text" id="nickname" name="nickname">
+					<label for="dob">Date of Birth:</label><input type="date" id="dob" name="dob">
+					<label for="email">Primary Email:</label><input type="email" id="email" name="email">
+					<label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2">
+					<label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone">
+					<label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2">
+					<label for="address">Address:</label><input type="text" id="address" name="address">
+				</div>
+				<div style="margin-top:18px; text-align:center;">
+					<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add Member</button>
+					<button type="button" onclick="closeModal('addMemberModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	<script>
+	function openModal(id) {
+		document.getElementById(id).style.display = 'block';
+		document.getElementById(id).style.zIndex = 2000;
+	}
+	function closeModal(id) {
+		document.getElementById(id).style.display = 'none';
+	}
+	document.getElementById('addMemberForm').onsubmit = function(e) {
+		e.preventDefault();
+		var form = document.getElementById('addMemberForm');
+		var formData = new FormData(form);
+		fetch('/add_member', {
+			method: 'POST',
+			body: formData
+		}).then(function(resp) {
+			if (resp.ok) {
+				location.reload();
+			} else {
+				alert('Error adding member');
 			}
-		</style>
-	<title>Member Report - {{ member['first_name'] }} {{ member['last_name'] }}</title>
-		<style>
-			body { background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222; }
-			h1, h2 { text-align:center; }
-			table { margin:auto; width:100%; max-width:700px; border-collapse:collapse; background:#f5f5f5; }
-			th, td { border:2px solid #222; padding:8px; }
-			th { background:#f0f0f0; }
-			.section { margin:32px 0 16px 0; }
-					@media print {
-						table { page-break-inside: avoid !important; }
-						.section { page-break-inside: avoid; }
-						.info-group { page-break-inside: avoid; }
+		});
+	};
+	</script>
+									<label for="city">City:</label><input type="text" id="city" name="city">
+									<label for="state">State:</label><input type="text" id="state" name="state">
+									<label for="zip">Zip Code:</label><input type="text" id="zip" name="zip">
+									<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date">
+									<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor">
+									<label for="card_internal">Card/Fob Internal Number:</label><input type="text" id="card_internal" name="card_internal">
+									<label for="card_external">Card/Fob External Number:</label><input type="text" id="card_external" name="card_external">
+								</div>
+								<div style="margin-top:18px; text-align:center;">
+									<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add Member</button>
+									<button type="button" onclick="closeModal('addMemberModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+								</div>
+							</form>
+						</div>
+					</div>
+					<script>
+					function openModal(id) {
+						document.getElementById(id).style.display = 'block';
+						document.getElementById(id).style.zIndex = 2000;
 					}
-		</style>
-</head>
-<body style="background:#fff; font-family:Arial, Helvetica, sans-serif; color:#222;">
-	<div style="display:flex; flex-direction:row;">
-		<!-- Static Side Menu -->
-	<div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
-			<img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
-			<a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
-			<a href="{{ url_for('member_details', member_id=member['id']) }}" style="width:170px; display:inline-block; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">← Back to Member Details</a>
-			<button onclick="window.print()" style="width:170px; padding:8px 0; margin-bottom:18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; cursor:pointer; font-size:1em; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🖨️ Print Report</button>
+					function closeModal(id) {
+						document.getElementById(id).style.display = 'none';
+					}
+					document.getElementById('addMemberForm').onsubmit = function(e) {
+						e.preventDefault();
+						var form = document.getElementById('addMemberForm');
+						var formData = new FormData(form);
+						fetch('/add_member', {
+							method: 'POST',
+							body: formData
+						}).then(function(resp) {
+							if (resp.ok) {
+								location.reload();
+							} else {
+								alert('Error adding member');
+							}
+						});
+					};
+					</script>
+				<!-- Removed misplaced closing body tag -->
 		</div>
 		<!-- Main content area shifted right to accommodate side menu -->
 	<div class="main-content" style="flex:1; margin-left:210px;">
@@ -174,5 +244,74 @@
 			</table>
 		</div>
 	</div>
+
 </body>
-</html>
+<!-- Add Member Modal and script moved to end of body for proper overlay -->
+<div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+	<div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px; position:relative;">
+		<button onclick="closeModal('addMemberModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+		<h3 style="margin-top:0; text-align:center;">Add Member</h3>
+		<form id="addMemberForm">
+			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" required>
+				<label for="membership_type">Membership Type:</label>
+				<select id="membership_type" name="membership_type" required>
+					<option value="Probationary">Probationary</option>
+					<option value="Associate">Associate</option>
+					<option value="Active">Active</option>
+					<option value="Life">Life</option>
+					<option value="Honorary">Honorary</option>
+					<option value="Prospective">Prospective</option>
+					<option value="Wait List">Wait List</option>
+					<option value="Former">Former</option>
+				</select>
+				<label for="first_name">First Name:</label><input type="text" id="first_name" name="first_name" required>
+				<label for="middle_name">Middle Name:</label><input type="text" id="middle_name" name="middle_name">
+				<label for="last_name">Last Name:</label><input type="text" id="last_name" name="last_name" required>
+				<label for="suffix">Suffix:</label><input type="text" id="suffix" name="suffix">
+				<label for="nickname">Nickname:</label><input type="text" id="nickname" name="nickname">
+				<label for="dob">Date of Birth:</label><input type="date" id="dob" name="dob">
+				<label for="email">Primary Email:</label><input type="email" id="email" name="email">
+				<label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2">
+				<label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone">
+				<label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2">
+				<label for="address">Address:</label><input type="text" id="address" name="address">
+				<label for="city">City:</label><input type="text" id="city" name="city">
+				<label for="state">State:</label><input type="text" id="state" name="state">
+				<label for="zip">Zip Code:</label><input type="text" id="zip" name="zip">
+				<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date">
+				<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor">
+				<label for="card_internal">Card/Fob Internal Number:</label><input type="text" id="card_internal" name="card_internal">
+				<label for="card_external">Card/Fob External Number:</label><input type="text" id="card_external" name="card_external">
+			</div>
+			<div style="margin-top:18px; text-align:center;">
+				<button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add Member</button>
+				<button type="button" onclick="closeModal('addMemberModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+			</div>
+		</form>
+	</div>
+</div>
+<script>
+function openModal(id) {
+	document.getElementById(id).style.display = 'block';
+	document.getElementById(id).style.zIndex = 2000;
+}
+function closeModal(id) {
+	document.getElementById(id).style.display = 'none';
+}
+document.getElementById('addMemberForm').onsubmit = function(e) {
+	e.preventDefault();
+	var form = document.getElementById('addMemberForm');
+	var formData = new FormData(form);
+	fetch('/add_member', {
+		method: 'POST',
+		body: formData
+	}).then(function(resp) {
+		if (resp.ok) {
+			location.reload();
+		} else {
+			alert('Error adding member');
+		}
+	});
+};
+</script>
