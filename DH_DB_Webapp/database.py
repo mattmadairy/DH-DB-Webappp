@@ -1,3 +1,51 @@
+def get_meeting_attendance_report(year=None, month=None):
+    """
+    Return a list of dicts with badge_number, first_name, last_name, meeting_date, status for all meeting attendance records, filtered by year and month if provided.
+    """
+    conn = get_connection()
+    c = conn.cursor()
+    params = []
+    if month == 'all':
+        query = '''
+            SELECT m.badge_number, m.first_name, m.last_name,
+                   COUNT(CASE WHEN a.status IN ('Attended', 'Exempt') THEN 1 END) as total_meetings
+            FROM members m
+            LEFT JOIN meeting_attendance a ON m.id = a.member_id
+            WHERE m.deleted = 0
+        '''
+        if year:
+            query += " AND strftime('%Y', a.meeting_date) = ?"
+            params.append(year)
+        query += " GROUP BY m.id ORDER BY m.last_name, m.first_name"
+        c.execute(query, params)
+        rows = c.fetchall()
+        conn.close()
+        return rows
+    else:
+        query = '''
+            SELECT m.badge_number, m.first_name, m.last_name, a.meeting_date, a.status
+            FROM members m
+            JOIN meeting_attendance a ON m.id = a.member_id
+            WHERE m.deleted = 0
+        '''
+        if year:
+            query += " AND strftime('%Y', a.meeting_date) = ?"
+            params.append(year)
+        if month:
+            query += " AND strftime('%m', a.meeting_date) = ?"
+            params.append(month)
+        query += " ORDER BY a.meeting_date DESC, m.last_name, m.first_name"
+        c.execute(query, params)
+        rows = c.fetchall()
+        conn.close()
+        return rows
+def get_meeting_years():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT strftime('%Y', meeting_date) as year FROM meeting_attendance ORDER BY year DESC")
+    years = [row['year'] for row in c.fetchall() if row['year']]
+    conn.close()
+    return years
 def get_work_hours_report(start_date=None, end_date=None):
     """
     Return a list of (badge_number, first_name, last_name, total_hours, id)

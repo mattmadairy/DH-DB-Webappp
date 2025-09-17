@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Meeting Attendance Report - Dug Hill Rod & Gun Club</title>
+    <style>
+        body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
+        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+        .attendance-header { display:flex; align-items:center; justify-content:center; margin-top:24px; margin-bottom:8px; }
+        .attendance-header img { height:90px; margin:0 32px; }
+        .attendance-header-text { text-align:center; }
+        .attendance-header-text h1, .attendance-header-text h2 { color:#000; margin:0; }
+        table { width:100%; max-width:700px; margin:auto; border-collapse:collapse; background:#f5f5f5; }
+        th, td { border:2px solid #384839; padding:8px; text-align:center; }
+        th { background:#eaeaea; color:#222; cursor:pointer; }
+        .print-btn { margin-left:8px; padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; }
+        .hide-names-label { font-size:1em; color:#384839; margin-left:12px; }
+        @media print {
+            .side-menu, .print-btn, .hide-names-label { display: none !important; }
+            body, html { margin:0 !important; padding:0 !important; background:#fff !important; }
+            .main-content { margin-left:0 !important; }
+            .attendance-header { display:flex !important; align-items:center !important; justify-content:center !important; margin-top:24px !important; margin-bottom:8px !important; }
+            .attendance-header img { height:90px !important; margin:0 32px !important; }
+            .attendance-header-text { text-align:center !important; }
+            .attendance-header-text h1, .attendance-header-text h2 { color:#000 !important; margin:0 !important; }
+            table { margin:auto !important; width:100% !important; max-width:700px !important; border-collapse:collapse !important; background:#f5f5f5 !important; }
+            th, td { border:2px solid #222 !important; padding:8px !important; }
+            th { background:#f0f0f0 !important; }
+            .hide-names-print .name-col { display:none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div style="display:flex; flex-direction:row;">
+    <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="{{ url_for('add_member') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+            <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
+            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                <img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours Report
+            </a>
+            <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+            </a>
+        </div>
+        <div class="main-content">
+            <div class="attendance-header">
+                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Left" style="height:90px; margin-right:32px;">
+                <div class="attendance-header-text">
+                    <h1 style="margin-bottom:0; font-size:2.1em; color:#000;">Dug Hill Rod &amp; Gun Club</h1>
+                    <h2 style="margin-top:0; margin-bottom:0; font-size:1.5em; color:#000;">Meeting Attendance Report</h2>
+                    <div style="text-align:center; font-size:1em; color:#555; margin-top:0;">Generated: {{ now.strftime('%B %d, %Y %H:%M') }}</div>
+                </div>
+                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Right" style="height:90px; margin-left:32px;">
+            </div>
+            <div style="background-color:#f5f5f5; border-radius:8px; padding:32px; min-width:400px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:40px; margin-top:24px; width:100%; max-width:800px;">
+                <form method="get" style="margin-bottom:18px; display:inline-flex; align-items:center; gap:16px;">
+                    <label for="year" style="font-size:1.1em; color:#384839; margin-right:8px;">Year:</label>
+                    <select name="year" id="year" onchange="this.form.submit()" style="font-size:1.1em; padding:4px 12px; border-radius:6px; border:1px solid #384839;">
+                        {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="month" style="font-size:1.1em; color:#384839; margin-left:8px;">Month:</label>
+                    <select name="month" id="month" onchange="this.form.submit()" style="font-size:1.1em; padding:4px 12px; border-radius:6px; border:1px solid #384839;">
+                        {% for m in months %}
+                            <option value="{{ m.value }}" {% if selected_month == m.value %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="print-btn" onclick="window.print()">🖨️ Print Report</button>
+                    <label class="hide-names-label">
+                        <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
+                    </label>
+                </form>
+                <table id="attendanceTable" style="width:100%; max-width:700px; margin:auto; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th id="th0" onclick="sortTable(0)">Badge # <span></span></th>
+                    <th id="th1" onclick="sortTable(1)">Name <span></span></th>
+                    {% if selected_month == 'all' %}
+                        <th id="th2" onclick="sortTable(2)">Number <span></span></th>
+                    {% else %}
+                        <th id="th2" onclick="sortTable(2)">Meeting Date <span></span></th>
+                        <th id="th3" onclick="sortTable(3)">Status <span></span></th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if selected_month == 'all' %}
+                    {% for att in attendance %}
+                    <tr>
+                        <td>{{ att.badge_number }}</td>
+                        <td>{{ att.last_name }}, {{ att.first_name }}</td>
+                        <td>{{ att.total_meetings }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for att in attendance %}
+                    <tr>
+                        <td>{{ att.badge_number }}</td>
+                        <td>{{ att.last_name }}, {{ att.first_name }}</td>
+                        <td>{{ att.meeting_date }}</td>
+                        <td>{{ att.status }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    <script>
+    let sortedCol = null;
+    let sortDir = "asc";
+    function sortTable(n) {
+        var table = document.getElementById("attendanceTable");
+        var rows = Array.from(table.tBodies[0].rows);
+        // Toggle sort direction if same column, else default to ascending
+        if (sortedCol === n) {
+            sortDir = sortDir === "asc" ? "desc" : "asc";
+        } else {
+            sortDir = "asc";
+        }
+        sortedCol = n;
+        rows.sort(function(a, b) {
+            var x = a.cells[n].innerText;
+            var y = b.cells[n].innerText;
+            if (n === 0) return sortDir === "asc" ? x - y : y - x;
+            return sortDir === "asc" ? x.localeCompare(y) : y.localeCompare(x);
+        });
+        while (table.tBodies[0].firstChild) table.tBodies[0].removeChild(table.tBodies[0].firstChild);
+        rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
+        // Update arrow indicators
+        for (let i = 0; i < table.tHead.rows[0].cells.length; i++) {
+            let span = table.tHead.rows[0].cells[i].querySelector('span');
+            if (span) {
+                span.textContent = (i === n) ? (sortDir === "asc" ? "▲" : "▼") : "";
+            }
+        }
+    }
+    </script>
+</body>
+</html>

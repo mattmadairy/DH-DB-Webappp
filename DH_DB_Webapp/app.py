@@ -438,6 +438,29 @@ def delete_meeting_attendance(att_id):
     database.delete_meeting_attendance(att_id)
     return ('', 204)
 
+@app.route('/meeting_attendance_report', endpoint='meeting_attendance_report')
+def meeting_attendance_report():
+	year = request.args.get('year')
+	month = request.args.get('month') or 'all'
+	years = database.get_meeting_years()
+	months = [
+		{'value': 'all', 'name': 'All Months'},
+		{'value': '01', 'name': 'January'},
+		{'value': '02', 'name': 'February'},
+		{'value': '03', 'name': 'March'},
+		{'value': '04', 'name': 'April'},
+		{'value': '05', 'name': 'May'},
+		{'value': '06', 'name': 'June'},
+		{'value': '07', 'name': 'July'},
+		{'value': '08', 'name': 'August'},
+		{'value': '09', 'name': 'September'},
+		{'value': '10', 'name': 'October'},
+		{'value': '11', 'name': 'November'},
+		{'value': '12', 'name': 'December'}
+	]
+	attendance = database.get_meeting_attendance_report(year=year, month=month)
+	now = datetime.datetime.now()
+	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now)
 
 if __name__ == "__main__":
     app.run(debug=True)

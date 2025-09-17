@@ -1,69 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Work Hours Report</title>
+    <title>Work Hours Report - Dug Hill Rod & Gun Club</title>
     <style>
+        body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
+        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+        .attendance-header { display:flex; align-items:center; justify-content:center; margin-top:24px; margin-bottom:8px; }
+        .attendance-header img { height:90px; margin:0 32px; }
+        .attendance-header-text { text-align:center; }
+        .attendance-header-text h1, .attendance-header-text h2 { color:#000; margin:0; }
+        table { width:100%; max-width:700px; margin:auto; border-collapse:collapse; background:#f5f5f5; }
+        th, td { border:2px solid #384839; padding:8px; text-align:center; }
+        th { background:#eaeaea; color:#222; cursor:pointer; }
+        .print-btn { margin-left:8px; padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; }
+        .hide-names-label { font-size:1em; color:#384839; margin-left:12px; }
         @media print {
-            .side-menu, #side-menu, .print-hide {
-                display: none !important;
-            }
-            .print-btn, .hide-names-label {
-                display: none !important;
-            }
-            body, html {
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #fff !important;
-            }
-            .main-content {
-                margin-left: 0 !important;
-            }
-            .work-hours-header {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                margin-top: 24px !important;
-                margin-bottom: 8px !important;
-            }
-            .work-hours-header img {
-                height: 90px !important;
-                margin: 0 32px !important;
-            }
-            .work-hours-header-text {
-                text-align: center !important;
-            }
-            .work-hours-header-text h1, .work-hours-header-text h2 {
-                color: #000 !important;
-                margin: 0 !important;
-            }
-            table {
-                margin: auto !important;
-                width: 100% !important;
-                max-width: 700px !important;
-                border-collapse: collapse !important;
-                background: #f5f5f5 !important;
-            }
-            th, td {
-                border: 2px solid #222 !important;
-                padding: 8px !important;
-            }
-            th {
-                background: #f0f0f0 !important;
-            }
-            #hideNamesPrint, .hide-names-label { display: none !important; }
-            .hide-names-print .name-col { display: none !important; }
+            .side-menu, .print-btn, .hide-names-label { display: none !important; }
+            body, html { margin:0 !important; padding:0 !important; background:#fff !important; }
+            .main-content { margin-left:0 !important; }
+            .attendance-header { display:flex !important; align-items:center !important; justify-content:center !important; margin-top:24px !important; margin-bottom:8px !important; }
+            .attendance-header img { height:90px !important; margin:0 32px !important; }
+            .attendance-header-text { text-align:center !important; }
+            .attendance-header-text h1, .attendance-header-text h2 { color:#000 !important; margin:0 !important; }
+            table { margin:auto !important; width:100% !important; max-width:700px !important; border-collapse:collapse !important; background:#f5f5f5 !important; }
+            th, td { border:2px solid #222 !important; padding:8px !important; }
+            th { background:#f0f0f0 !important; }
+            .hide-names-print .name-col { display:none !important; }
         }
     </style>
 </head>
 <body style="background-color:#f5f5f5; font-family:Arial, Helvetica, sans-serif;">
     <div style="display:flex; flex-direction:row;">
         <!-- Static Side Menu -->
-    <div class="side-menu print-hide" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+    <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
-            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
-            <a href="{{ url_for('reports') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📊 Reports</a>
+            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="{{ url_for('add_member') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+            <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                🗑️ Recycle Bin
+            </a>
             <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
-            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🕒 Work Hours Report</a>
+            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:flex; align-items:center; gap:8px; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;"><img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:20px; vertical-align:middle;"> Work Hours Report</a>
+            <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+            </a>
         </div>
         <!-- Main content area shifted right to accommodate side menu -->
         <div class="main-content" style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
