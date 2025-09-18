@@ -9,207 +9,211 @@
         <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
             <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
-            <a href="{{ url_for('add_member') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+                <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
             <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
             <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
             <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
                 <img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours Report
             </a>
-            <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
-                <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
-            </a>
+                    <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                        <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+                    </a>
+                    <a href="{{ url_for('committees') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
         </div>
         <!-- Main content area shifted right to accommodate side menu -->
         <div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
-        <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
-            <div style="text-align:center; width:100%;">
-                <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
-                <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+            {% block content %}
+            <!-- Main page content goes here -->
+            <div style="display:flex; flex-direction:row; justify-content:center; margin-bottom:20px; width:100%;">
+                <div style="text-align:center; width:100%;">
+                    <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                    <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+                </div>
             </div>
-        </div>
-    <!-- Removed top menu buttons, now in side menu -->
-    <!-- Search bar moved to side menu -->
-        <div style="margin-bottom:18px; text-align:center;">
-            {% for mt in member_types %}
-                <a href="{{ url_for('index', member_type=mt, search=search) }}"
-                   style="display:inline-block; padding:8px 22px; margin:0 4px; border-radius:6px; border:1px solid #ccc; background-color:{{ 'rgb(255,255,0)' if mt == member_type else '#f8f8f8' }}; color:#333; text-decoration:none; font-weight:{{ 'bold' if mt == member_type else 'normal' }}; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
-                    {{ mt }}
-                </a>
-            {% endfor %}
-        </div>
-<!-- Add Member Modal -->
-<div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
-    <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px; position:relative;">
-        <button onclick="closeModal('addMemberModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
-        <h3 style="margin-top:0; text-align:center;">Add Member</h3>
-        <form id="addMemberForm">
-            <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
-                <label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" required>
-                <label for="membership_type">Membership Type:</label>
-                <select id="membership_type" name="membership_type" required>
-                    <option value="Probationary">Probationary</option>
-                    <option value="Associate">Associate</option>
-                    <option value="Active">Active</option>
-                    <option value="Life">Life</option>
-                    <option value="Honorary">Honorary</option>
-                    <option value="Prospective">Prospective</option>
-                    <option value="Wait List">Wait List</option>
-                    <option value="Former">Former</option>
-                </select>
-                <label for="first_name">First Name:</label><input type="text" id="first_name" name="first_name" required>
-                <label for="middle_name">Middle Name:</label><input type="text" id="middle_name" name="middle_name">
-                <label for="last_name">Last Name:</label><input type="text" id="last_name" name="last_name" required>
-                <label for="suffix">Suffix:</label><input type="text" id="suffix" name="suffix">
-                <label for="nickname">Nickname:</label><input type="text" id="nickname" name="nickname">
-                <label for="dob">Date of Birth:</label><input type="date" id="dob" name="dob">
-                <label for="email">Primary Email:</label><input type="email" id="email" name="email">
-                <label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2">
-                <label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone">
-                <label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2">
-                <label for="address">Address:</label><input type="text" id="address" name="address">
-                <label for="city">City:</label><input type="text" id="city" name="city">
-                <label for="state">State:</label><input type="text" id="state" name="state">
-                <label for="zip">Zip Code:</label><input type="text" id="zip" name="zip">
-                <label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date">
-                <label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor">
-                <label for="card_internal">Card/Fob Internal Number:</label><input type="text" id="card_internal" name="card_internal">
-                <label for="card_external">Card/Fob External Number:</label><input type="text" id="card_external" name="card_external">
+            <!-- Removed top menu buttons, now in side menu -->
+            <!-- Search bar moved to side menu -->
+            <div style="margin-bottom:18px; text-align:center;">
+                {% for mt in member_types %}
+                    <a href="{{ url_for('index', member_type=mt, search=search) }}"
+                       style="display:inline-block; padding:8px 22px; margin:0 4px; border-radius:6px; border:1px solid #ccc; background-color:{{ 'rgb(255,255,0)' if mt == member_type else '#f8f8f8' }}; color:#333; text-decoration:none; font-weight:{{ 'bold' if mt == member_type else 'normal' }}; box-shadow:0 1px 2px rgba(0,0,0,0.04);">
+                        {{ mt }}
+                    </a>
+                {% endfor %}
             </div>
-            <div style="margin-top:18px; text-align:center;">
-                <button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add Member</button>
-                <button type="button" onclick="closeModal('addMemberModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+            <!-- Add Member Modal -->
+            <div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+                <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:420px; border-radius:8px; position:relative;">
+                    <button onclick="closeModal('addMemberModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+                    <h3 style="margin-top:0; text-align:center;">Add Member</h3>
+                    <form id="addMemberForm">
+                        <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+                            <label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" required>
+                            <label for="membership_type">Membership Type:</label>
+                            <select id="membership_type" name="membership_type" required>
+                                <option value="Probationary">Probationary</option>
+                                <option value="Associate">Associate</option>
+                                <option value="Active">Active</option>
+                                <option value="Life">Life</option>
+                                <option value="Honorary">Honorary</option>
+                                <option value="Prospective">Prospective</option>
+                                <option value="Wait List">Wait List</option>
+                                <option value="Former">Former</option>
+                            </select>
+                            <label for="first_name">First Name:</label><input type="text" id="first_name" name="first_name" required>
+                            <label for="middle_name">Middle Name:</label><input type="text" id="middle_name" name="middle_name">
+                            <label for="last_name">Last Name:</label><input type="text" id="last_name" name="last_name" required>
+                            <label for="suffix">Suffix:</label><input type="text" id="suffix" name="suffix">
+                            <label for="nickname">Nickname:</label><input type="text" id="nickname" name="nickname">
+                            <label for="dob">Date of Birth:</label><input type="date" id="dob" name="dob">
+                            <label for="email">Primary Email:</label><input type="email" id="email" name="email">
+                            <label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2">
+                            <label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone">
+                            <label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2">
+                            <label for="address">Address:</label><input type="text" id="address" name="address">
+                            <label for="city">City:</label><input type="text" id="city" name="city">
+                            <label for="state">State:</label><input type="text" id="state" name="state">
+                            <label for="zip">Zip Code:</label><input type="text" id="zip" name="zip">
+                            <label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date">
+                            <label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor">
+                            <label for="card_internal">Card/Fob Internal Number:</label><input type="text" id="card_internal" name="card_internal">
+                            <label for="card_external">Card/Fob External Number:</label><input type="text" id="card_external" name="card_external">
+                        </div>
+                        <div style="margin-top:18px; text-align:center;">
+                            <button type="submit" style="padding:6px 18px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer;">Add Member</button>
+                            <button type="button" onclick="closeModal('addMemberModal')" style="padding:6px 18px; border-radius:6px; border:1px solid #ccc; background:#f8f8f8; color:#333; cursor:pointer; margin-left:8px;">Cancel</button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
-    </div>
-</div>
-<script>
-function openModal(id) {
-    document.getElementById(id).style.display = 'block';
-    document.getElementById(id).style.zIndex = 2000;
-}
-function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
-document.getElementById('addMemberForm').onsubmit = function(e) {
-    e.preventDefault();
-    var form = document.getElementById('addMemberForm');
-    var formData = new FormData(form);
-    fetch('/add_member', {
-        method: 'POST',
-        body: formData
-    }).then(function(resp) {
-        if (resp.ok) {
-            location.reload();
-        } else {
-            alert('Error adding member');
-        }
-    });
-};
+            <script>
+            function openModal(id) {
+                document.getElementById(id).style.display = 'block';
+                document.getElementById(id).style.zIndex = 2000;
+            }
+            function closeModal(id) {
+                document.getElementById(id).style.display = 'none';
+            }
+            document.getElementById('addMemberForm').onsubmit = function(e) {
+                e.preventDefault();
+                var form = document.getElementById('addMemberForm');
+                var formData = new FormData(form);
+                fetch('/add_member', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(resp) {
+                    if (resp.ok) {
+                        location.reload();
+                    } else {
+                        alert('Error adding member');
+                    }
+                });
+            };
 
-// Dynamic search bar logic
-document.addEventListener('DOMContentLoaded', function() {
-    var searchInput = document.getElementById('dynamicSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', filterMembers);
-    }
-});
+            // Dynamic search bar logic
+            document.addEventListener('DOMContentLoaded', function() {
+                var searchInput = document.getElementById('dynamicSearch');
+                if (searchInput) {
+                    searchInput.addEventListener('input', filterMembers);
+                }
+            });
 
-function filterMembers() {
-    var query = document.getElementById('dynamicSearch').value.toLowerCase();
-    var rows = document.querySelectorAll('table tr.member-row');
-    rows.forEach(function(row) {
-        var text = row.textContent.toLowerCase();
-        row.style.display = text.includes(query) ? '' : 'none';
-    });
-}
-</script>
-    <!-- Only one tab section above the search/menu row -->
-    <table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px; background-color:#f5f5f5;">
-        <tr>
-            <th onclick="sortTable(0)" id="th0">Badge</th>
-            <th onclick="sortTable(1)" id="th1">Type</th>
-            <th onclick="sortTable(2)" id="th2">First Name</th>
-            <th onclick="sortTable(3)" id="th3">Last Name</th>
-            <th onclick="sortTable(4)" id="th4">Primary Email</th>
-            <th onclick="sortTable(5)" id="th5">Secondary Email</th>
-            <th onclick="sortTable(6)" id="th6">Primary Phone</th>
-            <th onclick="sortTable(7)" id="th7">Secondary Phone</th>
-            <th>Actions</th>
-        </tr>
-        {% for member in members %}
-    <tr class="member-row" ondblclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'" style="cursor:pointer;">
-<script>
-// Restore double-click navigation for member rows
-</script>
-            <td style="text-align:center;">{{ member['badge_number'] }}</td>
-            <td>{{ member['membership_type'] }}</td>
-            <td>{{ member['first_name'] }}</td>
-            <td>{{ member['last_name'] }}</td>
-            <td>{{ member['email'] }}</td>
-            <td>{{ member['email2'] }}</td>
-            <td style="min-width:130px;">{{ member['phone'] }}</td>
-            <td style="min-width:130px;">{{ member['phone2'] }}</td>
-            <td>
-                <a href="{{ url_for('member_details', member_id=member['id']) }}" class="action-btn" style="display:inline-block; width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; text-decoration:none; font-size:1em;">✏️ Edit</a>
-                <form action="{{ url_for('member_report', member_id=member['id']) }}" method="get" style="display:inline; margin-bottom:4px;">
-                    <button type="submit" class="action-btn" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; font-size:1em;">📄 Report</button>
-                </form>
-                <form action="{{ url_for('delete_member', member_id=member['id']) }}" method="post" style="display:inline;">
-                    <button type="submit" class="action-btn" onclick="return confirm('Are you sure you want to move this member to the recycle bin?')" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; text-align:center; font-size:1em;">🗑️ Delete</button>
-                </form>
-                <!-- Only one Delete button remains, styled to match other action buttons. -->
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-    <script>
-    // Highlight member row on click and make text bold, including action buttons
-    document.querySelectorAll('.member-row').forEach(function(row) {
-        row.addEventListener('click', function(e) {
-            document.querySelectorAll('.member-row').forEach(function(r) {
-                r.style.backgroundColor = '';
-                r.style.fontWeight = '';
-                r.querySelectorAll('.action-btn').forEach(function(btn) {
-                    btn.style.fontWeight = '';
+            function filterMembers() {
+                var query = document.getElementById('dynamicSearch').value.toLowerCase();
+                var rows = document.querySelectorAll('table tr.member-row');
+                rows.forEach(function(row) {
+                    var text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(query) ? '' : 'none';
+                });
+            }
+            </script>
+            <!-- Only one tab section above the search/menu row -->
+            <table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px; background-color:#f5f5f5;">
+                <tr>
+                    <th onclick="sortTable(0)" id="th0">Badge</th>
+                    <th onclick="sortTable(1)" id="th1">Type</th>
+                    <th onclick="sortTable(2)" id="th2">First Name</th>
+                    <th onclick="sortTable(3)" id="th3">Last Name</th>
+                    <th onclick="sortTable(4)" id="th4">Primary Email</th>
+                    <th onclick="sortTable(5)" id="th5">Secondary Email</th>
+                    <th onclick="sortTable(6)" id="th6">Primary Phone</th>
+                    <th onclick="sortTable(7)" id="th7">Secondary Phone</th>
+                    <th>Actions</th>
+                </tr>
+                {% for member in members %}
+            <tr class="member-row" ondblclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'" style="cursor:pointer;">
+            <script>
+            // Restore double-click navigation for member rows
+            </script>
+                        <td style="text-align:center;">{{ member['badge_number'] }}</td>
+                        <td>{{ member['membership_type'] }}</td>
+                        <td>{{ member['first_name'] }}</td>
+                        <td>{{ member['last_name'] }}</td>
+                        <td>{{ member['email'] }}</td>
+                        <td>{{ member['email2'] }}</td>
+                        <td style="min-width:130px;">{{ member['phone'] }}</td>
+                        <td style="min-width:130px;">{{ member['phone2'] }}</td>
+                        <td>
+                            <a href="{{ url_for('member_details', member_id=member['id']) }}" class="action-btn" style="display:inline-block; width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; text-decoration:none; font-size:1em;">✏️ Edit</a>
+                            <form action="{{ url_for('member_report', member_id=member['id']) }}" method="get" style="display:inline; margin-bottom:4px;">
+                                <button type="submit" class="action-btn" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; font-size:1em;">📄 Report</button>
+                            </form>
+                            <form action="{{ url_for('delete_member', member_id=member['id']) }}" method="post" style="display:inline;">
+                                <button type="submit" class="action-btn" onclick="return confirm('Are you sure you want to move this member to the recycle bin?')" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; text-align:center; font-size:1em;">🗑️ Delete</button>
+                            </form>
+                            <!-- Only one Delete button remains, styled to match other action buttons. -->
+                        </td>
+                    </tr>
+                    {% endfor %}
+            </table>
+            <script>
+            // Highlight member row on click and make text bold, including action buttons
+            document.querySelectorAll('.member-row').forEach(function(row) {
+                row.addEventListener('click', function(e) {
+                    document.querySelectorAll('.member-row').forEach(function(r) {
+                        r.style.backgroundColor = '';
+                        r.style.fontWeight = '';
+                        r.querySelectorAll('.action-btn').forEach(function(btn) {
+                            btn.style.fontWeight = '';
+                        });
+                    });
+                    row.style.backgroundColor = 'rgb(255,255,0)';
+                    row.style.fontWeight = 'bold';
+                    row.querySelectorAll('.action-btn').forEach(function(btn) {
+                        btn.style.fontWeight = 'bold';
+                    });
                 });
             });
-            row.style.backgroundColor = 'rgb(255,255,0)';
-            row.style.fontWeight = 'bold';
-            row.querySelectorAll('.action-btn').forEach(function(btn) {
-                btn.style.fontWeight = 'bold';
-            });
-        });
-    });
 
-    // Sortable table columns with arrow indicators
-    function sortTable(n) {
-        var table = document.querySelector('table');
-        var rows = Array.from(table.rows).slice(1); // skip header
-        var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
-        rows.sort(function(a, b) {
-            var x = a.cells[n].innerText.toLowerCase();
-            var y = b.cells[n].innerText.toLowerCase();
-            if (!isNaN(x) && !isNaN(y)) {
-                x = parseFloat(x); y = parseFloat(y);
+            // Sortable table columns with arrow indicators
+            function sortTable(n) {
+                var table = document.querySelector('table');
+                var rows = Array.from(table.rows).slice(1); // skip header
+                var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
+                rows.sort(function(a, b) {
+                    var x = a.cells[n].innerText.toLowerCase();
+                    var y = b.cells[n].innerText.toLowerCase();
+                    if (!isNaN(x) && !isNaN(y)) {
+                        x = parseFloat(x); y = parseFloat(y);
+                    }
+                    if (x < y) return asc ? -1 : 1;
+                    if (x > y) return asc ? 1 : -1;
+                    return 0;
+                });
+                rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
+                table.setAttribute('data-sort-col', n);
+                table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+                // Remove arrows from all headers
+                for (let i = 0; i < 8; i++) {
+                    let th = document.getElementById('th'+i);
+                    if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
+                }
+                // Add arrow to sorted column
+                let th = document.getElementById('th'+n);
+                if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
             }
-            if (x < y) return asc ? -1 : 1;
-            if (x > y) return asc ? 1 : -1;
-            return 0;
-        });
-        rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
-        table.setAttribute('data-sort-col', n);
-        table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
-        // Remove arrows from all headers
-        for (let i = 0; i < 8; i++) {
-            let th = document.getElementById('th'+i);
-            if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
-        }
-        // Add arrow to sorted column
-        let th = document.getElementById('th'+n);
-        if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
-    }
-    </script>
+            </script>
+            {% endblock %}
+        </div>
     </div>
-    <!-- Recycle bin link moved to top -->
 </body>
 </html>

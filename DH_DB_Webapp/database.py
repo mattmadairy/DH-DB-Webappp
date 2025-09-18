@@ -101,13 +101,25 @@ def update_member_committees(member_id, updates):
     print(f"Updating committees for member_id={member_id} with updates={updates}")
     conn = get_connection()
     c = conn.cursor()
-    # Build SET clause dynamically
-    set_clause = ', '.join([f'{k}=?' for k in updates.keys()])
-    print(f"SET clause: {set_clause}")
-    values = list(updates.values())
-    values.append(member_id)
-    print(f"Values: {values}")
-    c.execute(f"UPDATE committees SET {set_clause} WHERE member_id=?", values)
+    # Check if row exists for member_id
+    c.execute("SELECT 1 FROM committees WHERE member_id=?", (member_id,))
+    exists = c.fetchone()
+    if not exists:
+        # Insert a new row with all committee columns set to 0 except those in updates
+        c.execute("PRAGMA table_info(committees)")
+        columns = [row[1] for row in c.fetchall() if row[1] != 'member_id']
+        col_names = ', '.join(['member_id'] + columns)
+        col_placeholders = ', '.join(['?'] * (1 + len(columns)))
+        values = [member_id] + [updates.get(col, 0) for col in columns]
+        c.execute(f"INSERT INTO committees ({col_names}) VALUES ({col_placeholders})", values)
+    else:
+        # Build SET clause dynamically
+        set_clause = ', '.join([f'{k}=?' for k in updates.keys()])
+        print(f"SET clause: {set_clause}")
+        values = list(updates.values())
+        values.append(member_id)
+        print(f"Values: {values}")
+        c.execute(f"UPDATE committees SET {set_clause} WHERE member_id=?", values)
     conn.commit()
     conn.close()
 def update_member_position(member_id, position, term_start=None, term_end=None):

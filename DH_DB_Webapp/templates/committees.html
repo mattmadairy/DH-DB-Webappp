@@ -1,0 +1,137 @@
+
+<style>
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    .main-header, .sub-header, .page-header, .committee-header, h1, h2 {
+        visibility: visible !important;
+        display: block !important;
+        color: #000 !important;
+        font-size: 1.5em !important;
+        position: static !important;
+        text-align: center !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    #committee-select, button[onclick*="window.print"] {
+        display: none !important;
+    }
+    #committee-table, #committee-table * {
+        visibility: visible !important;
+    }
+    #committee-table {
+        position: fixed !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: auto !important;
+        margin: 0 !important;
+        background: none !important;
+        border: none !important;
+    }
+    #committee-table td, #committee-table th {
+        text-align: center !important;
+        vertical-align: middle !important;
+        background: none !important;
+        border: 2px solid #222 !important;
+        color: #000 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 1em !important;
+        padding: 8px !important;
+    }
+}
+</style>
+{% extends "index.html" %}
+{% block content %}
+<div style="display:flex; flex-direction:row; justify-content:center; margin-bottom:20px; width:100%;">
+    <div style="text-align:center; width:100%;">
+        <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+        <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+    
+        <h1 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5;">Committees</h1>
+    </div>
+</div>
+<div style="width:100%; max-width:800px; margin:0 auto;">
+    <form method="get" style="margin-bottom:2em;">
+    <div style="display:flex; justify-content:center; align-items:center; gap:12px; width:100%; text-align:center;">
+            <label for="committee-select" style="font-size:1.1em; color:#f5f5f5;">Select Committee:</label>
+            <select id="committee-select" name="committee" style="font-size:1.1em; padding:6px 18px; border-radius:6px; border:1px solid #384839;" onchange="this.form.submit()">
+                <option value="">-- Choose Committee --</option>
+                {% for cname in committee_names %}
+                    <option value="{{ cname }}" {% if cname == request.args.get('committee') %}selected{% endif %}>{{ committee_display_names[cname] }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" onclick="window.print()" style="margin-left:18px; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-size:1.1em; cursor:pointer;">🖨️ Print</button>
+        </div>
+    </form>
+    {% set selected_committee = request.args.get('committee') %}
+    {% if selected_committee %}
+    <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">{{ committee_display_names[selected_committee] }}</h2>
+        <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
+            <tr style="background:#eaeaea;">
+                {% if selected_committee == 'executive_committee' %}
+                <th id="th0" style="border:2px solid #384839; padding:8px;">Badge #</th>
+                <th id="th1" style="border:2px solid #384839; padding:8px;">Name</th>
+                {% else %}
+                <th id="th0" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(0)">Badge #</th>
+                <th id="th1" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(1)">Name</th>
+                {% endif %}
+                {% if selected_committee == 'executive_committee' %}
+                <th id="th2" style="border:2px solid #384839; padding:8px;">Role</th>
+                <th id="th3" style="border:2px solid #384839; padding:8px;">Term</th>
+                {% endif %}
+            </tr>
+            {% if selected_committee == 'executive_committee' %}
+                {% set role_order = ['President', 'Vice President', 'Treasurer', 'Secretary', 'Trustee'] %}
+                {% for role in role_order %}
+                    {% for member in committee_members[selected_committee] if member['role'] == role %}
+                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'">
+                            <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
+                            <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
+                            <td style="border:2px solid #384839; padding:8px;">{{ member['role'] }}</td>
+                            <td style="border:2px solid #384839; padding:8px;">{{ member['term'] }}</td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                {% for member in committee_members[selected_committee] %}
+                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'">
+                        <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
+                        <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+        {% endif %}
+<script>
+// Sortable table columns with arrow indicators
+function sortTable(n) {
+    var table = document.getElementById("committee-table");
+    var rows = Array.from(table.rows).slice(1); // skip header
+    var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
+    rows.sort(function(a, b) {
+        var x = a.cells[n].innerText.toLowerCase();
+        var y = b.cells[n].innerText.toLowerCase();
+        if (!isNaN(x) && !isNaN(y)) {
+            x = parseFloat(x); y = parseFloat(y);
+        }
+        if (x < y) return asc ? -1 : 1;
+        if (x > y) return asc ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
+    table.setAttribute('data-sort-col', n);
+    table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+    // Remove arrows from all headers
+    for (let i = 0; i < 4; i++) {
+        let th = document.getElementById('th'+i);
+        if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
+    }
+    // Add arrow to sorted column
+    let th = document.getElementById('th'+n);
+    if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
+}
+</script>
+</div>
+{% endblock %}

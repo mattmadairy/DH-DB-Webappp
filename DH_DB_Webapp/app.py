@@ -94,7 +94,21 @@ def member_details(member_id):
 	committees = database.get_member_committees(member_id)
 	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
 	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
+	# Get master list of all possible committee columns from the committees table
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	c = conn.cursor()
+	c.execute("PRAGMA table_info(committees)")
+	all_committee_columns = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
+	conn.close()
+	committee_names = all_committee_columns
+	# Ensure committees dict has all keys, default to 0 if missing
+	if committees:
+		for cname in committee_names:
+			if cname not in committees:
+				committees[cname] = 0
+	else:
+		committees = {cname: 0 for cname in committee_names}
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
 	# Map raw activity names to display names
 	activity_display_names = {
@@ -337,9 +351,14 @@ def edit_section(member_id):
 		elif section == 'committees':
 			import logging
 			logging.basicConfig(level=logging.DEBUG)
-			committees = database.get_member_committees(member_id)
+			# Get master list of all possible committee columns from the committees table
+			import sqlite3
+			conn = sqlite3.connect(database.DB_NAME)
+			c = conn.cursor()
 			exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-			committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys]
+			c.execute("PRAGMA table_info(committees)")
+			committee_names = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
+			conn.close()
 			updates = {}
 			for cname in committee_names:
 				form_key = f'committee_{cname}'
@@ -461,6 +480,50 @@ def meeting_attendance_report():
 	attendance = database.get_meeting_attendance_report(year=year, month=month)
 	now = datetime.datetime.now()
 	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now)
+
+@app.route('/committees')
+def committees():
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	c = conn.cursor()
+	c.execute("PRAGMA table_info(committees)")
+	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+	committee_names = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
+	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+	print('DEBUG committee_names:', committee_names)
+	print('DEBUG committee_display_names:', committee_display_names)
+	# Get all members and their committee memberships
+	members = database.get_all_members()
+	committee_members = {cname: [] for cname in committee_names}
+	for member in members:
+		member_committees = database.get_member_committees(member['id'])
+		position = database.get_member_position(member['id'])
+		for cname in committee_names:
+			if member_committees.get(cname, 0) == 1:
+				if cname == 'executive_committee':
+					member_copy = dict(member)
+					member_copy['role'] = position['position'] if position and 'position' in position.keys() else ''
+					if position and (('term_start' in position.keys() and position['term_start']) or ('term_end' in position.keys() and position['term_end'])):
+						term_start = position['term_start'] if 'term_start' in position.keys() and position['term_start'] else ''
+						term_end = position['term_end'] if 'term_end' in position.keys() and position['term_end'] else ''
+						if term_start and term_end:
+							member_copy['term'] = f"{term_start} until {term_end}"
+						elif term_start:
+							member_copy['term'] = f"{term_start}"
+						elif term_end:
+							member_copy['term'] = f"until {term_end}"
+						else:
+							member_copy['term'] = ''
+					else:
+						member_copy['term'] = ''
+					committee_members[cname].append(member_copy)
+				else:
+					committee_members[cname].append(member)
+	conn.close()
+	import datetime
+	now = datetime.datetime.now()
+	selected_committee = request.args.get('committee')
+	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now)
 
 if __name__ == "__main__":
     app.run(debug=True)
