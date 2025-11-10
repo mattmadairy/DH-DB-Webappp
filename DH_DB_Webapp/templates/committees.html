@@ -1,34 +1,52 @@
 
 <style>
+.print-header {
+    display: none;
+}
 @media print {
     body * {
         visibility: hidden !important;
     }
-    .main-header, .sub-header, .page-header, .committee-header, h1, h2 {
+    .print-header, .print-header * {
         visibility: visible !important;
+    }
+    .main-header, .sub-header, .page-header, .committee-header, h1, h2 {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    .print-header {
         display: block !important;
-        color: #000 !important;
-        font-size: 1.5em !important;
-        position: static !important;
+        visibility: visible !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
         text-align: center !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+        font-size: 2em !important;
+        color: #000 !important;
+        background: none !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        margin: 0 !important;
+        padding: 0.5em 0 0.2em 0 !important;
+        border: none !important;
+        z-index: 9999 !important;
+    }
+    #committee-table {
+        margin-top: 0 !important;
+        position: fixed !important;
+        left: 50% !important;
+    top: 7em !important;
+        transform: translateX(-50%) !important;
+        width: 100vw !important;
+        table-layout: fixed !important;
+        background: none !important;
+        border: none !important;
     }
     #committee-select, button[onclick*="window.print"] {
         display: none !important;
     }
     #committee-table, #committee-table * {
         visibility: visible !important;
-    }
-    #committee-table {
-        position: fixed !important;
-        left: 50% !important;
-        top: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: auto !important;
-        margin: 0 !important;
-        background: none !important;
-        border: none !important;
     }
     #committee-table td, #committee-table th {
         text-align: center !important;
@@ -66,6 +84,12 @@
         </div>
     </form>
     {% set selected_committee = request.args.get('committee') %}
+    <div class="print-header">
+        {% if selected_committee %}
+            <div style="font-size:1.1em; font-weight:bold; margin-bottom:0.2em;">Committee Roster:</div>
+            <div>{{ committee_display_names[selected_committee] }}</div>
+        {% endif %}
+    </div>
     {% if selected_committee %}
     <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">{{ committee_display_names[selected_committee] }}</h2>
         <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
@@ -86,7 +110,7 @@
                 {% set role_order = ['President', 'Vice President', 'Treasurer', 'Secretary', 'Trustee'] %}
                 {% for role in role_order %}
                     {% for member in committee_members[selected_committee] if member['role'] == role %}
-                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'">
+                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">
                             <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
                             <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
                             <td style="border:2px solid #384839; padding:8px;">{{ member['role'] }}</td>
@@ -96,7 +120,7 @@
                 {% endfor %}
             {% else %}
                 {% for member in committee_members[selected_committee] %}
-                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'">
+                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">
                         <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
                         <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
                     </tr>

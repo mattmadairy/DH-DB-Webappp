@@ -187,6 +187,14 @@ function showTab(event, tabName) {
 
 // Restore selected tab on page load
 document.addEventListener('DOMContentLoaded', function() {
+	// If URL param tab=work_hours or tab=workhours, activate that tab
+	var params = new URLSearchParams(window.location.search);
+	var tabParam = params.get('tab');
+	if (tabParam === 'work_hours' || tabParam === 'workhours') {
+		var tablink = document.querySelector('.tablink[data-tab="workhours"]');
+		if (tablink) tablink.click();
+		return;
+	}
 	// If URL fragment is #workhours, activate that tab
 	if (window.location.hash === '#workhours') {
 		var tablink = document.querySelector('.tablink[data-tab="workhours"]');
@@ -264,7 +272,7 @@ function openModal(id) {
 					<h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
 				</div>
 			</div>
-			<h2 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; text-align:center;">Member Details</h2>
+			<h2 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; text-align:center; text-decoration:underline;">Member Details</h2>
 			<!-- Removed extra space below page header -->
 			<h3 style="margin-top:0; margin-bottom:0.2em; color:#f5f5f5; font-weight:normal; text-align:center; font-size:1.5em;">
 				{% if position and position['position'] %}

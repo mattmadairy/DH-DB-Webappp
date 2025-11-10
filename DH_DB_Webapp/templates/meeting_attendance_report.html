@@ -3,8 +3,13 @@
 <head>
     <title>Meeting Attendance Report - Dug Hill Rod & Gun Club</title>
     <style>
+        .active-menu {
+            background-color: rgb(255,255,0) !important;
+        }
+    </style>
+    <style>
         body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
-        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+    .main-content { display:flex; flex-direction:column; align-items:center; justify-content:center; margin-left:210px; min-width:0; }
         .attendance-header { display:flex; align-items:center; justify-content:center; margin-top:24px; margin-bottom:8px; }
         .attendance-header img { height:90px; margin:0 32px; }
         .attendance-header-text { text-align:center; }
@@ -15,47 +20,145 @@
         .print-btn { margin-left:8px; padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; }
         .hide-names-label { font-size:1em; color:#384839; margin-left:12px; }
         @media print {
-            .side-menu, .print-btn, .hide-names-label { display: none !important; }
-            body, html { margin:0 !important; padding:0 !important; background:#fff !important; }
-            .main-content { margin-left:0 !important; }
+            .print-table-container {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: flex-start !important;
+                flex-direction: initial !important;
+                align-items: initial !important;
+            }
+            .print-table-container table {
+                    width: auto !important;
+                    margin-left: auto !important;
+                    margin-right: auto !important;
+            }
+            .side-menu, .main-content, .page-header, .attendance-header, .print-table-container form, .print-btn, .hide-names-label, #year, #month, label[for="year"], label[for="month"] {
+                display: none !important;
+            }
+            .print-header, .print-table-container {
+                margin: 0 auto !important;
+                width: auto !important;
+            }
+            .print-table-container, .print-table-container table {
+                display: block !important;
+            }
+            .side-menu, .main-content, .page-header, .attendance-header, .print-table-container form, .print-btn, .hide-names-label, #year, #month, label[for="year"], label[for="month"] {
+                display: none !important;
+            }
+            .print-table-container form, .print-btn, .hide-names-label, #year, #month, label[for="year"], label[for="month"] {
+                display: none !important;
+            }
+            .print-header, .print-header * {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .main-content, .attendance-header, .page-header { display: none !important; }
+            .print-table-container {
+                margin-top: 8em !important;
+                padding: 0 !important;
+                display: block !important;
+                text-align: center !important;
+            }
+            .print-header h1, .print-header h2, .print-header h3 {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .print-table-container table {
+                margin-top: 0 !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            .side-menu, .print-btn, .hide-names-label, #year, #month, label[for="year"], label[for="month"], .page-header { display: none !important; }
+            .print-header {
+                display: block !important;
+                text-align: center !important;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                z-index: 1000 !important;
+                background: #fff !important;
+                margin: 0 !important;
+                padding: 0 0 0 0 !important;
+            }
+                html, body {
+                    margin:0 !important;
+                    padding:0 !important;
+                    background:#fff !important;
+                    min-height:100vh !important;
+                    display:block !important;
+                }
+            .main-content { margin-left:0 !important; width:auto !important; display: block !important; }
             .attendance-header { display:flex !important; align-items:center !important; justify-content:center !important; margin-top:24px !important; margin-bottom:8px !important; }
             .attendance-header img { height:90px !important; margin:0 32px !important; }
             .attendance-header-text { text-align:center !important; }
             .attendance-header-text h1, .attendance-header-text h2 { color:#000 !important; margin:0 !important; }
-            table { margin:auto !important; width:100% !important; max-width:700px !important; border-collapse:collapse !important; background:#f5f5f5 !important; }
+            .print-table-container {
+                /* removed duplicate block to avoid overriding margin-top */
+            }
+            .print-table-container table {
+                margin-left:auto !important;
+                margin-right:auto !important;
+                display:block !important;
+            }
+            table { margin-left:auto !important; margin-right:auto !important; width:auto !important; max-width:700px !important; border-collapse:collapse !important; background:#f5f5f5 !important; }
+            th#th0, td:nth-child(1) { width:110px !important; }
+            th.name-col, td.name-col { width:220px !important; }
+            th#th2, td:nth-child(3) { width:120px !important; }
+            th#th3, td:nth-child(4) { width:120px !important; }
             th, td { border:2px solid #222 !important; padding:8px !important; }
             th { background:#f0f0f0 !important; }
             .hide-names-print .name-col { display:none !important; }
+                .print-table-container th, .print-table-container td {
+                    width: 25% !important;
+                    word-break: break-word !important;
+                }
         }
     </style>
 </head>
-<body>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+    <!-- Print header for print view, matching Dues Report -->
+    <div class="print-header" style="display:none;">
+        <h1 style="margin:0; line-height:1.1; font-size:2em;">Dug Hill Rod & Gun Club</h1>
+        <h1 style="margin:0; line-height:1.1; font-size:2em;">Membership Database</h1>
+        <div style="height:0.7em;"></div>
+        <h2 style="margin:0; line-height:1.1;">Meeting Attendance Report</h2>
+    {% set month_name = months | selectattr('value', 'equalto', selected_month) | map(attribute='name') | list | first %}
+    <div style="height:0.5em;"></div>
+    {% if selected_year and selected_month and selected_month != 'all' %}
+    <h3 style="margin:0; line-height:1.1; padding-bottom:0;">Year: {{ selected_year }} &mdash; Month: {{ month_name }}</h3>
+    {% elif selected_year %}
+    <h3 style="margin:0; line-height:1.1; padding-bottom:0;">Year: {{ selected_year }}</h3>
+    {% elif selected_month and selected_month != 'all' %}
+    <h3 style="margin:0; line-height:1.1; padding-bottom:0;">Month: {{ month_name }}</h3>
+    {% endif %}
+    </div>
     <div style="display:flex; flex-direction:row;">
     <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
-            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="{{ url_for('index') }}" class="{{ 'active-menu' if active_page == 'home' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'home' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
             <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
-            <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
-            <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
-            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+            <a href="{{ url_for('recycle_bin') }}" class="{{ 'active-menu' if active_page == 'recycle_bin' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('dues_report') }}" class="{{ 'active-menu' if active_page == 'dues_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'dues_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
+            <a href="{{ url_for('work_hours_report') }}" class="{{ 'active-menu' if active_page == 'work_hours_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'work_hours_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
                 <img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours Report
             </a>
-            <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+            <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
                 <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
             </a>
-                <a href="{{ url_for('committees') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+                <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
         </div>
-        <div class="main-content">
-            <div class="attendance-header">
-                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Left" style="height:90px; margin-right:32px;">
-                <div class="attendance-header-text">
-                    <h1 style="margin-bottom:0; font-size:2.1em; color:#000;">Dug Hill Rod &amp; Gun Club</h1>
-                    <h2 style="margin-top:0; margin-bottom:0; font-size:1.5em; color:#000;">Meeting Attendance Report</h2>
-                    <div style="text-align:center; font-size:1em; color:#555; margin-top:0;">Generated: {{ now.strftime('%B %d, %Y %H:%M') }}</div>
+        <div class="main-content" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; width:100%;">
+            <div class="page-header" style="width:100%; display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+                <div style="text-align:center; width:100%; max-width:800px; margin:0 auto;">
+                    <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em; text-align:center;">Dug Hill Rod & Gun Club</h1>
+                    <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em; text-align:center;">Membership Database</h1>
+                    <h2 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; font-weight:bold; text-decoration:underline;">Meeting Attendance Report</h2>
                 </div>
-                <img src="{{ url_for('static', filename='Main_Logo_white_bg.png') }}" alt="Main Logo Right" style="height:90px; margin-left:32px;">
             </div>
-            <div style="background-color:#f5f5f5; border-radius:8px; padding:32px; min-width:400px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:40px; margin-top:24px; width:100%; max-width:800px;">
+            <div class="attendance-header" style="width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            </div>
+            <div class="print-table-container" style="background-color:#f5f5f5; border-radius:8px; padding:32px; min-width:400px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:40px; margin-top:0; max-width:800px; margin-left:auto; margin-right:auto; display:flex; flex-direction:column; align-items:center;">
                 <form method="get" style="margin-bottom:18px; display:inline-flex; align-items:center; gap:16px;">
                     <label for="year" style="font-size:1.1em; color:#384839; margin-right:8px;">Year:</label>
                     <select name="year" id="year" onchange="this.form.submit()" style="font-size:1.1em; padding:4px 12px; border-radius:6px; border:1px solid #384839;">
@@ -74,11 +177,12 @@
                         <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
                     </label>
                 </form>
-                <table id="attendanceTable" style="width:100%; max-width:700px; margin:auto; border-collapse:collapse;">
+            <div class="print-table-center">
+                <table id="attendanceTable" style="margin:0; border-collapse:collapse;">
             <thead>
                 <tr>
                     <th id="th0" onclick="sortTable(0)">Badge # <span></span></th>
-                    <th id="th1" onclick="sortTable(1)">Name <span></span></th>
+                    <th id="th1" onclick="sortTable(1)" class="name-col">Name <span></span></th>
                     {% if selected_month == 'all' %}
                         <th id="th2" onclick="sortTable(2)">Number <span></span></th>
                     {% else %}
@@ -92,7 +196,7 @@
                     {% for att in attendance %}
                     <tr>
                         <td>{{ att.badge_number }}</td>
-                        <td>{{ att.last_name }}, {{ att.first_name }}</td>
+                            <td class="name-col">{{ att.last_name }}, {{ att.first_name }}</td>
                         <td>{{ att.total_meetings }}</td>
                     </tr>
                     {% endfor %}
@@ -100,16 +204,39 @@
                     {% for att in attendance %}
                     <tr>
                         <td>{{ att.badge_number }}</td>
-                        <td>{{ att.last_name }}, {{ att.first_name }}</td>
+                        <td class="name-col">{{ att.last_name }}, {{ att.first_name }}</td>
                         <td>{{ att.meeting_date }}</td>
                         <td>{{ att.status }}</td>
                     </tr>
                     {% endfor %}
                 {% endif %}
             </tbody>
-        </table>
+                </table>
+            </div>
     </div>
     <script>
+function toggleHideNames() {
+    var hideNamesCheckbox = document.getElementById('hideNamesPrint');
+    if (hideNamesCheckbox.checked) {
+        document.body.classList.add('hide-names-print');
+    } else {
+        document.body.classList.remove('hide-names-print');
+    }
+}
+
+// Ensure hide-names-print is applied before printing
+window.addEventListener('beforeprint', function() {
+    var hideNamesCheckbox = document.getElementById('hideNamesPrint');
+    if (hideNamesCheckbox && hideNamesCheckbox.checked) {
+        document.body.classList.add('hide-names-print');
+    }
+});
+window.addEventListener('afterprint', function() {
+    var hideNamesCheckbox = document.getElementById('hideNamesPrint');
+    if (hideNamesCheckbox && hideNamesCheckbox.checked) {
+        document.body.classList.remove('hide-names-print');
+    }
+});
     let sortedCol = null;
     let sortDir = "asc";
     function sortTable(n) {
@@ -120,6 +247,9 @@
             sortDir = sortDir === "asc" ? "desc" : "asc";
         } else {
             sortDir = "asc";
+            .print-table-center {
+                display: inline-block !important;
+            }
         }
         sortedCol = n;
         rows.sort(function(a, b) {

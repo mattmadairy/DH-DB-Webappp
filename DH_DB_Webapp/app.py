@@ -23,10 +23,20 @@ app.jinja_env.filters['format_mmddyyyy'] = format_mmddyyyy
 
 def dues_report():
 	year = request.args.get('year')
-	dues = database.get_all_dues_by_year(year)
 	years = database.get_dues_years()
+	if not year:
+		# Default to current year if available, else first year in list
+		now = datetime.datetime.now()
+		current_year = str(now.year)
+		if current_year in years:
+			year = current_year
+		elif years:
+			year = years[0]
+		else:
+			year = None
+	dues = database.get_all_dues_by_year(year)
 	now = datetime.datetime.now()
-	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now)
+	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report')
 
 def add_work_hours(member_id):
 	date = request.form['date']
@@ -52,7 +62,7 @@ def work_hours_report():
 	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
 	years = database.get_dues_years()  # reuse dues years for dropdown
 	now = datetime.datetime.now()
-	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now)
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report')
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 def add_meeting_attendance(member_id):
@@ -63,22 +73,22 @@ def add_meeting_attendance(member_id):
 
 @app.route('/', methods=['GET'])
 def index():
-    search = request.args.get('search', '').strip()
-    member_type = request.args.get('member_type', 'All')
-    all_members = database.get_all_members()
-    # Filter by member type
-    if member_type and member_type != 'All':
-        members = [m for m in all_members if m['membership_type'] == member_type]
-    else:
-        members = all_members
-    # Filter by search (all columns)
-    if search:
-        search_lower = search.lower()
-        def member_matches(m):
-            return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
-        members = [m for m in members if member_matches(m)]
-    member_types = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
-    return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types)
+	search = request.args.get('search', '').strip()
+	member_type = request.args.get('member_type', 'All')
+	all_members = database.get_all_members()
+	# Filter by member type
+	if member_type and member_type != 'All':
+		members = [m for m in all_members if m['membership_type'] == member_type]
+	else:
+		members = all_members
+	# Filter by search (all columns)
+	if search:
+		search_lower = search.lower()
+		def member_matches(m):
+			return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
+		members = [m for m in members if member_matches(m)]
+	member_types = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types, active_page='home')
 
 @app.route('/member/<int:member_id>')
 def member_details(member_id):
@@ -144,7 +154,7 @@ def member_details(member_id):
 # Add /reports route for the Reports page
 @app.route('/reports')
 def reports():
-	return render_template('reports.html')
+	return render_template('reports.html', active_page='reports')
 
 # Member Report route
 @app.route('/member_report/<int:member_id>')
@@ -197,7 +207,7 @@ def delete_member(member_id):
 @app.route('/recycle_bin')
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
-	return render_template('recycle_bin.html', deleted_members=deleted_members)
+	return render_template('recycle_bin.html', deleted_members=deleted_members, active_page='recycle_bin')
 
 # Restore ALL members from recycle bin
 @app.route('/recycle_bin/restore_all', methods=['POST'])
@@ -479,7 +489,7 @@ def meeting_attendance_report():
 	]
 	attendance = database.get_meeting_attendance_report(year=year, month=month)
 	now = datetime.datetime.now()
-	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now)
+	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report')
 
 @app.route('/committees')
 def committees():
@@ -490,8 +500,6 @@ def committees():
 	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
 	committee_names = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-	print('DEBUG committee_names:', committee_names)
-	print('DEBUG committee_display_names:', committee_display_names)
 	# Get all members and their committee memberships
 	members = database.get_all_members()
 	committee_members = {cname: [] for cname in committee_names}
@@ -523,7 +531,7 @@ def committees():
 	import datetime
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')
-	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now)
+	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees')
 
 if __name__ == "__main__":
     app.run(debug=True)
