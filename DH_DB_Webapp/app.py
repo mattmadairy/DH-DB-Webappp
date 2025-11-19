@@ -1,8 +1,21 @@
 from flask import Flask, render_template, request, redirect, url_for
 import database
 import datetime
+import socket
 
 app = Flask(__name__)
+
+def get_local_ip():
+    """Get the local IP address of the host machine"""
+    try:
+        # Create a socket connection to get the local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception:
+        return "127.0.0.1"
 
 # Jinja filter to format ISO date as mm-dd-yyyy
 def format_mmddyyyy(value):
@@ -534,4 +547,25 @@ def committees():
 	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees')
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import sys
+    import os
+    
+    local_ip = get_local_ip()
+    port = 5000
+    
+    # Display startup info
+    print("\n" + "="*60)
+    print("DH Member Database - Server Starting")
+    print("="*60)
+    print(f"Local access:   http://127.0.0.1:{port}")
+    print(f"Network access: http://{local_ip}:{port}")
+    print("="*60 + "\n")
+    
+    # Run the app without console (use pythonw.exe or run in background)
+    if '--background' in sys.argv or getattr(sys, 'frozen', False):
+        # Running as background service or frozen executable
+        import logging
+        logging.basicConfig(filename='app.log', level=logging.INFO)
+        app.run(debug=False, host='0.0.0.0', port=port, use_reloader=False)
+    else:
+        app.run(debug=True, host='0.0.0.0', port=port)
