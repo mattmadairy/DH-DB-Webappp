@@ -31,7 +31,25 @@ setup(
     install_requires=[
         "Flask>=3.0.0",
         "Werkzeug>=3.0.1",
+        "Jinja2>=3.1.2",
+        "MarkupSafe>=2.1.3",
+        "itsdangerous>=2.1.2",
+        "click>=8.1.7",
+        "blinker>=1.6.2",
+        "waitress>=2.1.2",
+        "python-dateutil>=2.8.2",
     ],
+    extras_require={
+        "dev": [
+            "pytest>=7.4.0",
+            "pytest-cov>=4.1.0",
+            "pytest-flask>=1.2.0",
+            "flake8>=6.1.0",
+            "black>=23.7.0",
+            "pylint>=2.17.5",
+            "python-dotenv>=1.0.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "dh-webapp=app:main",
