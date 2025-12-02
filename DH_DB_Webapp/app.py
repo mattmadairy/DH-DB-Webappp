@@ -100,8 +100,17 @@ def index():
 		def member_matches(m):
 			return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
 		members = [m for m in members if member_matches(m)]
-	member_types = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
-	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types, active_page='home')
+	
+	# Calculate member counts for each type
+	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+	member_counts = {}
+	for mt in member_types_list:
+		if mt == "All":
+			member_counts[mt] = len(all_members)
+		else:
+			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
+	
+	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home')
 
 @app.route('/member/<int:member_id>')
 def member_details(member_id):
@@ -545,6 +554,30 @@ def committees():
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')
 	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees')
+
+@app.route('/email_list')
+def email_list():
+	member_type = request.args.get('member_type', 'All')
+	all_members = database.get_all_members()
+	
+	# Filter by member type
+	if member_type and member_type != 'All':
+		members = [m for m in all_members if m['membership_type'] == member_type]
+	else:
+		members = all_members
+	
+	# Collect all emails (primary and secondary)
+	emails = []
+	for member in members:
+		if member['email']:
+			emails.append(member['email'])
+		if member['email2']:
+			emails.append(member['email2'])
+	
+	# Remove duplicates and sort
+	emails = sorted(list(set(emails)))
+	
+	return render_template('email_list.html', emails=emails, member_type=member_type, count=len(emails))
 
 if __name__ == "__main__":
     import sys

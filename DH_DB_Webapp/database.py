@@ -16,7 +16,7 @@ def get_meeting_attendance_report(year=None, month=None):
         if year:
             query += " AND strftime('%Y', a.meeting_date) = ?"
             params.append(year)
-        query += " GROUP BY m.id ORDER BY m.last_name, m.first_name"
+        query += " GROUP BY m.id ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name"
         c.execute(query, params)
         rows = c.fetchall()
         conn.close()
@@ -34,7 +34,7 @@ def get_meeting_attendance_report(year=None, month=None):
         if month:
             query += " AND strftime('%m', a.meeting_date) = ?"
             params.append(month)
-        query += " ORDER BY a.meeting_date DESC, m.last_name, m.first_name"
+        query += " ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name"
         c.execute(query, params)
         rows = c.fetchall()
         conn.close()
@@ -67,7 +67,7 @@ def get_work_hours_report(start_date=None, end_date=None):
     if end_date:
         query += " AND (w.date <= ? OR w.date IS NULL)"
         params.append(end_date)
-    query += " GROUP BY m.id ORDER BY m.last_name, m.first_name"
+    query += " GROUP BY m.id ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name"
     c.execute(query, params)
     rows = c.fetchall()
     conn.close()
@@ -84,16 +84,16 @@ def get_all_dues_by_year(year=None):
     conn = get_connection()
     c = conn.cursor()
     if year:
-        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 AND d.year=? ORDER BY d.payment_date ASC", (year,))
+        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 AND d.year=? ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name", (year,))
     else:
-        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY d.payment_date ASC")
+        c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name")
     rows = c.fetchall()
     conn.close()
     return rows
 def get_all_dues():
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY d.payment_date ASC")
+    c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name")
     rows = c.fetchall()
     conn.close()
     return rows
@@ -257,7 +257,7 @@ init_database()
 def get_all_members():
 	conn = get_connection()
 	c = conn.cursor()
-	c.execute("SELECT * FROM members WHERE deleted=0")
+	c.execute("SELECT * FROM members WHERE deleted=0 ORDER BY CAST(badge_number AS INTEGER), last_name, first_name")
 	rows = c.fetchall()
 	conn.close()
 	return rows
