@@ -23,7 +23,14 @@
             <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
                 <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
             </a>
-            <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+                <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
+                    <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
+                    <div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
+                    <div style="border-top:1px solid #555; padding-top:8px;"><strong>Total:</strong> {{ member_stats.total_members }}</div>
+                </div>
+            </div>
         </div>
         <!-- Add Member Modal -->
         <div id="addMemberModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">

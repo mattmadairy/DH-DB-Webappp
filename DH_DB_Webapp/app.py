@@ -30,6 +30,17 @@ def format_mmddyyyy(value):
 
 app.jinja_env.filters['format_mmddyyyy'] = format_mmddyyyy
 
+def get_member_stats():
+	"""Calculate member statistics for sidebar display"""
+	all_members = database.get_all_members()
+	life_count = len([m for m in all_members if m['membership_type'] == 'Life'])
+	voting_count = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active']])
+	total_count = len(all_members)
+	return {
+		'life_members': life_count,
+		'voting_members': voting_count,
+		'total_members': total_count
+	}
 
 @app.route('/add_work_hours/<int:member_id>', methods=['POST'])
 @app.route('/dues_report')
@@ -49,7 +60,8 @@ def dues_report():
 			year = None
 	dues = database.get_all_dues_by_year(year)
 	now = datetime.datetime.now()
-	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report')
+	member_stats = get_member_stats()
+	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats)
 
 def add_work_hours(member_id):
 	date = request.form['date']
@@ -75,7 +87,8 @@ def work_hours_report():
 	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
 	years = database.get_dues_years()  # reuse dues years for dropdown
 	now = datetime.datetime.now()
-	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report')
+	member_stats = get_member_stats()
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats)
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 def add_meeting_attendance(member_id):
@@ -110,7 +123,8 @@ def index():
 		else:
 			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
 	
-	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home')
+	member_stats = get_member_stats()
+	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats)
 
 @app.route('/member/<int:member_id>')
 def member_details(member_id):
@@ -229,7 +243,8 @@ def delete_member(member_id):
 @app.route('/recycle_bin')
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
-	return render_template('recycle_bin.html', deleted_members=deleted_members, active_page='recycle_bin')
+	member_stats = get_member_stats()
+	return render_template('recycle_bin.html', deleted_members=deleted_members, active_page='recycle_bin', member_stats=member_stats)
 
 # Restore ALL members from recycle bin
 @app.route('/recycle_bin/restore_all', methods=['POST'])
@@ -511,7 +526,8 @@ def meeting_attendance_report():
 	]
 	attendance = database.get_meeting_attendance_report(year=year, month=month)
 	now = datetime.datetime.now()
-	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report')
+	member_stats = get_member_stats()
+	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report', member_stats=member_stats)
 
 @app.route('/committees')
 def committees():
@@ -553,7 +569,8 @@ def committees():
 	import datetime
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')
-	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees')
+	member_stats = get_member_stats()
+	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees', member_stats=member_stats)
 
 @app.route('/email_list')
 def email_list():
@@ -577,7 +594,8 @@ def email_list():
 	# Remove duplicates and sort
 	emails = sorted(list(set(emails)))
 	
-	return render_template('email_list.html', emails=emails, member_type=member_type, count=len(emails))
+	member_stats = get_member_stats()
+	return render_template('email_list.html', emails=emails, member_type=member_type, count=len(emails), member_stats=member_stats)
 
 if __name__ == "__main__":
     import sys
