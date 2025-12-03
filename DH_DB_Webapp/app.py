@@ -402,9 +402,8 @@ def edit_section(member_id):
 			import sqlite3
 			conn = sqlite3.connect(database.DB_NAME)
 			c = conn.cursor()
-			exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
 			c.execute("PRAGMA table_info(committees)")
-			committee_names = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
+			committee_names = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
 			conn.close()
 			updates = {}
 			for cname in committee_names:
@@ -415,8 +414,11 @@ def edit_section(member_id):
 			logging.debug(f"Updates dict: {updates}")
 			try:
 				database.update_member_committees(member_id, updates)
+				logging.debug(f"Successfully updated committees for member {member_id}")
 			except Exception as e:
 				logging.error(f"Error updating committees for member {member_id}: {e}")
+				import traceback
+				logging.error(traceback.format_exc())
 		return ('', 204)  # AJAX expects empty response
 	# For GET, just show a message (should not be used with popup)
 	return f"Edit {section} for member {member_id}"  # Replace with render_template as needed
