@@ -107,7 +107,7 @@ def update_member_committees(member_id, updates):
     if not exists:
         # Insert a new row with all committee columns set to 0 except those in updates
         c.execute("PRAGMA table_info(committees)")
-        columns = [row[1] for row in c.fetchall() if row[1] != 'member_id']
+        columns = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
         col_names = ', '.join(['member_id'] + columns)
         col_placeholders = ', '.join(['?'] * (1 + len(columns)))
         values = [member_id] + [updates.get(col, 0) for col in columns]
