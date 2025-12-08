@@ -3,13 +3,13 @@ Script to update dues payment methods in the database.
 Changes 'Online' and 'Card' entries to 'Stripe'.
 """
 
-import database
+import sqlite3
 
 def update_dues_methods():
     """Update dues payment methods from 'Online' and 'Card' to 'Stripe'"""
     
-    # Get database connection
-    conn = database.get_db_connection()
+    # Connect directly to members.db
+    conn = sqlite3.connect('members.db')
     cursor = conn.cursor()
     
     try:
