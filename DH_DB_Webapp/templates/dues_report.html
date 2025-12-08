@@ -160,6 +160,7 @@
     {% if selected_year %}
     <h3 style="margin:0; line-height:1.1; padding-bottom:0;">Year: {{ selected_year }}</h3>
     {% endif %}
+    <h3 style="margin:0; line-height:1.1; padding-top:0.3em;">Total Records: {{ dues|length }}</h3>
     </div>
         <style>
             body.hide-names-print .name-col {
@@ -221,9 +222,14 @@
                         </select>
                     </form>
                     <button type="button" class="print-btn" onclick="addGeneratedLineAndPrint()" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">🖨️ Print Report</button>
+                    <button type="button" class="print-btn" onclick="window.location.href='{{ url_for('dues_email_list', year=selected_year) }}'" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">📧 Email List - Paid</button>
+                    <button type="button" class="print-btn" onclick="window.location.href='{{ url_for('dues_unpaid_email_list', year=selected_year) }}'" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">📧 Email List - Unpaid</button>
                     <label class="hide-names-label" style="font-size:1em; color:#384839; margin-left:12px;">
                         <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
                     </label>
+                </div>
+                <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#384839; font-weight:bold;">
+                    Total Records: {{ dues|length }}
                 </div>
                 <table id="duesTable" style="width:100%; max-width:700px; margin:auto; border-collapse:collapse;">
                     <thead>

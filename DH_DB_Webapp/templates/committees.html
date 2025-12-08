@@ -67,7 +67,7 @@
         <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
         <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
     
-        <h1 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5;">Committees</h1>
+        <h1 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5; text-decoration:underline;">Committees</h1>
     </div>
 </div>
 <div style="width:100%; max-width:800px; margin:0 auto;">
@@ -76,22 +76,46 @@
             <label for="committee-select" style="font-size:1.1em; color:#f5f5f5;">Select Committee:</label>
             <select id="committee-select" name="committee" style="font-size:1.1em; padding:6px 18px; border-radius:6px; border:1px solid #384839;" onchange="this.form.submit()">
                 <option value="">-- Choose Committee --</option>
+                <option value="committee_chairs" {% if 'committee_chairs' == request.args.get('committee') %}selected{% endif %}>Committee Chairs</option>
                 {% for cname in committee_names %}
                     <option value="{{ cname }}" {% if cname == request.args.get('committee') %}selected{% endif %}>{{ committee_display_names[cname] }}</option>
                 {% endfor %}
             </select>
             <button type="button" onclick="window.print()" style="margin-left:18px; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-size:1.1em; cursor:pointer;">🖨️ Print</button>
+            {% if selected_committee and selected_committee != '' %}
+            <button type="button" onclick="window.location.href='{{ url_for('committee_email_list', committee=selected_committee) }}'" style="margin-left:8px; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-size:1.1em; cursor:pointer;">📧 Email List</button>
+            {% endif %}
         </div>
     </form>
     {% set selected_committee = request.args.get('committee') %}
     <div class="print-header">
         {% if selected_committee %}
             <div style="font-size:1.1em; font-weight:bold; margin-bottom:0.2em;">Committee Roster:</div>
-            <div>{{ committee_display_names[selected_committee] }}</div>
+            <div>{% if selected_committee == 'committee_chairs' %}Committee Chairs{% else %}{{ committee_display_names[selected_committee] }}{% endif %}</div>
+            <div style="margin-top:0.3em;">Total Members: {{ committee_members[selected_committee]|length }}</div>
         {% endif %}
     </div>
     {% if selected_committee %}
+    {% if selected_committee == 'committee_chairs' %}
+    <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">Committee Chairs</h2>
+    <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#f5f5f5; font-weight:bold;">Total Members: {{ committee_members[selected_committee]|length }}</div>
+        <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
+            <tr style="background:#eaeaea;">
+                <th id="th0" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(0)">Badge #</th>
+                <th id="th1" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(1)">Name</th>
+                <th id="th2" style="border:2px solid #384839; padding:8px;">Chair Of</th>
+            </tr>
+            {% for member in committee_members[selected_committee] %}
+                <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
+                    <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
+                    <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
+                    <td style="border:2px solid #384839; padding:8px;">{{ member['chair_of'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% else %}
     <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">{{ committee_display_names[selected_committee] }}</h2>
+    <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#f5f5f5; font-weight:bold;">Total Members: {{ committee_members[selected_committee]|length }}</div>
         <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
             <tr style="background:#eaeaea;">
                 {% if selected_committee == 'executive_committee' %}
@@ -127,7 +151,8 @@
                 {% endfor %}
             {% endif %}
         </table>
-        {% endif %}
+    {% endif %}
+    {% endif %}
 <script>
 // Sortable table columns with arrow indicators
 function sortTable(n) {

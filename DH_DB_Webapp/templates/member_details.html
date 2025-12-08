@@ -450,11 +450,12 @@ function openModal(id) {
 	<div id="tab-committees" class="tabcontent">
         
 		<table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
-			<tr><th>Committee</th><th>Member?</th></tr>
+			<tr><th>Committee</th><th>Member</th><th>Chair</th></tr>
 			{% for cname in committee_names|sort %}
 			<tr>
 				<td style="border:2px solid #222;">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</td>
 				<td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default(0) == 1 %}✔️{% else %}—{% endif %}</td>
+				<td style="border:2px solid #222; text-align:center;">{% if committees.notes and ((cname + ' Chair') in committees.notes or (cname.lower() + ' chair') in committees.notes.lower()) %}✔️{% else %}—{% endif %}</td>
 			</tr>
 			{% endfor %}
 		</table>
@@ -626,15 +627,31 @@ function openModal(id) {
 		<h3 style="text-align:center;">Edit Committee Memberships</h3>
 		<form id="editCommitteesForm">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
-			<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 12px; align-items:center;">
+			<div style="display:grid; grid-template-columns:1fr auto auto; gap:10px 12px; align-items:center;">
+				<div style="font-weight:bold;">Committee</div>
+				<div style="font-weight:bold; text-align:center;">Member</div>
+				<div style="font-weight:bold; text-align:center;">Chair</div>
 				{% for cname in committee_names|sort %}
 					<label for="committee_{{ cname }}">{{ committee_display_names[cname] }}</label>
-					<input type="checkbox" id="committee_{{ cname }}" name="committee_{{ cname }}" value="1" {% if committees[cname]|default(0) == 1 %}checked{% endif %}>
+					<input type="checkbox" id="committee_{{ cname }}" name="committee_{{ cname }}" value="1" {% if committees[cname]|default(0) == 1 %}checked{% endif %} style="justify-self:center;" onchange="toggleChairCheckbox('{{ cname }}')">
+					<input type="checkbox" id="chair_{{ cname }}" name="chair_{{ cname }}" value="1" {% if committees.notes and ((cname + ' Chair') in committees.notes or (cname.lower() + ' chair') in committees.notes.lower()) %}checked{% endif %} style="justify-self:center;" {% if not (committees[cname]|default(0) == 1) %}disabled{% endif %}>
 				{% endfor %}
 			</div>
 			<div style="margin-top:18px; text-align:center;">
 				<button type="button" onclick="submitCommittees()" style="margin-right:12px;">Save</button>
 <script>
+function toggleChairCheckbox(committeeName) {
+	var memberCheckbox = document.getElementById('committee_' + committeeName);
+	var chairCheckbox = document.getElementById('chair_' + committeeName);
+	
+	if (memberCheckbox.checked) {
+		chairCheckbox.disabled = false;
+	} else {
+		chairCheckbox.disabled = true;
+		chairCheckbox.checked = false;
+	}
+}
+
 function submitCommittees() {
 	var form = document.getElementById('editCommitteesForm');
 	var formData = new FormData(form);
@@ -688,7 +705,17 @@ function submitCommittees() {
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
 				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}">
-				<label for="membership_type">Membership Type:</label><input type="text" id="membership_type" name="membership_type" value="{{ member['membership_type'] }}">
+				<label for="membership_type">Membership Type:</label>
+				<select id="membership_type" name="membership_type">
+					<option value="Probationary" {% if member['membership_type'] == 'Probationary' %}selected{% endif %}>Probationary</option>
+					<option value="Associate" {% if member['membership_type'] == 'Associate' %}selected{% endif %}>Associate</option>
+					<option value="Active" {% if member['membership_type'] == 'Active' %}selected{% endif %}>Active</option>
+					<option value="Life" {% if member['membership_type'] == 'Life' %}selected{% endif %}>Life</option>
+					<option value="Honorary" {% if member['membership_type'] == 'Honorary' %}selected{% endif %}>Honorary</option>
+					<option value="Prospective" {% if member['membership_type'] == 'Prospective' %}selected{% endif %}>Prospective</option>
+					<option value="Wait List" {% if member['membership_type'] == 'Wait List' %}selected{% endif %}>Wait List</option>
+					<option value="Former" {% if member['membership_type'] == 'Former' %}selected{% endif %}>Former</option>
+				</select>
 				<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date" value="{{ member['join_date'] }}">
 				<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}">
 				<label for="card_internal">Card Internal:</label><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}">
@@ -717,16 +744,16 @@ function submitCommittees() {
 		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
 			<button onclick="closeModal('contactModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
 			<h3 style="text-align:center;">Edit Contact Info</h3>
-		<form id="contactForm">
+		<form id="contactForm" onsubmit="return validateAndSubmitContact(event);">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
-				<label for="email">Primary Email:</label><input type="email" id="email" name="email" value="{{ member['email'] }}">
-				<label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2" value="{{ member['email2'] }}">
-				<label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone" value="{{ member['phone'] }}">
-				<label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2" value="{{ member['phone2'] }}">
+				<label for="contact_email">Primary Email:</label><input type="email" id="contact_email" name="email" value="{{ member['email'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
+				<label for="contact_email2">Secondary Email:</label><input type="email" id="contact_email2" name="email2" value="{{ member['email2'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
+				<label for="contact_phone">Primary Phone:</label><input type="tel" id="contact_phone" name="phone" value="{{ member['phone'] }}" placeholder="(xxx) xxx-xxxx" oninput="formatPhoneNumber(this)" maxlength="14">
+				<label for="contact_phone2">Secondary Phone:</label><input type="tel" id="contact_phone2" name="phone2" value="{{ member['phone2'] }}" placeholder="(xxx) xxx-xxxx" oninput="formatPhoneNumber(this)" maxlength="14">
 			</div>
 					<div style="margin-top:18px; text-align:center;">
-						<button type="button" onclick="submitSection('contact')" style="margin-right:12px;">Save</button>
+						<button type="submit" style="margin-right:12px;">Save</button>
 						<button type="button" onclick="closeModal('contactModal')">Cancel</button>
 					</div>
 		</form>
@@ -855,6 +882,58 @@ function openModal(id) {
 
 function closeModal(id) {
 	document.getElementById(id).style.display = 'none';
+}
+
+function formatPhoneNumber(input) {
+	// Remove all non-numeric characters
+	let value = input.value.replace(/\D/g, '');
+	
+	// Limit to 10 digits
+	value = value.substring(0, 10);
+	
+	// Format as (xxx) xxx-xxxx
+	if (value.length >= 6) {
+		input.value = '(' + value.substring(0, 3) + ') ' + value.substring(3, 6) + '-' + value.substring(6);
+	} else if (value.length >= 3) {
+		input.value = '(' + value.substring(0, 3) + ') ' + value.substring(3);
+	} else if (value.length > 0) {
+		input.value = '(' + value;
+	}
+}
+
+function validateAndSubmitContact(event) {
+	event.preventDefault();
+	var form = document.getElementById('contactForm');
+	
+	// Validate email fields if they have content
+	var email = document.getElementById('contact_email').value.trim();
+	var email2 = document.getElementById('contact_email2').value.trim();
+	
+	if (email) {
+		// Check if email has @ symbol and a dot after it
+		var atIndex = email.indexOf('@');
+		var lastDotIndex = email.lastIndexOf('.');
+		if (atIndex === -1 || lastDotIndex === -1 || lastDotIndex <= atIndex + 1 || lastDotIndex === email.length - 1) {
+			alert('Please enter a valid primary email with domain extension (e.g., user@example.com)');
+			document.getElementById('contact_email').focus();
+			return false;
+		}
+	}
+	
+	if (email2) {
+		// Check if email has @ symbol and a dot after it
+		var atIndex2 = email2.indexOf('@');
+		var lastDotIndex2 = email2.lastIndexOf('.');
+		if (atIndex2 === -1 || lastDotIndex2 === -1 || lastDotIndex2 <= atIndex2 + 1 || lastDotIndex2 === email2.length - 1) {
+			alert('Please enter a valid secondary email with domain extension (e.g., user@example.com)');
+			document.getElementById('contact_email2').focus();
+			return false;
+		}
+	}
+	
+	// If validation passes, submit via AJAX
+	submitSection('contact');
+	return false;
 }
 
 function submitSection(section) {

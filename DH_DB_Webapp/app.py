@@ -63,6 +63,74 @@ def dues_report():
 	member_stats = get_member_stats()
 	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats)
 
+@app.route('/dues_email_list')
+def dues_email_list():
+	year = request.args.get('year')
+	if not year:
+		# Default to current year
+		now = datetime.datetime.now()
+		year = str(now.year)
+	
+	# Get all dues for the selected year
+	dues = database.get_all_dues_by_year(year)
+	
+	# Get unique member IDs from dues
+	member_ids = list(set([due['member_id'] for due in dues]))
+	
+	# Get member details for those who paid
+	all_members = database.get_all_members()
+	paid_members = [m for m in all_members if m['id'] in member_ids]
+	
+	# Collect all emails (primary and secondary)
+	emails = []
+	for member in paid_members:
+		if member['email']:
+			emails.append(member['email'])
+		if member['email2']:
+			emails.append(member['email2'])
+	
+	# Remove duplicates and sort
+	emails = sorted(list(set(emails)))
+	
+	member_stats = get_member_stats()
+	return render_template('email_list.html', emails=emails, member_type=f'Paid Dues {year}', count=len(emails), member_stats=member_stats)
+
+@app.route('/dues_unpaid_email_list')
+def dues_unpaid_email_list():
+	year = request.args.get('year')
+	if not year:
+		# Default to current year
+		now = datetime.datetime.now()
+		year = str(now.year)
+	
+	# Get all dues for the selected year
+	dues = database.get_all_dues_by_year(year)
+	
+	# Get unique member IDs who paid
+	paid_member_ids = list(set([due['member_id'] for due in dues]))
+	
+	# Get all members
+	all_members = database.get_all_members()
+	
+	# Filter for Probationary, Associate, and Active members who have NOT paid
+	unpaid_members = [m for m in all_members 
+					  if m['membership_type'] in ['Probationary', 'Associate', 'Active'] 
+					  and m['id'] not in paid_member_ids]
+	
+	# Collect all emails (primary and secondary)
+	emails = []
+	for member in unpaid_members:
+		if member['email']:
+			emails.append(member['email'])
+		if member['email2']:
+			emails.append(member['email2'])
+	
+	# Remove duplicates and sort
+	emails = sorted(list(set(emails)))
+	
+	member_stats = get_member_stats()
+	return render_template('email_list.html', emails=emails, member_type=f'Unpaid Dues {year}', count=len(emails), member_stats=member_stats)
+
 def add_work_hours(member_id):
 	date = request.form['date']
 	activity = request.form['activity']
@@ -406,12 +474,22 @@ def edit_section(member_id):
 			committee_names = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
 			conn.close()
 			updates = {}
+			chair_list = []
 			for cname in committee_names:
 				form_key = f'committee_{cname}'
 				value = request.form.get(form_key)
 				updates[cname] = 1 if value == '1' else 0
 				logging.debug(f"Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
+				# Check if chair checkbox is selected
+				chair_key = f'chair_{cname}'
+				chair_value = request.form.get(chair_key)
+				if chair_value == '1':
+					chair_list.append(f"{cname} Chair")
+					logging.debug(f"Chair selected for: {cname}")
+			# Build notes string with all chair designations
+			updates['notes'] = ', '.join(chair_list) if chair_list else ''
 			logging.debug(f"Updates dict: {updates}")
+			logging.debug(f"Notes field: {updates['notes']}")
 			try:
 				database.update_member_committees(member_id, updates)
 				logging.debug(f"Successfully updated committees for member {member_id}")
@@ -568,11 +646,75 @@ def committees():
 				else:
 					committee_members[cname].append(member)
 	conn.close()
+	
+	# Add special "Committee Chairs" option
+	chair_members = []
+	for member in members:
+		member_committees = database.get_member_committees(member['id'])
+		if member_committees and member_committees.get('notes', '') and 'chair' in member_committees.get('notes', '').lower():
+			# Parse which committees they chair and format them
+			member_copy = dict(member)
+			notes = member_committees.get('notes', '')
+			# Extract committee names from notes (format: "committee_name Chair, other_committee Chair")
+			chair_committees = []
+			for part in notes.split(','):
+				part = part.strip()
+				if 'chair' in part.lower():
+					# Remove " Chair" suffix and format the committee name
+					committee_name = part.replace(' Chair', '').replace(' chair', '').strip()
+					# Format: capitalize each word and replace underscores with spaces
+					formatted_name = ' '.join(word.capitalize() for word in committee_name.replace('_', ' ').split())
+					chair_committees.append(formatted_name)
+			member_copy['chair_of'] = ', '.join(chair_committees)
+			chair_members.append(member_copy)
+	committee_members['committee_chairs'] = chair_members
+	
 	import datetime
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')
 	member_stats = get_member_stats()
 	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees', member_stats=member_stats)
+
+@app.route('/committee_email_list')
+def committee_email_list():
+	committee = request.args.get('committee')
+	if not committee:
+		return redirect(url_for('committees'))
+	
+	# Get all members
+	all_members = database.get_all_members()
+	
+	# Handle committee chairs specially
+	if committee == 'committee_chairs':
+		committee_member_list = []
+		for member in all_members:
+			member_committees = database.get_member_committees(member['id'])
+			if member_committees and member_committees.get('notes', '') and 'chair' in member_committees.get('notes', '').lower():
+				committee_member_list.append(member)
+		committee_display = 'Committee Chairs'
+	else:
+		# Filter members who are in the selected committee
+		committee_member_list = []
+		for member in all_members:
+			member_committees = database.get_member_committees(member['id'])
+			if member_committees and member_committees.get(committee, 0) == 1:
+				committee_member_list.append(member)
+		# Format committee name for display
+		committee_display = ' '.join(word.capitalize() for word in committee.replace('_', ' ').split())
+	
+	# Collect all emails (primary and secondary)
+	emails = []
+	for member in committee_member_list:
+		if member['email']:
+			emails.append(member['email'])
+		if member['email2']:
+			emails.append(member['email2'])
+	
+	# Remove duplicates and sort
+	emails = sorted(list(set(emails)))
+	
+	member_stats = get_member_stats()
+	return render_template('email_list.html', emails=emails, member_type=f'{committee_display} Committee', count=len(emails), member_stats=member_stats)
 
 @app.route('/email_list')
 def email_list():

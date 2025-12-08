@@ -78,6 +78,9 @@ def get_dues_years():
     c.execute("SELECT DISTINCT strftime('%Y', payment_date) as year FROM dues ORDER BY year DESC")
     years = [row['year'] for row in c.fetchall() if row['year']]
     conn.close()
+    # Always include 2026 if not already in the list
+    if '2026' not in years:
+        years.insert(0, '2026')
     return years
 
 def get_all_dues_by_year(year=None):
