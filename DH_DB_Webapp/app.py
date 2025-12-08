@@ -626,8 +626,13 @@ def committees():
 		position = database.get_member_position(member['id'])
 		for cname in committee_names:
 			if member_committees.get(cname, 0) == 1:
+				member_copy = dict(member)
+				# Check if member is chair of this committee
+				notes = member_committees.get('notes', '')
+				is_chair = notes and (cname + ' chair') in notes.lower()
+				member_copy['is_chair'] = is_chair
+				
 				if cname == 'executive_committee':
-					member_copy = dict(member)
 					member_copy['role'] = position['position'] if position and 'position' in position.keys() else ''
 					if position and (('term_start' in position.keys() and position['term_start']) or ('term_end' in position.keys() and position['term_end'])):
 						term_start = position['term_start'] if 'term_start' in position.keys() and position['term_start'] else ''
@@ -642,9 +647,7 @@ def committees():
 							member_copy['term'] = ''
 					else:
 						member_copy['term'] = ''
-					committee_members[cname].append(member_copy)
-				else:
-					committee_members[cname].append(member)
+				committee_members[cname].append(member_copy)
 	conn.close()
 	
 	# Add special "Committee Chairs" option

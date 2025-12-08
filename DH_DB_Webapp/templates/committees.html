@@ -121,32 +121,34 @@
                 {% if selected_committee == 'executive_committee' %}
                 <th id="th0" style="border:2px solid #384839; padding:8px;">Badge #</th>
                 <th id="th1" style="border:2px solid #384839; padding:8px;">Name</th>
+                <th id="th2" style="border:2px solid #384839; padding:8px;">Role</th>
+                <th id="th3" style="border:2px solid #384839; padding:8px;">Term</th>
+                <th id="th4" style="border:2px solid #384839; padding:8px;">Chair</th>
                 {% else %}
                 <th id="th0" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(0)">Badge #</th>
                 <th id="th1" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(1)">Name</th>
-                {% endif %}
-                {% if selected_committee == 'executive_committee' %}
-                <th id="th2" style="border:2px solid #384839; padding:8px;">Role</th>
-                <th id="th3" style="border:2px solid #384839; padding:8px;">Term</th>
+                <th id="th2" style="border:2px solid #384839; padding:8px;">Chair</th>
                 {% endif %}
             </tr>
             {% if selected_committee == 'executive_committee' %}
                 {% set role_order = ['President', 'Vice President', 'Treasurer', 'Secretary', 'Trustee'] %}
                 {% for role in role_order %}
                     {% for member in committee_members[selected_committee] if member['role'] == role %}
-                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">
+                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
                             <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
                             <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
                             <td style="border:2px solid #384839; padding:8px;">{{ member['role'] }}</td>
                             <td style="border:2px solid #384839; padding:8px;">{{ member['term'] }}</td>
+                            <td style="border:2px solid #384839; padding:8px; text-align:center;">{% if member['is_chair'] %}✔️{% else %}—{% endif %}</td>
                         </tr>
                     {% endfor %}
                 {% endfor %}
             {% else %}
                 {% for member in committee_members[selected_committee] %}
-                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">
+                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
                         <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
                         <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
+                        <td style="border:2px solid #384839; padding:8px; text-align:center;">{% if member['is_chair'] %}✔️{% else %}—{% endif %}</td>
                     </tr>
                 {% endfor %}
             {% endif %}
