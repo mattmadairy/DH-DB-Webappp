@@ -238,10 +238,12 @@ def member_details(member_id):
 	}
 	import datetime
 	current_year = datetime.datetime.now().year
+	dues_years = list(range(current_year + 1, current_year - 10, -1))
 	return render_template(
 		'member_details.html',
 		member=member,
 		dues=dues,
+		dues_years=dues_years,
 		work_hours=work_hours,
 		total_work_hours=total_work_hours,
 		attendance=attendance,
