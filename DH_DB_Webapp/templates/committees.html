@@ -156,6 +156,13 @@
     {% endif %}
     {% endif %}
 <script>
+function toggleSubmenu() {
+    var submenu = document.getElementById('reports-submenu');
+    var arrow = document.getElementById('submenu-arrow');
+    submenu.classList.toggle('active');
+    arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
+}
+
 // Sortable table columns with arrow indicators
 function sortTable(n) {
     var table = document.getElementById("committee-table");

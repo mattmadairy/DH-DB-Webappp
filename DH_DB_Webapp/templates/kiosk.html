@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Member Check-In</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
     <style>
         * {
             margin: 0;
@@ -82,7 +83,8 @@
             font-size: 16px;
         }
 
-        input[type="text"] {
+        input[type="text"],
+        input[type="number"] {
             width: 100%;
             padding: 15px;
             border: 2px solid #e0e0e0;
@@ -91,9 +93,20 @@
             transition: border-color 0.3s;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus,
+        input[type="number"]:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        /* Remove number input spinners */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
         }
 
         .activities-section {
@@ -390,12 +403,15 @@
                     <div class="form-group">
                         <label for="memberNumber">Member Number</label>
                         <input 
-                            type="text" 
+                            type="number" 
                             id="memberNumber" 
                             name="memberNumber" 
                             placeholder="Enter your member number" 
                             required
                             autofocus
+                            min="1"
+                            step="1"
+                            oninput="this.value = Math.abs(this.value).toString().replace(/^0+/, '')"
                         >
                     </div>
 
@@ -651,9 +667,7 @@
                         } else {
                             treeList.innerHTML = data.checkins.map(checkin => {
                                 const activities = checkin.activities ? checkin.activities.split(', ') : [];
-                                const guests = [];
-                                if (checkin.guest1_name) guests.push(checkin.guest1_name);
-                                if (checkin.guest2_name) guests.push(checkin.guest2_name);
+                                const guestCount = (checkin.guest1_name ? 1 : 0) + (checkin.guest2_name ? 1 : 0);
                                 
                                 return `
                                     <li class="tree-item">
@@ -666,7 +680,7 @@
                                         </div>
                                         <div class="activities-tags">
                                             ${activities.map(activity => `<span class="activity-tag">${activity}</span>`).join('')}
-                                            ${guests.map(guest => `<span class="guest-tag">Guest: ${guest}</span>`).join('')}
+                                            ${guestCount > 0 ? `<span class="guest-tag">Guests: ${guestCount}</span>` : ''}
                                         </div>
                                     </li>
                                 `;

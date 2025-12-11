@@ -334,6 +334,15 @@ def get_member_by_id(member_id):
 	conn.close()
 	return row
 
+def get_member_by_badge_number(badge_number):
+	"""Get member by badge number"""
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT * FROM members WHERE badge_number=?", (badge_number,))
+	row = c.fetchone()
+	conn.close()
+	return row
+
 def get_dues_by_member(member_id):
 	conn = get_connection()
 	c = conn.cursor()
@@ -707,6 +716,21 @@ def get_audit_logs(limit=100, user_id=None):
 
 # ========== Kiosk Check-in Functions ==========
 
+def get_active_checkin_for_member(member_number):
+    """Check if a member has an active check-in (no sign-out time)"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM check_ins 
+        WHERE member_number = ? 
+        AND (sign_out_time IS NULL OR sign_out_time = '')
+        ORDER BY check_in_time DESC
+        LIMIT 1
+    """, (member_number,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
 def add_checkin(member_number, check_in_time, activities, guest1_name=None, guest2_name=None, other_activity=None):
     """Add a new kiosk check-in"""
     conn = get_connection()
@@ -726,12 +750,19 @@ def get_all_checkins(date=None):
     c = conn.cursor()
     if date:
         c.execute("""
-            SELECT * FROM check_ins 
-            WHERE DATE(check_in_time) = ?
-            ORDER BY check_in_time DESC
+            SELECT c.*, m.first_name, m.last_name 
+            FROM check_ins c
+            LEFT JOIN members m ON c.member_number = m.badge_number
+            WHERE DATE(c.check_in_time) = ?
+            ORDER BY c.check_in_time DESC
         """, (date,))
     else:
-        c.execute("SELECT * FROM check_ins ORDER BY check_in_time DESC LIMIT 100")
+        c.execute("""
+            SELECT c.*, m.first_name, m.last_name 
+            FROM check_ins c
+            LEFT JOIN members m ON c.member_number = m.badge_number
+            ORDER BY c.check_in_time DESC LIMIT 100
+        """)
     rows = c.fetchall()
     conn.close()
     return rows
@@ -774,9 +805,11 @@ def get_checkins_by_date_range(start_date, end_date):
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        SELECT * FROM check_ins 
-        WHERE DATE(check_in_time) BETWEEN ? AND ?
-        ORDER BY check_in_time DESC
+        SELECT c.*, m.first_name, m.last_name 
+        FROM check_ins c
+        LEFT JOIN members m ON c.member_number = m.badge_number
+        WHERE DATE(c.check_in_time) BETWEEN ? AND ?
+        ORDER BY c.check_in_time DESC
     """, (start_date, end_date))
     rows = c.fetchall()
     conn.close()

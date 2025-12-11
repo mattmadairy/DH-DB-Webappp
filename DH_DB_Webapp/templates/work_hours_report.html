@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Work Hours Report - Dug Hill Rod & Gun Club</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
     <style>
     .print-header { display: none; }
     @media print {
@@ -24,6 +26,24 @@
     }
     .active-menu {
         background-color: rgb(255,255,0) !important;
+    }
+    .submenu {
+        display: none;
+        flex-direction: column;
+        margin-left: 10px;
+    }
+    .submenu.active {
+        display: flex;
+    }
+    .submenu a {
+        width: 160px !important;
+        font-size: 0.9em !important;
+        padding: 8px 0 !important;
+        margin-bottom: 6px !important;
+    }
+    .menu-toggle {
+        cursor: pointer;
+        user-select: none;
     }
     </style>
     <style>
@@ -117,17 +137,29 @@
     </div>
     <div style="display:flex; flex-direction:column; align-items:center;">
         <!-- Static Side Menu -->
-    <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+    <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
             <a href="{{ url_for('index') }}" class="{{ 'active-menu' if active_page == 'home' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'home' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
             <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
             <a href="{{ url_for('recycle_bin') }}" class="{{ 'active-menu' if active_page == 'recycle_bin' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
-            <a href="{{ url_for('dues_report') }}" class="{{ 'active-menu' if active_page == 'dues_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'dues_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
-            <a href="{{ url_for('work_hours_report') }}" class="{{ 'active-menu' if active_page == 'work_hours_report' else '' }}" style="width:170px; display:flex; align-items:center; gap:8px; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'work_hours_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;"><img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:20px; vertical-align:middle;"> Work Hours Report</a>
-            <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
-                <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
-            </a>
+            <div class="menu-toggle" onclick="toggleSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                📊 Reports <span id="submenu-arrow">▼</span>
+            </div>
+            <div id="reports-submenu" class="submenu {% if active_page in ['dues_report', 'work_hours_report', 'meeting_attendance_report', 'kiosk_report'] %}active{% endif %}" style="width:170px;">
+                <a href="{{ url_for('dues_report') }}" class="{{ 'active-menu' if active_page == 'dues_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'dues_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues</a>
+                <a href="{{ url_for('work_hours_report') }}" class="{{ 'active-menu' if active_page == 'work_hours_report' else '' }}" style="width:170px; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'work_hours_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04);"><img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:20px; vertical-align:middle;"> Work Hours</a>
+                <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                    <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+                </a>
+                <a href="{{ url_for('kiosk_report') }}" class="{{ 'active-menu' if active_page == 'kiosk_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'kiosk_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📋 Kiosk</a>
+            </div>
             <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <a href="{{ url_for('email_list') }}" class="{{ 'active-menu' if active_page == 'email_list' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'email_list' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📧 Email List</a>
+            <a href="{{ url_for('kiosk') }}" target="_blank" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
+            {% if current_user.is_admin_or_bdfl() %}
+            <a href="{{ url_for('admin_users') }}" class="{{ 'active-menu' if active_page == 'admin_users' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ '#5bc0de' if active_page != 'admin_users' else 'rgb(255,255,0)' }}; color:{{ '#ffffff' if active_page != 'admin_users' else '#000000' }}; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Admin Panel</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
             <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
                 <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
                     <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
@@ -244,6 +276,12 @@
     </div>
 </div>
 <script>
+function toggleSubmenu() {
+    var submenu = document.getElementById('reports-submenu');
+    var arrow = document.getElementById('submenu-arrow');
+    submenu.classList.toggle('active');
+    arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
+}
 function openModal(id) {
     document.getElementById(id).style.display = 'block';
     document.getElementById(id).style.zIndex = 2000;

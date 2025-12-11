@@ -1439,6 +1439,22 @@ def kiosk_submit():
 		if not member_number:
 			return jsonify({'success': False, 'error': 'Member number is required'}), 400
 		
+		# Check if member exists in the database
+		member = database.get_member_by_badge_number(member_number)
+		if not member:
+			return jsonify({
+				'success': False, 
+				'error': f'Member #{member_number} not found. Please check the member number and try again.'
+			}), 404
+		
+		# Check if member already has an active check-in
+		existing_checkin = database.get_active_checkin_for_member(member_number)
+		if existing_checkin:
+			return jsonify({
+				'success': False, 
+				'error': f'Member #{member_number} is already checked in. Please sign out first before checking in again.'
+			}), 400
+		
 		# Validate activities
 		if not activities:
 			return jsonify({'success': False, 'error': 'At least one activity must be selected'}), 400
@@ -1523,7 +1539,8 @@ def kiosk_report():
 						   member_stats=member_stats,
 						   date_filter=date_filter,
 						   start_date=start_date,
-						   end_date=end_date)
+						   end_date=end_date,
+						   active_page='kiosk_report')
 
 if __name__ == "__main__":
     import sys
