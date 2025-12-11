@@ -311,8 +311,10 @@ def init_database():
 	conn.close()
 
 def get_connection():
-	conn = sqlite3.connect(DB_NAME)
+	conn = sqlite3.connect(DB_NAME, timeout=30.0)  # Increase timeout for PythonAnywhere
 	conn.row_factory = sqlite3.Row
+	# Enable WAL mode for better concurrent access
+	conn.execute('PRAGMA journal_mode=WAL')
 	return conn
 
 # Initialize database on module import

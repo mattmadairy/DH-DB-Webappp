@@ -1504,6 +1504,7 @@ def kiosk_submit():
 		return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/kiosk/today-checkins', methods=['GET'])
+@csrf.exempt  # Exempt CSRF for kiosk
 def kiosk_today_checkins():
 	"""Get today's check-ins for the kiosk display"""
 	try:
