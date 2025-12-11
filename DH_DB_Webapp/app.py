@@ -8,8 +8,12 @@ import database
 import datetime
 import socket
 import os
+import pytz
 
 app = Flask(__name__)
+
+# Set timezone to America/New_York
+TIMEZONE = pytz.timezone('America/New_York')
 
 # Load configuration
 env = os.environ.get('FLASK_ENV', 'development')
@@ -1475,7 +1479,7 @@ def kiosk_submit():
 		
 		# Insert check-in record
 		activities_str = ', '.join(activities)
-		check_in_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		check_in_time = datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')
 		
 		checkin_id = database.add_checkin(
 			member_number=member_number,
@@ -1515,7 +1519,7 @@ def kiosk_today_checkins():
 def kiosk_sign_out(checkin_id):
 	"""Sign out a member by updating their check-in record with sign-out time"""
 	try:
-		sign_out_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		sign_out_time = datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')
 		success = database.sign_out_checkin(checkin_id, sign_out_time)
 		
 		if not success:
