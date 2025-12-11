@@ -241,6 +241,7 @@
                             <th>Role</th>
                             <th>Status</th>
                             <th>Created</th>
+                            <th>Last Login</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -257,6 +258,7 @@
                                 <span class="status-badge status-{{ 'active' if user.is_active else 'inactive' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span>
                             </td>
                             <td>{{ user.created_at[5:7] }}-{{ user.created_at[8:10] }}-{{ user.created_at[:4] }}&nbsp;&nbsp;&nbsp;{{ user.created_at[11:16] }}</td>
+                            <td>{% if user.last_login %}{{ user.last_login[5:7] }}-{{ user.last_login[8:10] }}-{{ user.last_login[:4] }}&nbsp;&nbsp;&nbsp;{{ user.last_login[11:16] }}{% else %}<span style="color:#999;">Never</span>{% endif %}</td>
                             <td>
                                 <button onclick="editUser({{ user.id }})" class="btn-action btn-edit" {% if user.role == 'BDFL' and not current_user.is_bdfl() %}disabled{% endif %}>Edit</button>
                                 <button onclick="resetPassword({{ user.id }}, '{{ user.username }}')" class="btn-action btn-reset" {% if user.role == 'BDFL' and user.id != current_user.id %}disabled{% endif %}>Reset Password</button>
@@ -282,6 +284,7 @@
                 <button onclick="closeAddUserModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#384839;">&times;</button>
             </div>
             <form method="POST" action="{{ url_for('admin_users') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required>
@@ -324,6 +327,7 @@
                 <button onclick="closeEditUserModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#384839;">&times;</button>
             </div>
             <form method="POST" action="{{ url_for('edit_user') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" id="edit_user_id" name="user_id">
                 <div class="form-group">
                     <label for="edit_username">Username</label>
@@ -412,6 +416,11 @@
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/admin/users/reset-password/' + userId;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
                 document.body.appendChild(form);
                 form.submit();
             }
@@ -423,6 +432,11 @@
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/admin/users/toggle-status/' + userId;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
                 document.body.appendChild(form);
                 form.submit();
             }

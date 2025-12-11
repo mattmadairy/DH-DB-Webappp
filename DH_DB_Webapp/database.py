@@ -257,7 +257,38 @@ def init_database():
 			created_at TEXT NOT NULL,
 			is_active INTEGER DEFAULT 1,
 			role TEXT DEFAULT 'User',
-			must_change_password INTEGER DEFAULT 0
+			must_change_password INTEGER DEFAULT 0,
+			failed_login_attempts INTEGER DEFAULT 0,
+			locked_until TEXT,
+			last_login TEXT,
+			last_password_change TEXT
+		)
+	""")
+	
+	# Create audit log table
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS audit_log (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER,
+			username TEXT,
+			action TEXT NOT NULL,
+			target_user TEXT,
+			ip_address TEXT,
+			user_agent TEXT,
+			timestamp TEXT NOT NULL,
+			success INTEGER DEFAULT 1,
+			details TEXT
+		)
+	""")
+	
+	# Create password history table
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS password_history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			password_hash TEXT NOT NULL,
+			changed_at TEXT NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id)
 		)
 	""")
 	
@@ -535,9 +566,126 @@ def get_all_users():
 
 def update_user_password(user_id, password_hash):
     """Update user password and clear must_change_password flag"""
+    from datetime import datetime
     conn = get_connection()
     c = conn.cursor()
-    c.execute("UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?", (password_hash, user_id))
+    c.execute("UPDATE users SET password_hash=?, must_change_password=0, last_password_change=? WHERE id=?", 
+              (password_hash, datetime.now().isoformat(), user_id))
     conn.commit()
     conn.close()
 
+# Security-related functions
+
+def log_audit(user_id, username, action, target_user=None, ip_address=None, user_agent=None, success=True, details=None):
+    """Log security-related events"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO audit_log (user_id, username, action, target_user, ip_address, user_agent, timestamp, success, details)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, username, action, target_user, ip_address, user_agent, datetime.now().isoformat(), 1 if success else 0, details))
+    conn.commit()
+    conn.close()
+
+def increment_failed_login(username):
+    """Increment failed login attempts"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET failed_login_attempts = failed_login_attempts + 1 WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+
+def reset_failed_login(user_id):
+    """Reset failed login attempts to 0"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+def lock_account(username, duration_minutes=30):
+    """Lock user account for specified duration"""
+    from datetime import datetime, timedelta
+    locked_until = (datetime.now() + timedelta(minutes=duration_minutes)).isoformat()
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET locked_until = ? WHERE username = ?", (locked_until, username))
+    conn.commit()
+    conn.close()
+
+def is_account_locked(username):
+    """Check if account is currently locked"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT locked_until FROM users WHERE username = ?", (username,))
+    result = c.fetchone()
+    conn.close()
+    
+    if result and result['locked_until']:
+        locked_until = datetime.fromisoformat(result['locked_until'])
+        if datetime.now() < locked_until:
+            return True, locked_until
+    return False, None
+
+def update_last_login(user_id):
+    """Update last login timestamp"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET last_login = ? WHERE id = ?", (datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+def add_password_history(user_id, password_hash):
+    """Store password in history"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO password_history (user_id, password_hash, changed_at)
+        VALUES (?, ?, ?)
+    """, (user_id, password_hash, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+
+def check_password_history(user_id, new_password_hash, history_count=5):
+    """Check if password was used recently"""
+    from werkzeug.security import check_password_hash
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT password_hash FROM password_history 
+        WHERE user_id = ? 
+        ORDER BY changed_at DESC 
+        LIMIT ?
+    """, (user_id, history_count))
+    history = c.fetchall()
+    conn.close()
+    
+    # Check current password too
+    c = conn.cursor()
+    c.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
+    current = c.fetchone()
+    conn.close()
+    
+    if current:
+        history.append(current)
+    
+    for record in history:
+        if check_password_hash(record['password_hash'], new_password_hash):
+            return True
+    return False
+
+def get_audit_logs(limit=100, user_id=None):
+    """Get recent audit logs"""
+    conn = get_connection()
+    c = conn.cursor()
+    if user_id:
+        c.execute("SELECT * FROM audit_log WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?", (user_id, limit))
+    else:
+        c.execute("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ?", (limit,))
+    logs = c.fetchall()
+    conn.close()
+    return logs

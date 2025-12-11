@@ -11,6 +11,7 @@
         </div>
         <h1>Edit Member</h1>
         <form method="post" style="width:100%; max-width:500px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <table style="margin:auto; width:100%;">
                 <tr><td style="padding-right:40px;"><label for="badge_number"><b>Badge Number:</b></label></td><td><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" required></td></tr>
                 <tr><td style="padding-right:40px;"><label for="membership_type"><b>Membership Type:</b></label></td><td>

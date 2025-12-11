@@ -134,9 +134,11 @@
                 <td>{{ member['deleted_on']|format_mmddyyyy if 'deleted_on' in member else '' }}</td>
                 <td>
                     <form action="{{ url_for('restore_member', member_id=member['id']) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" style="width:120px; padding:2px 0; margin-bottom:8px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; font-size:1em;">Restore</button>
                     </form>
                     <form action="{{ url_for('delete_member_permanently', member_id=member['id']) }}" method="post" style="display:inline; margin-top:6px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <button type="submit" onclick="return confirm('Are you sure you want to permanently delete this member? This cannot be undone.')" style="width:120px; padding:2px 0; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; text-align:center; font-size:1em;">Delete Permanently</button>
                     </form>
                 </td>

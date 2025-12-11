@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 import database
 import datetime
@@ -19,6 +22,17 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 # User class for Flask-Login
 class User(UserMixin):
@@ -110,8 +124,20 @@ def get_member_stats():
 		'total_members': total_count
 	}
 
+# Security headers middleware
+@app.after_request
+def set_security_headers(response):
+	"""Add security headers to all responses"""
+	response.headers['X-Content-Type-Options'] = 'nosniff'
+	response.headers['X-Frame-Options'] = 'DENY'
+	response.headers['X-XSS-Protection'] = '1; mode=block'
+	response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+	return response
+
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")
 def login():
 	if current_user.is_authenticated:
 		return redirect(url_for('index'))
@@ -121,6 +147,23 @@ def login():
 		password = request.form.get('password')
 		
 		user_data = database.get_user_by_username(username)
+		
+		# Check if account is locked
+		if user_data:
+			is_locked, locked_until = database.is_account_locked(username)
+			if is_locked:
+				remaining = (locked_until - datetime.datetime.now()).total_seconds() / 60
+				flash(f'Account is locked due to too many failed login attempts. Try again in {int(remaining)} minutes.', 'error')
+				database.log_audit(
+					user_id=user_data['id'],
+					username=username,
+					action='login_attempt',
+					ip_address=request.remote_addr,
+					user_agent=request.headers.get('User-Agent'),
+					success=False,
+					details='Account locked'
+				)
+				return render_template('login.html')
 		
 		if user_data and user_data['is_active']:
 			# Handle must_change_password column
@@ -146,6 +189,16 @@ def login():
 					must_change_password=must_change_password
 				)
 				login_user(user)
+				database.update_last_login(user_data['id'])
+				database.log_audit(
+					user_id=user_data['id'],
+					username=username,
+					action='login',
+					ip_address=request.remote_addr,
+					user_agent=request.headers.get('User-Agent'),
+					success=True,
+					details='Password reset required'
+				)
 				flash('Your password has been reset. You must change it before continuing.', 'info')
 				return redirect(url_for('change_password'))
 			
@@ -167,15 +220,72 @@ def login():
 				)
 				login_user(user)
 				
+				# Reset failed login attempts and update last login
+				database.reset_failed_login(user_data['id'])
+				database.update_last_login(user_data['id'])
+				database.log_audit(
+					user_id=user_data['id'],
+					username=username,
+					action='login',
+					ip_address=request.remote_addr,
+					user_agent=request.headers.get('User-Agent'),
+					success=True
+				)
+				
 				flash('Login successful!', 'info')
 				next_page = request.args.get('next')
 				return redirect(next_page) if next_page else redirect(url_for('index'))
 			else:
-				flash('Invalid username or password.', 'error')
+				# Increment failed login attempts
+				database.increment_failed_login(username)
+				
+				# Check if we need to lock the account
+				user_data = database.get_user_by_username(username)  # Refresh data
+				if user_data and user_data['failed_login_attempts'] >= 5:
+					database.lock_account(username, duration_minutes=30)
+					flash('Too many failed login attempts. Your account has been locked for 30 minutes.', 'error')
+					database.log_audit(
+						user_id=user_data['id'],
+						username=username,
+						action='account_locked',
+						ip_address=request.remote_addr,
+						user_agent=request.headers.get('User-Agent'),
+						success=False,
+						details=f"Failed attempts: {user_data['failed_login_attempts']}"
+					)
+				else:
+					flash('Invalid username or password.', 'error')
+					database.log_audit(
+						user_id=user_data['id'] if user_data else None,
+						username=username,
+						action='login_attempt',
+						ip_address=request.remote_addr,
+						user_agent=request.headers.get('User-Agent'),
+						success=False,
+						details='Invalid password'
+					)
 		elif user_data and not user_data['is_active']:
 			flash('Your account has been deactivated. Please contact an administrator.', 'error')
+			database.log_audit(
+				user_id=user_data['id'],
+				username=username,
+				action='login_attempt',
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=False,
+				details='Account inactive'
+			)
 		else:
 			flash('Invalid username or password.', 'error')
+			database.log_audit(
+				user_id=None,
+				username=username,
+				action='login_attempt',
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=False,
+				details='Username not found'
+			)
 	
 	return render_template('login.html')
 
@@ -271,9 +381,23 @@ def change_password():
 			flash('Password must contain at least one number.', 'error')
 			return render_template('change_password.html')
 		
-		# Update password
+		# Check password history (prevent reuse of last 5 passwords)
 		password_hash = generate_password_hash(new_password)
+		if database.check_password_history(current_user.id, new_password, history_count=5):
+			flash('Cannot reuse a recent password. Please choose a different password.', 'error')
+			return render_template('change_password.html')
+		
+		# Update password
 		database.update_user_password(current_user.id, password_hash)
+		database.add_password_history(current_user.id, password_hash)
+		database.log_audit(
+			user_id=current_user.id,
+			username=current_user.username,
+			action='password_change',
+			ip_address=request.remote_addr,
+			user_agent=request.headers.get('User-Agent'),
+			success=True
+		)
 		
 		flash('Password changed successfully!', 'info')
 		return redirect(url_for('index'))
@@ -303,6 +427,7 @@ def reset_user_password(user_id):
 	# Reset password to "Changem3" and set must_change_password flag
 	password_hash = generate_password_hash('Changem3')
 	database.update_user_password(user_id, password_hash)
+	database.add_password_history(user_id, password_hash)
 	
 	# Set must_change_password flag
 	import sqlite3
@@ -313,6 +438,15 @@ def reset_user_password(user_id):
 	
 	user_data = database.get_user_by_id(user_id)
 	if user_data:
+		database.log_audit(
+			user_id=current_user.id,
+			username=current_user.username,
+			action='password_reset',
+			target_user=user_data['username'],
+			ip_address=request.remote_addr,
+			user_agent=request.headers.get('User-Agent'),
+			success=True
+		)
 		flash(f'Password reset for user "{user_data["username"]}". New password: Changem3', 'info')
 	else:
 		flash('Password reset successfully.', 'info')
@@ -357,6 +491,16 @@ def toggle_user_status(user_id):
 	conn.close()
 	
 	status_text = 'enabled' if new_status else 'disabled'
+	database.log_audit(
+		user_id=current_user.id,
+		username=current_user.username,
+		action='user_status_change',
+		target_user=user_data['username'],
+		ip_address=request.remote_addr,
+		user_agent=request.headers.get('User-Agent'),
+		success=True,
+		details=status_text
+	)
 	flash(f'User "{user_data["username"]}" has been {status_text}.', 'info')
 	
 	return redirect(url_for('admin_users'))
@@ -429,9 +573,28 @@ def edit_user():
 	if role and current_user.is_bdfl():
 		conn.execute('UPDATE users SET username = ?, name = ?, email = ?, role = ? WHERE id = ?', 
 					 (username, name, email, role, user_id))
+		database.log_audit(
+			user_id=current_user.id,
+			username=current_user.username,
+			action='user_edit',
+			target_user=username,
+			ip_address=request.remote_addr,
+			user_agent=request.headers.get('User-Agent'),
+			success=True,
+			details=f'Updated role to {role}'
+		)
 	else:
 		conn.execute('UPDATE users SET username = ?, name = ?, email = ? WHERE id = ?', 
 					 (username, name, email, user_id))
+		database.log_audit(
+			user_id=current_user.id,
+			username=current_user.username,
+			action='user_edit',
+			target_user=username,
+			ip_address=request.remote_addr,
+			user_agent=request.headers.get('User-Agent'),
+			success=True
+		)
 	conn.commit()
 	conn.close()
 	
@@ -478,6 +641,17 @@ def admin_users():
 			user_id = database.create_user(username, password_hash, email, name, role)
 			
 			if user_id:
+				database.add_password_history(user_id, password_hash)
+				database.log_audit(
+					user_id=current_user.id,
+					username=current_user.username,
+					action='user_create',
+					target_user=username,
+					ip_address=request.remote_addr,
+					user_agent=request.headers.get('User-Agent'),
+					success=True,
+					details=f'Created with role: {role}'
+				)
 				flash(f'User "{username}" created successfully!', 'info')
 			else:
 				flash('An error occurred during user creation.', 'error')

@@ -85,11 +85,16 @@
         .register-link a:hover {
             text-decoration: underline;
         }
+        .logo {
+            height: 192px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <h1>🏠 Login</h1>
+        <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Dug Hill Logo" class="logo">
+        <h1>Login</h1>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -100,6 +105,7 @@
         {% endwith %}
         
         <form method="POST" action="{{ url_for('login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autofocus>
