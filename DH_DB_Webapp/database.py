@@ -246,6 +246,21 @@ def init_database():
 		)
 	""")
 	
+	# Create users table for authentication
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT UNIQUE NOT NULL,
+			name TEXT,
+			password_hash TEXT NOT NULL,
+			email TEXT UNIQUE NOT NULL,
+			created_at TEXT NOT NULL,
+			is_active INTEGER DEFAULT 1,
+			role TEXT DEFAULT 'User',
+			must_change_password INTEGER DEFAULT 0
+		)
+	""")
+	
 	conn.commit()
 	conn.close()
 
@@ -460,3 +475,69 @@ def delete_meeting_attendance(att_id):
     c.execute("DELETE FROM meeting_attendance WHERE id=?", (att_id,))
     conn.commit()
     conn.close()
+
+# ========== User Authentication Functions ==========
+
+def create_user(username, password_hash, email, name=None, role='User'):
+    """Create a new user account"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        # New users created by admin must change password on first login
+        c.execute("""
+            INSERT INTO users (username, name, password_hash, email, created_at, role, must_change_password)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+        """, (username, name, password_hash, email, datetime.now().isoformat(), role))
+        conn.commit()
+        user_id = c.lastrowid
+        conn.close()
+        return user_id
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None
+
+def get_user_by_username(username):
+    """Get user by username"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username=?", (username,))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def get_user_by_id(user_id):
+    """Get user by ID"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE id=?", (user_id,))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def get_user_by_email(email):
+    """Get user by email"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE email=?", (email,))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def get_all_users():
+    """Get all users"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id, username, name, email, role, is_active, created_at FROM users ORDER BY created_at DESC")
+    users = c.fetchall()
+    conn.close()
+    return users
+
+def update_user_password(user_id, password_hash):
+    """Update user password and clear must_change_password flag"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET password_hash=?, must_change_password=0 WHERE id=?", (password_hash, user_id))
+    conn.commit()
+    conn.close()
+

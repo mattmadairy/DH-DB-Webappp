@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Dug Hill Rod & Gun Club</title>
+<style>
+    .active-menu {
+        background-color: rgb(255,255,0) !important;
+        color: #000000 !important;
+    }
+    .user-table {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .user-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .user-table th {
+        background-color: #384839;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+    }
+    .user-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #ddd;
+    }
+    .user-table tr:hover {
+        background-color: #e9e9e9;
+    }
+    .role-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+    .role-bdfl {
+        background-color: #f39c12;
+        color: white;
+    }
+    .role-administrator {
+        background-color: #9b59b6;
+        color: white;
+    }
+    .role-user {
+        background-color: #5bc0de;
+        color: white;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        font-weight: bold;
+    }
+    .status-active {
+        background-color: #5cb85c;
+        color: white;
+    }
+    .status-inactive {
+        background-color: #d9534f;
+        color: white;
+    }
+    .add-user-form {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    .form-row {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        align-items: flex-end;
+    }
+    .form-group {
+        flex: 1;
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        color: #384839;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        box-sizing: border-box;
+    }
+    .btn-add {
+        padding: 10px 20px;
+        background-color: #5bc0de;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-add:hover {
+        background-color: #46b8da;
+    }
+    .btn-cancel {
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    .btn-cancel:hover {
+        background-color: #5a6268;
+    }
+    .button-group {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    .btn-action {
+        padding: 5px 12px;
+        margin: 0 3px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: bold;
+        cursor: pointer;
+        color: white;
+    }
+    .btn-edit {
+        background-color: #5bc0de;
+    }
+    .btn-edit:hover {
+        background-color: #46b8da;
+    }
+    .btn-reset {
+        background-color: #f0ad4e;
+    }
+    .btn-reset:hover {
+        background-color: #ec971f;
+    }
+    .btn-disable {
+        background-color: #d9534f;
+    }
+    .btn-disable:hover {
+        background-color: #c9302c;
+    }
+    .btn-enable {
+        background-color: #5cb85c;
+    }
+    .btn-enable:hover {
+        background-color: #449d44;
+    }
+    .btn-action:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .alert {
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .alert-info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+</style>
+</head>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08);">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('index') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+            <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues Report</a>
+            <a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                <img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours Report
+            </a>
+            <a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+            </a>
+            <a href="{{ url_for('committees') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <a href="javascript:void(0);" onclick="generateEmailList()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📧 Email List</a>
+            <a href="{{ url_for('admin_users') }}" class="active-menu" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:rgb(255,255,0); color:#000000; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Admin Panel</a>
+            <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+            <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+                <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
+                    <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
+                    <div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
+                    <div style="border-top:1px solid #555; padding-top:8px;"><strong>Total:</strong> {{ member_stats.total_members }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main content area -->
+        <div style="flex:1; margin-left:210px; padding:40px;">
+            <h1 style="color:#f5f5f5; text-align:center; margin-bottom:30px;">👤 Admin Panel - User Management</h1>
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <!-- User List -->
+            <div class="user-table">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="color:#384839; margin:0;">All Users ({{ users|length }})</h2>
+                    <button onclick="openAddUserModal()" style="padding:10px 20px; background-color:#5bc0de; color:white; border:none; border-radius:4px; font-size:1em; font-weight:bold; cursor:pointer;">➕ Add New User</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td><strong>{{ user.name if user.name else '-' }}</strong></td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="role-badge role-{{ user.role|lower }}">{{ user.role }}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ 'active' if user.is_active else 'inactive' }}">{{ 'Active' if user.is_active else 'Inactive' }}</span>
+                            </td>
+                            <td>{{ user.created_at[5:7] }}-{{ user.created_at[8:10] }}-{{ user.created_at[:4] }}&nbsp;&nbsp;&nbsp;{{ user.created_at[11:16] }}</td>
+                            <td>
+                                <button onclick="editUser({{ user.id }})" class="btn-action btn-edit" {% if user.role == 'BDFL' and not current_user.is_bdfl() %}disabled{% endif %}>Edit</button>
+                                <button onclick="resetPassword({{ user.id }}, '{{ user.username }}')" class="btn-action btn-reset" {% if user.role == 'BDFL' %}disabled{% endif %}>Reset Password</button>
+                                {% if user.is_active %}
+                                <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', false)" class="btn-action btn-disable" {% if user.role == 'BDFL' %}disabled{% endif %}>Disable</button>
+                                {% else %}
+                                <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', true)" class="btn-action btn-enable" {% if user.role == 'BDFL' %}disabled{% endif %}>Enable</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add User Modal -->
+    <div id="addUserModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background-color:#f5f5f5; border-radius:10px; padding:30px; width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#384839; margin:0;">Add New User</h2>
+                <button onclick="closeAddUserModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#384839;">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_users') }}">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                {% if current_user.is_bdfl() %}
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:1em;">
+                        <option value="User">User</option>
+                        <option value="Administrator">Administrator</option>
+                    </select>
+                </div>
+                {% endif %}
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="text" id="password" name="password" value="Changem3" readonly style="background-color:#e9ecef; cursor:not-allowed;">
+                    <div style="font-size:0.85em; color:#666; margin-top:5px;">⚠️ User will be required to change this password on first login (must include 1 uppercase, 1 lowercase, and 1 number)</div>
+                </div>
+                <div class="button-group">
+                    <button type="button" onclick="closeAddUserModal()" class="btn-cancel">Cancel</button>
+                    <button type="submit" class="btn-add">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit User Modal -->
+    <div id="editUserModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background-color:#f5f5f5; border-radius:10px; padding:30px; width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#384839; margin:0;">Edit User</h2>
+                <button onclick="closeEditUserModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#384839;">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('edit_user') }}">
+                <input type="hidden" id="edit_user_id" name="user_id">
+                <div class="form-group">
+                    <label for="edit_username">Username</label>
+                    <input type="text" id="edit_username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_name">Name</label>
+                    <input type="text" id="edit_name" name="name">
+                </div>
+                <div class="form-group">
+                    <label for="edit_email">Email</label>
+                    <input type="email" id="edit_email" name="email" required>
+                </div>
+                {% if current_user.is_bdfl() %}
+                <div class="form-group">
+                    <label for="edit_role">Role</label>
+                    <select id="edit_role" name="role" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:1em;">
+                        <option value="User">User</option>
+                        <option value="Administrator">Administrator</option>
+                    </select>
+                </div>
+                {% endif %}
+                <div class="button-group">
+                    <button type="button" onclick="closeEditUserModal()" class="btn-cancel">Cancel</button>
+                    <button type="submit" class="btn-add">Update User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function openAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'flex';
+        }
+        
+        function closeAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'none';
+        }
+        
+        function openEditUserModal() {
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+        
+        function closeEditUserModal() {
+            document.getElementById('editUserModal').style.display = 'none';
+        }
+        
+        // Close modals when clicking outside
+        document.getElementById('addUserModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddUserModal();
+            }
+        });
+        
+        document.getElementById('editUserModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditUserModal();
+            }
+        });
+        
+        function editUser(userId) {
+            // Fetch user data and populate edit modal
+            fetch('/admin/users/get/' + userId)
+                .then(response => response.json())
+                .then(user => {
+                    document.getElementById('edit_user_id').value = user.id;
+                    document.getElementById('edit_username').value = user.username;
+                    document.getElementById('edit_name').value = user.name || '';
+                    document.getElementById('edit_email').value = user.email;
+                    // Set role if field exists (BDFL only)
+                    const roleField = document.getElementById('edit_role');
+                    if (roleField && user.role) {
+                        roleField.value = user.role;
+                    }
+                    openEditUserModal();
+                })
+                .catch(error => {
+                    alert('Error loading user data');
+                    console.error(error);
+                });
+        }
+        
+        function resetPassword(userId, username) {
+            if (confirm('Are you sure you want to reset the password for user "' + username + '"? The password will be reset to "Changem3" and the user will be required to change it on next login.')) {
+                // Submit form to reset password
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/users/reset-password/' + userId;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function toggleUserStatus(userId, username, enable) {
+            const action = enable ? 'enable' : 'disable';
+            if (confirm('Are you sure you want to ' + action + ' user "' + username + '"?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/users/toggle-status/' + userId;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,9 +1,77 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 import database
 import datetime
 import socket
+import os
 
 app = Flask(__name__)
+
+# Load configuration
+env = os.environ.get('FLASK_ENV', 'development')
+from config import config
+app.config.from_object(config[env])
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+# User class for Flask-Login
+class User(UserMixin):
+    def __init__(self, id, username, email, role='User', is_active=True, must_change_password=False):
+        self.id = id
+        self.username = username
+        self.email = email
+        self.role = role
+        self._is_active = is_active
+        self.must_change_password = must_change_password
+    
+    def get_id(self):
+        return str(self.id)
+    
+    @property
+    def is_active(self):
+        return self._is_active
+    
+    def is_bdfl(self):
+        return self.role == 'BDFL'
+    
+    def is_admin(self):
+        return self.role == 'Administrator'
+    
+    def is_admin_or_bdfl(self):
+        return self.role in ('BDFL', 'Administrator')
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_data = database.get_user_by_id(int(user_id))
+    if user_data:
+        # Handle role column that might not exist in older databases
+        try:
+            role = user_data['role']
+        except (KeyError, IndexError):
+            role = 'User'
+        
+        # Handle must_change_password column
+        try:
+            must_change_password = bool(user_data['must_change_password'])
+        except (KeyError, IndexError):
+            must_change_password = False
+        
+        return User(
+            id=user_data['id'],
+            username=user_data['username'],
+            email=user_data['email'],
+            role=role,
+            is_active=bool(user_data['is_active']),
+            must_change_password=must_change_password
+        )
+    return None
+
 
 def get_local_ip():
     """Get the local IP address of the host machine"""
@@ -42,9 +110,402 @@ def get_member_stats():
 		'total_members': total_count
 	}
 
-@app.route('/add_work_hours/<int:member_id>', methods=['POST'])
-@app.route('/dues_report')
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+	if current_user.is_authenticated:
+		return redirect(url_for('index'))
+	
+	if request.method == 'POST':
+		username = request.form.get('username')
+		password = request.form.get('password')
+		
+		user_data = database.get_user_by_username(username)
+		
+		if user_data and user_data['is_active']:
+			# Handle must_change_password column
+			try:
+				must_change_password = bool(user_data['must_change_password'])
+			except (KeyError, IndexError):
+				must_change_password = False
+			
+			# If password reset is required, log them in regardless of password and redirect
+			if must_change_password:
+				# Handle role column that might not exist in older databases
+				try:
+					role = user_data['role']
+				except (KeyError, IndexError):
+					role = 'User'
+				
+				user = User(
+					id=user_data['id'],
+					username=user_data['username'],
+					email=user_data['email'],
+					role=role,
+					is_active=bool(user_data['is_active']),
+					must_change_password=must_change_password
+				)
+				login_user(user)
+				flash('Your password has been reset. You must change it before continuing.', 'info')
+				return redirect(url_for('change_password'))
+			
+			# Normal login flow - check password
+			if check_password_hash(user_data['password_hash'], password):
+				# Handle role column that might not exist in older databases
+				try:
+					role = user_data['role']
+				except (KeyError, IndexError):
+					role = 'User'
+				
+				user = User(
+					id=user_data['id'],
+					username=user_data['username'],
+					email=user_data['email'],
+					role=role,
+					is_active=bool(user_data['is_active']),
+					must_change_password=must_change_password
+				)
+				login_user(user)
+				
+				flash('Login successful!', 'info')
+				next_page = request.args.get('next')
+				return redirect(next_page) if next_page else redirect(url_for('index'))
+			else:
+				flash('Invalid username or password.', 'error')
+		elif user_data and not user_data['is_active']:
+			flash('Your account has been deactivated. Please contact an administrator.', 'error')
+		else:
+			flash('Invalid username or password.', 'error')
+	
+	return render_template('login.html')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+	if current_user.is_authenticated:
+		return redirect(url_for('index'))
+	
+	if request.method == 'POST':
+		username = request.form.get('username')
+		email = request.form.get('email')
+		password = request.form.get('password')
+		confirm_password = request.form.get('confirm_password')
+		
+		# Validation
+		if not username or not email or not password:
+			flash('All fields are required.', 'error')
+			return render_template('register.html')
+		
+		if password != confirm_password:
+			flash('Passwords do not match.', 'error')
+			return render_template('register.html')
+		
+		if len(password) < 6:
+			flash('Password must be at least 6 characters long.', 'error')
+			return render_template('register.html')
+		
+		# Check if username or email already exists
+		if database.get_user_by_username(username):
+			flash('Username already exists.', 'error')
+			return render_template('register.html')
+		
+		if database.get_user_by_email(email):
+			flash('Email already registered.', 'error')
+			return render_template('register.html')
+		
+		# Create new user
+		password_hash = generate_password_hash(password)
+		user_id = database.create_user(username, password_hash, email)
+		
+		if user_id:
+			flash('Registration successful! Please log in.', 'info')
+			return redirect(url_for('login'))
+		else:
+			flash('An error occurred during registration. Please try again.', 'error')
+	
+	return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+	logout_user()
+	flash('You have been logged out.', 'info')
+	return redirect(url_for('login'))
+
+@app.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+	if request.method == 'POST':
+		current_password = request.form.get('current_password')
+		new_password = request.form.get('new_password')
+		confirm_password = request.form.get('confirm_password')
+		
+		# Validation
+		if not current_password or not new_password or not confirm_password:
+			flash('All fields are required.', 'error')
+			return render_template('change_password.html')
+		
+		# Verify current password
+		user_data = database.get_user_by_id(current_user.id)
+		if not check_password_hash(user_data['password_hash'], current_password):
+			flash('Current password is incorrect.', 'error')
+			return render_template('change_password.html')
+		
+		# Check new passwords match
+		if new_password != confirm_password:
+			flash('New passwords do not match.', 'error')
+			return render_template('change_password.html')
+		
+		# Check password length
+		if len(new_password) < 6:
+			flash('Password must be at least 6 characters long.', 'error')
+			return render_template('change_password.html')
+		
+		# Check password complexity
+		if not any(c.isupper() for c in new_password):
+			flash('Password must contain at least one uppercase letter.', 'error')
+			return render_template('change_password.html')
+		if not any(c.islower() for c in new_password):
+			flash('Password must contain at least one lowercase letter.', 'error')
+			return render_template('change_password.html')
+		if not any(c.isdigit() for c in new_password):
+			flash('Password must contain at least one number.', 'error')
+			return render_template('change_password.html')
+		
+		# Update password
+		password_hash = generate_password_hash(new_password)
+		database.update_user_password(current_user.id, password_hash)
+		
+		flash('Password changed successfully!', 'info')
+		return redirect(url_for('index'))
+	
+	return render_template('change_password.html')
+
+@app.route('/admin/users/reset-password/<int:user_id>', methods=['POST'])
+@login_required
+def reset_user_password(user_id):
+	# Only BDFL and Administrator can reset passwords
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can reset passwords.', 'error')
+		return redirect(url_for('index'))
+	
+	# Get the target user to check their role
+	target_user = database.get_user_by_id(user_id)
+	if target_user and target_user['role'] == 'BDFL':
+		if not current_user.is_bdfl():
+			flash('Access denied. Cannot reset BDFL user password.', 'error')
+			return redirect(url_for('admin_users'))
+	
+	# Reset password to "Changem3" and set must_change_password flag
+	password_hash = generate_password_hash('Changem3')
+	database.update_user_password(user_id, password_hash)
+	
+	# Set must_change_password flag
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	conn.execute('UPDATE users SET must_change_password = 1 WHERE id = ?', (user_id,))
+	conn.commit()
+	conn.close()
+	
+	user_data = database.get_user_by_id(user_id)
+	if user_data:
+		flash(f'Password reset for user "{user_data["username"]}". New password: Changem3', 'info')
+	else:
+		flash('Password reset successfully.', 'info')
+	
+	return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/toggle-status/<int:user_id>', methods=['POST'])
+@login_required
+def toggle_user_status(user_id):
+	# Only BDFL and Administrator can toggle user status
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can enable/disable users.', 'error')
+		return redirect(url_for('index'))
+	
+	user_data = database.get_user_by_id(user_id)
+	if not user_data:
+		flash('User not found.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Cannot disable BDFL users
+	try:
+		user_role = user_data['role']
+	except (KeyError, TypeError):
+		user_role = None
+	
+	if user_role == 'BDFL':
+		flash('Cannot disable BDFL users.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Toggle is_active status
+	try:
+		current_status = user_data['is_active']
+	except (KeyError, TypeError):
+		current_status = 1
+	
+	new_status = 0 if current_status else 1
+	
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	conn.execute('UPDATE users SET is_active = ? WHERE id = ?', (new_status, user_id))
+	conn.commit()
+	conn.close()
+	
+	status_text = 'enabled' if new_status else 'disabled'
+	flash(f'User "{user_data["username"]}" has been {status_text}.', 'info')
+	
+	return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/get/<int:user_id>', methods=['GET'])
+@login_required
+def get_user(user_id):
+	# Only BDFL and Administrator can access this endpoint
+	if not current_user.is_admin_or_bdfl():
+		return {'error': 'Access denied'}, 403
+	
+	# Administrator cannot view BDFL user details
+	user_data = database.get_user_by_id(user_id)
+	if user_data and user_data['role'] == 'BDFL' and not current_user.is_bdfl():
+		return {'error': 'Access denied'}, 403
+	
+	user_data = database.get_user_by_id(user_id)
+	if user_data:
+		return {
+			'id': user_data['id'],
+			'username': user_data['username'],
+			'name': user_data['name'],
+			'email': user_data['email'],
+			'role': user_data['role']
+		}
+	return {'error': 'User not found'}, 404
+
+@app.route('/admin/users/edit', methods=['POST'])
+@login_required
+def edit_user():
+	# Only BDFL and Administrator can edit users
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can edit users.', 'error')
+		return redirect(url_for('index'))
+	
+	user_id = request.form.get('user_id')
+	
+	# Administrator cannot edit BDFL users
+	target_user = database.get_user_by_id(int(user_id)) if user_id else None
+	if target_user and target_user['role'] == 'BDFL' and not current_user.is_bdfl():
+		flash('Access denied. Cannot edit BDFL user.', 'error')
+		return redirect(url_for('admin_users'))
+	username = request.form.get('username')
+	name = request.form.get('name')
+	email = request.form.get('email')
+	role = request.form.get('role')  # Only BDFL can change roles
+	
+	# Validation
+	if not user_id or not username or not email:
+		flash('Username and email are required.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Check if username already exists for a different user
+	existing_user = database.get_user_by_username(username)
+	if existing_user and existing_user['id'] != int(user_id):
+		flash('Username already exists.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Check if email already exists for a different user
+	existing_user = database.get_user_by_email(email)
+	if existing_user and existing_user['id'] != int(user_id):
+		flash('Email already registered.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Update user
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	
+	# Only BDFL can update roles
+	if role and current_user.is_bdfl():
+		conn.execute('UPDATE users SET username = ?, name = ?, email = ?, role = ? WHERE id = ?', 
+					 (username, name, email, role, user_id))
+	else:
+		conn.execute('UPDATE users SET username = ?, name = ?, email = ? WHERE id = ?', 
+					 (username, name, email, user_id))
+	conn.commit()
+	conn.close()
+	
+	flash(f'User "{username}" updated successfully!', 'info')
+	return redirect(url_for('admin_users'))
+
+@app.route('/admin/users', methods=['GET', 'POST'])
+@login_required
+def admin_users():
+	# Only BDFL and Administrator can access this page
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can access the admin panel.', 'error')
+		return redirect(url_for('index'))
+	
+	if request.method == 'POST':
+		username = request.form.get('username')
+		name = request.form.get('name')
+		email = request.form.get('email')
+		password = request.form.get('password')
+		role = request.form.get('role', 'User')  # Default to User if not specified
+		
+		# Only BDFL can assign Administrator role
+		if role == 'Administrator' and not current_user.is_bdfl():
+			role = 'User'
+		
+		# Validation
+		if not username or not email or not password:
+			flash('Username, email, and password are required.', 'error')
+		elif len(password) < 6:
+			flash('Password must be at least 6 characters long.', 'error')
+		elif not any(c.isupper() for c in password):
+			flash('Password must contain at least one uppercase letter.', 'error')
+		elif not any(c.islower() for c in password):
+			flash('Password must contain at least one lowercase letter.', 'error')
+		elif not any(c.isdigit() for c in password):
+			flash('Password must contain at least one number.', 'error')
+		elif database.get_user_by_username(username):
+			flash('Username already exists.', 'error')
+		elif database.get_user_by_email(email):
+			flash('Email already registered.', 'error')
+		else:
+			# Create new user
+			password_hash = generate_password_hash(password)
+			user_id = database.create_user(username, password_hash, email, name, role)
+			
+			if user_id:
+				flash(f'User "{username}" created successfully!', 'info')
+			else:
+				flash('An error occurred during user creation.', 'error')
+	
+	# Get all users
+	all_users = database.get_all_users()
+	member_stats = get_member_stats()
+	return render_template('admin_users.html', users=all_users, active_page='admin_users', member_stats=member_stats)
+
+# Before request handler to check for password change requirement
+@app.before_request
+def check_password_change_required():
+	# Skip check for static files, login, logout, and change_password routes
+	if request.endpoint in ['static', 'login', 'logout', 'change_password', 'register']:
+		return
+	
+	# Check if user is authenticated and needs to change password
+	if current_user.is_authenticated and hasattr(current_user, 'must_change_password') and current_user.must_change_password:
+		if request.endpoint != 'change_password':
+			return redirect(url_for('change_password'))
+
+# Protected routes
+@app.route('/add_work_hours/<int:member_id>', methods=['POST'])
+@login_required
+def add_work_hours(member_id):
+	date = request.form.get('date')
+	hours = request.form.get('hours')
+	description = request.form.get('description', '')
+	database.add_work_hours(member_id, date, hours, description)
+	return redirect(url_for('member_details', member_id=member_id))
+
+@app.route('/dues_report')
+@login_required
 def dues_report():
 	year = request.args.get('year')
 	years = database.get_dues_years()
@@ -64,6 +525,7 @@ def dues_report():
 	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats)
 
 @app.route('/dues_email_list')
+@login_required
 def dues_email_list():
 	year = request.args.get('year')
 	if not year:
@@ -96,6 +558,7 @@ def dues_email_list():
 	return render_template('email_list.html', emails=emails, member_type=f'Paid Dues {year}', count=len(emails), member_stats=member_stats)
 
 @app.route('/dues_unpaid_email_list')
+@login_required
 def dues_unpaid_email_list():
 	year = request.args.get('year')
 	if not year:
@@ -141,6 +604,7 @@ def add_work_hours(member_id):
 
 # Work Hours Report route
 @app.route('/work_hours_report')
+@login_required
 def work_hours_report():
 	year = request.args.get('year')
 	# Get all work hours for all members for the selected year
@@ -159,6 +623,7 @@ def work_hours_report():
 	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats)
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
+@login_required
 def add_meeting_attendance(member_id):
     date = request.form['date']
     status = request.form['status']
@@ -166,6 +631,7 @@ def add_meeting_attendance(member_id):
     return ('', 204)
 
 @app.route('/', methods=['GET'])
+@login_required
 def index():
 	search = request.args.get('search', '').strip()
 	member_type = request.args.get('member_type', 'All')
@@ -195,6 +661,7 @@ def index():
 	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats)
 
 @app.route('/member/<int:member_id>')
+@login_required
 def member_details(member_id):
 	member = database.get_member_by_id(member_id)
 	if not member:
@@ -259,11 +726,13 @@ def member_details(member_id):
 
 # Add /reports route for the Reports page
 @app.route('/reports')
+@login_required
 def reports():
 	return render_template('reports.html', active_page='reports')
 
 # Member Report route
 @app.route('/member_report/<int:member_id>')
+@login_required
 def member_report(member_id):
 	member = database.get_member_by_id(member_id)
 	if not member:
@@ -305,12 +774,14 @@ def member_report(member_id):
 
 # Soft delete member (move to recycle bin)
 @app.route('/delete_member/<int:member_id>', methods=['POST'])
+@login_required
 def delete_member(member_id):
 	database.soft_delete_member_by_id(member_id)
 	return redirect(url_for('index'))
 
 # Recycle bin page
 @app.route('/recycle_bin')
+@login_required
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
 	member_stats = get_member_stats()
@@ -318,6 +789,7 @@ def recycle_bin():
 
 # Restore ALL members from recycle bin
 @app.route('/recycle_bin/restore_all', methods=['POST'])
+@login_required
 def recycle_bin_restore_all():
 	deleted_members = database.get_deleted_members()
 	for m in deleted_members:
@@ -330,6 +802,7 @@ def recycle_bin_restore_all():
 
 # Permanently DELETE ALL members in recycle bin
 @app.route('/recycle_bin/delete_all', methods=['POST'])
+@login_required
 def recycle_bin_delete_all():
 	deleted_members = database.get_deleted_members()
 	for m in deleted_members:
@@ -341,12 +814,14 @@ def recycle_bin_delete_all():
 
 # Restore member from recycle bin
 @app.route('/restore_member/<int:member_id>', methods=['POST'])
+@login_required
 def restore_member(member_id):
 	database.restore_member_by_id(member_id)
 	return redirect(url_for('recycle_bin'))
 
 # Edit Member route
 @app.route('/edit_member/<int:member_id>', methods=['GET', 'POST'])
+@login_required
 def edit_member(member_id):
 	member = database.get_member_by_id(member_id)
 	if not member:
@@ -380,6 +855,7 @@ def edit_member(member_id):
 
 # Add Member route
 @app.route('/add_member', methods=['GET', 'POST'])
+@login_required
 def add_member():
 	if request.method == 'POST':
 		data = (
@@ -410,6 +886,7 @@ def add_member():
 
 # Edit Section route
 @app.route('/edit_section/<int:member_id>', methods=['GET', 'POST'])
+@login_required
 def edit_section(member_id):
 	section = request.args.get('section')
 	member = database.get_member_by_id(member_id)
@@ -504,6 +981,7 @@ def edit_section(member_id):
 	return f"Edit {section} for member {member_id}"  # Replace with render_template as needed
 
 @app.route('/get_due/<int:due_id>')
+@login_required
 def get_due(due_id):
 	due = database.get_due_by_id(due_id)
 	if not due:
@@ -517,6 +995,7 @@ def get_due(due_id):
 		"notes": due["notes"] if "notes" in due.keys() else ""
 	}
 @app.route('/edit_due/<int:due_id>', methods=['POST'])
+@login_required
 def edit_due(due_id):
 	payment_date = request.form['payment_date']
 	amount = request.form['amount']
@@ -527,16 +1006,19 @@ def edit_due(due_id):
 	return ('', 204)
 
 @app.route('/delete_due/<int:due_id>', methods=['POST'])
+@login_required
 def delete_due(due_id):
     database.delete_due(due_id)
     return ('', 204)
 
 @app.route('/delete_member_permanently/<int:member_id>', methods=['POST'])
+@login_required
 def delete_member_permanently(member_id):
     database.delete_member_permanently(member_id)
     return redirect(url_for('recycle_bin'))
 
 @app.route('/get_work_hours/<int:wh_id>')
+@login_required
 def get_work_hours(wh_id):
     wh = database.get_work_hours_by_id(wh_id)
     if not wh:
@@ -550,6 +1032,7 @@ def get_work_hours(wh_id):
     }
 
 @app.route('/edit_work_hours/<int:wh_id>', methods=['POST'])
+@login_required
 def edit_work_hours(wh_id):
     date = request.form['date']
     activity = request.form['activity']
@@ -559,11 +1042,13 @@ def edit_work_hours(wh_id):
     return ('', 204)
 
 @app.route('/delete_work_hours/<int:wh_id>', methods=['POST'])
+@login_required
 def delete_work_hours(wh_id):
     database.delete_work_hours(wh_id)
     return ('', 204)
 
 @app.route('/get_meeting_attendance/<int:att_id>')
+@login_required
 def get_meeting_attendance(att_id):
     att = database.get_meeting_attendance_by_id(att_id)
     if not att:
@@ -575,6 +1060,7 @@ def get_meeting_attendance(att_id):
     }
 
 @app.route('/edit_meeting_attendance/<int:att_id>', methods=['POST'])
+@login_required
 def edit_meeting_attendance(att_id):
     date = request.form['date']
     status = request.form['status']
@@ -582,11 +1068,13 @@ def edit_meeting_attendance(att_id):
     return ('', 204)
 
 @app.route('/delete_meeting_attendance/<int:att_id>', methods=['POST'])
+@login_required
 def delete_meeting_attendance(att_id):
     database.delete_meeting_attendance(att_id)
     return ('', 204)
 
 @app.route('/meeting_attendance_report', endpoint='meeting_attendance_report')
+@login_required
 def meeting_attendance_report():
 	year = request.args.get('year')
 	month = request.args.get('month') or 'all'
@@ -612,6 +1100,7 @@ def meeting_attendance_report():
 	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report', member_stats=member_stats)
 
 @app.route('/committees')
+@login_required
 def committees():
 	import sqlite3
 	conn = sqlite3.connect(database.DB_NAME)
@@ -681,6 +1170,7 @@ def committees():
 	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees', member_stats=member_stats)
 
 @app.route('/committee_email_list')
+@login_required
 def committee_email_list():
 	committee = request.args.get('committee')
 	if not committee:
@@ -722,6 +1212,7 @@ def committee_email_list():
 	return render_template('email_list.html', emails=emails, member_type=f'{committee_display} Committee', count=len(emails), member_stats=member_stats)
 
 @app.route('/email_list')
+@login_required
 def email_list():
 	member_type = request.args.get('member_type', 'All')
 	all_members = database.get_all_members()
