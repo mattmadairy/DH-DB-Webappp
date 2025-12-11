@@ -16,6 +16,23 @@ def ensure_bdfl_user():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
+    # Create users table if it doesn't exist
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            name TEXT,
+            password_hash TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            created_at TEXT NOT NULL,
+            is_active INTEGER DEFAULT 1,
+            role TEXT DEFAULT 'User',
+            must_change_password INTEGER DEFAULT 0
+        )
+    """)
+    conn.commit()
+    print("✓ Users table ready")
+    
     # Check if BDFL user exists
     cursor.execute("SELECT id, role FROM users WHERE username = ?", (BDFL_USERNAME,))
     existing_user = cursor.fetchone()
