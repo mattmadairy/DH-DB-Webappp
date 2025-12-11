@@ -559,7 +559,7 @@ def get_all_users():
     """Get all users"""
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT id, username, name, email, role, is_active, created_at FROM users ORDER BY created_at DESC")
+    c.execute("SELECT id, username, name, email, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC")
     users = c.fetchall()
     conn.close()
     return users
