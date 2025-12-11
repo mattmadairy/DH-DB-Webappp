@@ -292,6 +292,21 @@ def init_database():
 		)
 	""")
 	
+	# Create check_ins table for kiosk functionality
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS check_ins (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			member_number TEXT NOT NULL,
+			check_in_time TEXT NOT NULL,
+			activities TEXT,
+			guest1_name TEXT,
+			guest2_name TEXT,
+			other_activity TEXT,
+			sign_out_time TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	""")
+	
 	conn.commit()
 	conn.close()
 
@@ -689,3 +704,80 @@ def get_audit_logs(limit=100, user_id=None):
     logs = c.fetchall()
     conn.close()
     return logs
+
+# ========== Kiosk Check-in Functions ==========
+
+def add_checkin(member_number, check_in_time, activities, guest1_name=None, guest2_name=None, other_activity=None):
+    """Add a new kiosk check-in"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO check_ins (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity))
+    conn.commit()
+    checkin_id = c.lastrowid
+    conn.close()
+    return checkin_id
+
+def get_all_checkins(date=None):
+    """Get all check-ins, optionally filtered by date"""
+    conn = get_connection()
+    c = conn.cursor()
+    if date:
+        c.execute("""
+            SELECT * FROM check_ins 
+            WHERE DATE(check_in_time) = ?
+            ORDER BY check_in_time DESC
+        """, (date,))
+    else:
+        c.execute("SELECT * FROM check_ins ORDER BY check_in_time DESC LIMIT 100")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_today_checkins():
+    """Get today's check-ins that haven't been signed out"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM check_ins 
+        WHERE DATE(check_in_time) = DATE('now', 'localtime')
+        AND (sign_out_time IS NULL OR sign_out_time = '')
+        ORDER BY check_in_time DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def sign_out_checkin(checkin_id, sign_out_time):
+    """Sign out a member by updating their check-in record"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE check_ins SET sign_out_time = ? WHERE id = ?", (sign_out_time, checkin_id))
+    conn.commit()
+    affected = c.rowcount
+    conn.close()
+    return affected > 0
+
+def get_checkin_by_id(checkin_id):
+    """Get a specific check-in by ID"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM check_ins WHERE id = ?", (checkin_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def get_checkins_by_date_range(start_date, end_date):
+    """Get check-ins within a date range"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM check_ins 
+        WHERE DATE(check_in_time) BETWEEN ? AND ?
+        ORDER BY check_in_time DESC
+    """, (start_date, end_date))
+    rows = c.fetchall()
+    conn.close()
+    return rows

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -1415,6 +1415,115 @@ def email_list():
 	
 	member_stats = get_member_stats()
 	return render_template('email_list.html', emails=emails, member_type=member_type, count=len(emails), member_stats=member_stats)
+
+# ========== Kiosk Routes ==========
+
+@app.route('/kiosk')
+def kiosk():
+	"""Serve the kiosk check-in page (no login required)"""
+	return render_template('kiosk.html')
+
+@app.route('/kiosk/submit', methods=['POST'])
+@csrf.exempt  # Exempt CSRF for kiosk since it's a public terminal
+def kiosk_submit():
+	"""Handle kiosk check-in form submission"""
+	try:
+		# Get form data
+		member_number = request.form.get('memberNumber')
+		activities = request.form.getlist('activities')
+		other_activity = request.form.get('otherActivity', '')
+		guest1 = request.form.get('guest1', '')
+		guest2 = request.form.get('guest2', '')
+		
+		# Validate member number
+		if not member_number:
+			return jsonify({'success': False, 'error': 'Member number is required'}), 400
+		
+		# Validate activities
+		if not activities:
+			return jsonify({'success': False, 'error': 'At least one activity must be selected'}), 400
+		
+		# Insert check-in record
+		activities_str = ', '.join(activities)
+		check_in_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		
+		checkin_id = database.add_checkin(
+			member_number=member_number,
+			check_in_time=check_in_time,
+			activities=activities_str,
+			guest1_name=guest1 if guest1 else None,
+			guest2_name=guest2 if guest2 else None,
+			other_activity=other_activity if other_activity else None
+		)
+		
+		return jsonify({
+			'success': True,
+			'message': 'Check-in recorded successfully',
+			'id': checkin_id,
+			'member_number': member_number,
+			'activities': activities,
+			'guests': [g for g in [guest1, guest2] if g]
+		})
+		
+	except Exception as e:
+		print(f"Error processing check-in: {e}")
+		return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/kiosk/today-checkins', methods=['GET'])
+def kiosk_today_checkins():
+	"""Get today's check-ins for the kiosk display"""
+	try:
+		records = database.get_today_checkins()
+		checkins = [dict(row) for row in records]
+		return jsonify({'success': True, 'checkins': checkins})
+	except Exception as e:
+		print(f"Error fetching today's check-ins: {e}")
+		return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/kiosk/signout/<int:checkin_id>', methods=['POST'])
+@csrf.exempt  # Exempt CSRF for kiosk
+def kiosk_sign_out(checkin_id):
+	"""Sign out a member by updating their check-in record with sign-out time"""
+	try:
+		sign_out_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		success = database.sign_out_checkin(checkin_id, sign_out_time)
+		
+		if not success:
+			return jsonify({'success': False, 'error': 'Check-in record not found'}), 404
+		
+		return jsonify({
+			'success': True,
+			'message': 'Signed out successfully',
+			'sign_out_time': sign_out_time
+		})
+	except Exception as e:
+		print(f"Error signing out: {e}")
+		return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/kiosk/report')
+@login_required
+def kiosk_report():
+	"""View kiosk check-in reports (requires login)"""
+	date_filter = request.args.get('date')
+	start_date = request.args.get('start_date')
+	end_date = request.args.get('end_date')
+	
+	if start_date and end_date:
+		checkins = database.get_checkins_by_date_range(start_date, end_date)
+	elif date_filter:
+		checkins = database.get_all_checkins(date=date_filter)
+	else:
+		# Default to today
+		today = datetime.date.today().strftime('%Y-%m-%d')
+		checkins = database.get_all_checkins(date=today)
+	
+	member_stats = get_member_stats()
+	return render_template('kiosk_report.html', 
+						   checkins=checkins, 
+						   member_stats=member_stats,
+						   date_filter=date_filter,
+						   start_date=start_date,
+						   end_date=end_date)
 
 if __name__ == "__main__":
     import sys

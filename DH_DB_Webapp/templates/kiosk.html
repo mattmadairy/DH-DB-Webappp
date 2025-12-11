@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Check-In</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #384839;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .logo-section {
+            width: 100%;
+            max-width: 1400px;
+            margin-top: 40px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+        }
+
+        .logo-section img {
+            width: 200px;
+            height: auto;
+            flex-shrink: 0;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            flex: 1;
+            max-width: 1200px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            flex-shrink: 0;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .activities-section {
+            margin-bottom: 30px;
+        }
+
+        .activities-label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: block;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checkbox-item:hover {
+            background-color: #f5f5f5;
+            border-color: #667eea;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .guest-btn {
+            width: 100%;
+            padding: 15px;
+            background: #e0e0e0;
+            color: #333;
+            border: 2px solid #999;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .guest-btn:hover {
+            background: #d0d0d0;
+        }
+
+        .guest-btn:active {
+            transform: translateY(0);
+        }
+
+        .guest-input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .remove-single-guest-btn {
+            padding: 12px 16px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            margin-bottom: 0;
+            height: 46px;
+        }
+
+        .remove-single-guest-btn:hover {
+            background: #ff5252;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #fff600;
+            color: #333;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 246, 0, 0.4);
+            background: #fffa33;
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 1200px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+
+            .container {
+                max-width: 100%;
+            }
+
+            .checkin-tree-container {
+                max-height: 500px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .logo-section {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .logo-section img {
+                width: 150px;
+            }
+
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        /* Check-in Tree Styles */
+        .checkin-tree-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            width: 100%;
+            flex: 1;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .checkin-tree-container h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .tree-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .tree-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tree-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .tree-item::before {
+            content: '▸';
+            position: absolute;
+            left: -20px;
+            color: #667eea;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .member-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .member-number {
+            font-weight: bold;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .check-in-time {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .activities-tags {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .activity-tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .guest-tag {
+            background: #ffc107;
+            color: #333;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .no-checkins {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+            padding: 40px;
+            font-size: 16px;
+        }
+
+        .refresh-info {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+
+        .signout-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-left: 10px;
+        }
+
+        .signout-btn:hover {
+            background: #ff5252;
+        }
+
+        .signout-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="logo-section">
+        <img src="{{ url_for('static', filename='Main Logo.png') }}" alt="Club Logo">
+        
+        <div class="content-wrapper">
+            <div class="container">
+                <h1>Member Check-In</h1>
+                <p class="subtitle">Please enter your member number and select activities</p>
+        
+                <form id="checkInForm">
+                    <div class="form-group">
+                        <label for="memberNumber">Member Number</label>
+                        <input 
+                            type="text" 
+                            id="memberNumber" 
+                            name="memberNumber" 
+                            placeholder="Enter your member number" 
+                            required
+                            autofocus
+                        >
+                    </div>
+
+                    <div class="activities-section">
+                        <span class="activities-label">Select Activities</span>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="pistol" name="activities" value="Pistol">
+                                <label for="pistol">Pistol</label>
+                            </div>
+                            
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="rifle" name="activities" value="Rifle">
+                                <label for="rifle">Rifle</label>
+                            </div>
+                            
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="trap" name="activities" value="Trap">
+                                <label for="trap">Trap</label>
+                            </div>
+                            
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="hunting" name="activities" value="Hunting/Scouting">
+                                <label for="hunting">Hunting/Scouting</label>
+                            </div>
+                            
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="other" name="activities" value="Other">
+                                <label for="other">Other</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="otherActivityGroup" style="display: none;">
+                        <label for="otherActivity">Please specify:</label>
+                        <input 
+                            type="text" 
+                            id="otherActivity" 
+                            name="otherActivity" 
+                            placeholder="Enter other activity" 
+                        >
+                    </div>
+
+                    <button type="button" class="guest-btn" id="addGuestBtn">Add Guest</button>
+
+                    <div id="guestFieldsContainer" style="display: none;">
+                        <div class="guest-input-row" id="guest1Group">
+                            <div style="flex: 1;">
+                                <label for="guest1">Guest 1 Name:</label>
+                                <input 
+                                    type="text" 
+                                    id="guest1" 
+                                    name="guest1" 
+                                    placeholder="Enter guest name" 
+                                >
+                            </div>
+                            <button type="button" class="remove-single-guest-btn" id="removeGuest1Btn">✕</button>
+                        </div>
+
+                        <div class="guest-input-row" id="guest2Group" style="display: none;">
+                            <div style="flex: 1;">
+                                <label for="guest2">Guest 2 Name:</label>
+                                <input 
+                                    type="text" 
+                                    id="guest2" 
+                                    name="guest2" 
+                                    placeholder="Enter guest name" 
+                                >
+                            </div>
+                            <button type="button" class="remove-single-guest-btn" id="removeGuest2Btn">✕</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Check In</button>
+                </form>
+            </div>
+
+            <div class="checkin-tree-container">
+                <h2>Current Check-In's</h2>
+                <ul class="tree-list" id="checkinTree">
+                    <li class="no-checkins">Loading check-ins...</li>
+                </ul>
+                <div class="refresh-info">Auto-refreshes every 30 seconds</div>
+            </div>
+        </div>
+        
+        <img src="{{ url_for('static', filename='Main Logo.png') }}" alt="Club Logo">
+    </div>
+
+    <script>
+        // Show/hide the "Other" text input based on checkbox state
+        document.getElementById('other').addEventListener('change', function() {
+            const otherActivityGroup = document.getElementById('otherActivityGroup');
+            if (this.checked) {
+                otherActivityGroup.style.display = 'block';
+            } else {
+                otherActivityGroup.style.display = 'none';
+                document.getElementById('otherActivity').value = '';
+            }
+        });
+
+        // Show/hide guest name inputs when "Add Guest" button is clicked
+        let guestCount = 0;
+        document.getElementById('addGuestBtn').addEventListener('click', function() {
+            const guestFieldsContainer = document.getElementById('guestFieldsContainer');
+            const guest1Group = document.getElementById('guest1Group');
+            const guest2Group = document.getElementById('guest2Group');
+            
+            if (guestCount === 0) {
+                guestFieldsContainer.style.display = 'block';
+                guest1Group.style.display = 'flex';
+                guestCount = 1;
+                this.textContent = 'Add Another Guest';
+            } else if (guestCount === 1) {
+                guest2Group.style.display = 'flex';
+                guestCount = 2;
+                this.style.display = 'none';
+            }
+        });
+
+        // Remove individual guest 1
+        document.getElementById('removeGuest1Btn').addEventListener('click', function() {
+            const guest1Group = document.getElementById('guest1Group');
+            const guest2Group = document.getElementById('guest2Group');
+            const guestFieldsContainer = document.getElementById('guestFieldsContainer');
+            const addGuestBtn = document.getElementById('addGuestBtn');
+            
+            document.getElementById('guest1').value = '';
+            
+            // If guest 2 exists, move it to guest 1
+            if (guestCount === 2) {
+                document.getElementById('guest1').value = document.getElementById('guest2').value;
+                document.getElementById('guest2').value = '';
+                guest2Group.style.display = 'none';
+                guestCount = 1;
+                addGuestBtn.textContent = 'Add Another Guest';
+                addGuestBtn.style.display = 'block';
+            } else {
+                // No guests left, hide everything
+                guest1Group.style.display = 'none';
+                guestFieldsContainer.style.display = 'none';
+                guestCount = 0;
+                addGuestBtn.textContent = 'Add Guest';
+                addGuestBtn.style.display = 'block';
+            }
+        });
+
+        // Remove individual guest 2
+        document.getElementById('removeGuest2Btn').addEventListener('click', function() {
+            const guest2Group = document.getElementById('guest2Group');
+            const addGuestBtn = document.getElementById('addGuestBtn');
+            
+            document.getElementById('guest2').value = '';
+            guest2Group.style.display = 'none';
+            guestCount = 1;
+            addGuestBtn.textContent = 'Add Another Guest';
+            addGuestBtn.style.display = 'block';
+        });
+
+        document.getElementById('checkInForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const memberNumber = document.getElementById('memberNumber').value;
+            const checkboxes = document.querySelectorAll('input[name="activities"]:checked');
+            let activities = Array.from(checkboxes).map(cb => cb.value);
+            
+            // If "Other" is checked, append the custom activity text
+            const otherCheckbox = document.getElementById('other');
+            const otherActivity = document.getElementById('otherActivity').value.trim();
+            
+            if (otherCheckbox.checked && otherActivity) {
+                activities = activities.map(act => 
+                    act === 'Other' ? `Other: ${otherActivity}` : act
+                );
+            }
+            
+            if (activities.length === 0) {
+                alert('Please select at least one activity.');
+                return;
+            }
+            
+            if (otherCheckbox.checked && !otherActivity) {
+                alert('Please specify what "Other" activity you are doing.');
+                return;
+            }
+
+            // Get guest names if provided
+            const guest1 = document.getElementById('guest1').value.trim();
+            const guest2 = document.getElementById('guest2').value.trim();
+            const guests = [];
+            if (guest1) guests.push(guest1);
+            if (guest2) guests.push(guest2);
+            
+            // Prepare data for submission
+            const formData = new FormData(this);
+            
+            // Submit to server
+            fetch('/kiosk/submit', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let message = `Check-in successful!\nMember: ${memberNumber}\nActivities: ${activities.join(', ')}`;
+                    if (guests.length > 0) {
+                        message += `\nGuests: ${guests.join(', ')}`;
+                    }
+                    alert(message);
+                    
+                    // Reset form
+                    this.reset();
+                    document.getElementById('guestFieldsContainer').style.display = 'none';
+                    document.getElementById('guest1Group').style.display = 'none';
+                    document.getElementById('guest2Group').style.display = 'none';
+                    document.getElementById('otherActivityGroup').style.display = 'none';
+                    document.getElementById('addGuestBtn').textContent = 'Add Guest';
+                    document.getElementById('addGuestBtn').style.display = 'block';
+                    guestCount = 0;
+                    
+                    // Reload check-ins
+                    loadCheckins();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to submit check-in'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting check-in. Please try again.');
+            });
+        });
+
+        // Function to format time
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+
+        // Function to fetch and display today's check-ins
+        function loadCheckins() {
+            fetch('/kiosk/today-checkins')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.checkins) {
+                        const treeList = document.getElementById('checkinTree');
+                        
+                        if (data.checkins.length === 0) {
+                            treeList.innerHTML = '<li class="no-checkins">No members currently checked in</li>';
+                        } else {
+                            treeList.innerHTML = data.checkins.map(checkin => {
+                                const activities = checkin.activities ? checkin.activities.split(', ') : [];
+                                const guests = [];
+                                if (checkin.guest1_name) guests.push(checkin.guest1_name);
+                                if (checkin.guest2_name) guests.push(checkin.guest2_name);
+                                
+                                return `
+                                    <li class="tree-item">
+                                        <div class="member-info">
+                                            <span class="member-number">Member #${checkin.member_number}</span>
+                                            <div>
+                                                <span class="check-in-time">${formatTime(checkin.check_in_time)}</span>
+                                                <button class="signout-btn" onclick="signOut(${checkin.id})">Sign Out</button>
+                                            </div>
+                                        </div>
+                                        <div class="activities-tags">
+                                            ${activities.map(activity => `<span class="activity-tag">${activity}</span>`).join('')}
+                                            ${guests.map(guest => `<span class="guest-tag">Guest: ${guest}</span>`).join('')}
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading check-ins:', error);
+                });
+        }
+
+        // Function to handle sign-out
+        function signOut(checkinId) {
+            if (confirm('Are you sure you want to sign out?')) {
+                fetch(`/kiosk/signout/${checkinId}`, {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the check-ins list immediately
+                        loadCheckins();
+                    } else {
+                        alert('Error signing out: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error signing out. Please try again.');
+                });
+            }
+        }
+
+        // Load check-ins on page load
+        loadCheckins();
+
+        // Refresh check-ins every 30 seconds
+        setInterval(loadCheckins, 30000);
+    </script>
+</body>
+</html>
