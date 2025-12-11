@@ -233,9 +233,7 @@
                     <th onclick="sortTable(2)" id="th2">First Name</th>
                     <th onclick="sortTable(3)" id="th3">Last Name</th>
                     <th onclick="sortTable(4)" id="th4">Primary Email</th>
-                    <th onclick="sortTable(5)" id="th5">Secondary Email</th>
-                    <th onclick="sortTable(6)" id="th6">Primary Phone</th>
-                    <th onclick="sortTable(7)" id="th7">Secondary Phone</th>
+                    <th onclick="sortTable(5)" id="th5">Primary Phone</th>
                     <th>Actions</th>
                 </tr>
                 {% for member in members %}
@@ -248,16 +246,14 @@
                         <td>{{ member['first_name'] }}</td>
                         <td>{{ member['last_name'] }}</td>
                         <td>{{ member['email'] }}</td>
-                        <td>{{ member['email2'] }}</td>
                         <td style="min-width:130px;">{{ member['phone'] }}</td>
-                        <td style="min-width:130px;">{{ member['phone2'] }}</td>
-                        <td>
-                            <a href="{{ url_for('member_details', member_id=member['id']) }}" class="action-btn" style="display:inline-block; width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; text-decoration:none; font-size:1em;">✏️ Edit</a>
+                        <td style="white-space:nowrap;">
+                            <a href="{{ url_for('member_details', member_id=member['id']) }}" class="action-btn" style="display:inline-block; width:80px; padding:2px 0; margin-right:6px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; text-decoration:none; font-size:0.9em;">✏️ Edit</a>
                             <form action="{{ url_for('member_report', member_id=member['id']) }}" method="get" style="display:inline; margin-bottom:4px;">
-                                <button type="submit" class="action-btn" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; font-size:1em;">📄 Report</button>
+                                <button type="submit" class="action-btn" style="width:80px; padding:2px 0; margin-right:6px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; font-size:0.9em;">📄 Report</button>
                             </form>
                             <form action="{{ url_for('delete_member', member_id=member['id']) }}" method="post" style="display:inline;">
-                                <button type="submit" class="action-btn" onclick="return confirm('Are you sure you want to move this member to the recycle bin?')" style="width:120px; padding:2px 0; margin-right:10px; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; text-align:center; font-size:1em;">🗑️ Delete</button>
+                                <button type="submit" class="action-btn" onclick="return confirm('Are you sure you want to move this member to the recycle bin?')" style="width:80px; padding:2px 0; margin-right:6px; border-radius:6px; border:1px solid #c00; background:#ffeaea; color:#c00; cursor:pointer; text-align:center; font-size:0.9em;">🗑️ Delete</button>
                             </form>
                             <!-- Only one Delete button remains, styled to match other action buttons. -->
                         </td>
