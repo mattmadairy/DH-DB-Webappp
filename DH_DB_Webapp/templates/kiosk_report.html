@@ -359,8 +359,8 @@
                                     <em style="color:#999;">Unknown</em>
                                 {% endif %}
                             </td>
-                            <td>{{ checkin.check_in_time }}</td>
-                            <td>{{ checkin.sign_out_time or 'Still checked in' }}</td>
+                            <td>{{ checkin.check_in_time | format_datetime }}</td>
+                            <td>{{ checkin.sign_out_time | format_datetime if checkin.sign_out_time else 'Still checked in' }}</td>
                             <td>
                                 {% if checkin.activities %}
                                     {% for activity in checkin.activities.split(', ') %}

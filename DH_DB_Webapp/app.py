@@ -112,6 +112,20 @@ def format_mmddyyyy(value):
 
 app.jinja_env.filters['format_mmddyyyy'] = format_mmddyyyy
 
+# Jinja filter to format datetime as mm-dd-yyyy   hh:mm (24-hour)
+def format_datetime(value):
+    if not value:
+        return ''
+    try:
+        dt = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        date_part = dt.strftime('%m-%d-%Y')
+        time_part = dt.strftime('%H:%M')
+        return date_part + '   ' + time_part
+    except Exception:
+        return value
+
+app.jinja_env.filters['format_datetime'] = format_datetime
+
 def get_member_stats():
 	"""Calculate member statistics for sidebar display"""
 	all_members = database.get_all_members()
