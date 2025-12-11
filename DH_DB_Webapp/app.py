@@ -291,8 +291,13 @@ def reset_user_password(user_id):
 	# Get the target user to check their role
 	target_user = database.get_user_by_id(user_id)
 	if target_user and target_user['role'] == 'BDFL':
+		# Only BDFL can reset their own password or another BDFL's password
 		if not current_user.is_bdfl():
 			flash('Access denied. Cannot reset BDFL user password.', 'error')
+			return redirect(url_for('admin_users'))
+		# If current user is BDFL, they can only reset their own BDFL password
+		if current_user.is_bdfl() and target_user['id'] != current_user.id:
+			flash('Access denied. Cannot reset another BDFL user password.', 'error')
 			return redirect(url_for('admin_users'))
 	
 	# Reset password to "Changem3" and set must_change_password flag
