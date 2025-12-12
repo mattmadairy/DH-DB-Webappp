@@ -1090,90 +1090,99 @@ def edit_section(member_id):
 	if not member:
 		return "Member not found", 404
 	if request.method == 'POST':
-		# Update only the requested section
-		if section == 'personal':
-			database.update_member_section(member_id, {
-				'first_name': request.form['first_name'],
-				'middle_name': request.form['middle_name'],
-				'last_name': request.form['last_name'],
-				'suffix': request.form['suffix'],
-				'nickname': request.form['nickname'],
-				'dob': request.form['dob'],
-			})
-		elif section == 'membership':
-			database.update_member_section(member_id, {
-				'badge_number': request.form['badge_number'],
-				'membership_type': request.form['membership_type'],
-				'join_date': request.form['join_date'],
-				'sponsor': request.form['sponsor'],
-				'card_internal': request.form['card_internal'],
-				'card_external': request.form['card_external'],
-			})
-			# Update position in roles table
-			database.update_member_position(
-				member_id,
-				request.form['position'],
-				request.form.get('term_start', None),
-				request.form.get('term_end', None)
-			)
-		elif section == 'contact':
-			database.update_member_section(member_id, {
-				'email': request.form['email'],
-				'email2': request.form['email2'],
-				'phone': request.form['phone'],
-				'phone2': request.form['phone2'],
-			})
-		elif section == 'address':
-			database.update_member_section(member_id, {
-				'address': request.form['address'],
-				'city': request.form['city'],
-				'state': request.form['state'],
-				'zip': request.form['zip'],
-			})
-		elif section == 'dues':
-			database.add_due(
-				member_id,
-				request.form['payment_date'],
-				request.form['amount'],
-				request.form['year'],
-				request.form.get('method', ''),
-				request.form.get('notes', '')
-			)
-		elif section == 'committees':
-			import logging
-			logging.basicConfig(level=logging.DEBUG)
-			# Get master list of all possible committee columns from the committees table
-			import sqlite3
-			conn = sqlite3.connect(database.DB_NAME)
-			c = conn.cursor()
-			c.execute("PRAGMA table_info(committees)")
-			committee_names = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
-			conn.close()
-			updates = {}
-			chair_list = []
-			for cname in committee_names:
-				form_key = f'committee_{cname}'
-				value = request.form.get(form_key)
-				updates[cname] = 1 if value == '1' else 0
-				logging.debug(f"Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
-				# Check if chair checkbox is selected
-				chair_key = f'chair_{cname}'
-				chair_value = request.form.get(chair_key)
-				if chair_value == '1':
-					chair_list.append(f"{cname} Chair")
-					logging.debug(f"Chair selected for: {cname}")
-			# Build notes string with all chair designations
-			updates['notes'] = ', '.join(chair_list) if chair_list else ''
-			logging.debug(f"Updates dict: {updates}")
-			logging.debug(f"Notes field: {updates['notes']}")
-			try:
+		try:
+			# Update only the requested section
+			if section == 'personal':
+				database.update_member_section(member_id, {
+					'first_name': request.form['first_name'],
+					'middle_name': request.form['middle_name'],
+					'last_name': request.form['last_name'],
+					'suffix': request.form['suffix'],
+					'nickname': request.form['nickname'],
+					'dob': request.form['dob'],
+				})
+			elif section == 'membership':
+				database.update_member_section(member_id, {
+					'badge_number': request.form['badge_number'],
+					'membership_type': request.form['membership_type'],
+					'join_date': request.form['join_date'],
+					'sponsor': request.form['sponsor'],
+					'card_internal': request.form['card_internal'],
+					'card_external': request.form['card_external'],
+				})
+				# Update position in roles table
+				database.update_member_position(
+					member_id,
+					request.form['position'],
+					request.form.get('term_start', None),
+					request.form.get('term_end', None)
+				)
+			elif section == 'contact':
+				database.update_member_section(member_id, {
+					'email': request.form['email'],
+					'email2': request.form['email2'],
+					'phone': request.form['phone'],
+					'phone2': request.form['phone2'],
+				})
+			elif section == 'address':
+				database.update_member_section(member_id, {
+					'address': request.form['address'],
+					'city': request.form['city'],
+					'state': request.form['state'],
+					'zip': request.form['zip'],
+				})
+			elif section == 'dues':
+				# Validate required fields
+				payment_date = request.form.get('payment_date')
+				amount = request.form.get('amount')
+				year = request.form.get('year')
+				
+				if not payment_date or not amount or not year:
+					raise ValueError(f"Missing required fields: payment_date={payment_date}, amount={amount}, year={year}")
+				
+				database.add_due(
+					member_id,
+					payment_date,
+					amount,
+					year,
+					request.form.get('method', ''),
+					request.form.get('notes', '')
+				)
+			elif section == 'committees':
+				import logging
+				logging.basicConfig(level=logging.DEBUG)
+				# Get master list of all possible committee columns from the committees table
+				import sqlite3
+				conn = sqlite3.connect(database.DB_NAME)
+				c = conn.cursor()
+				c.execute("PRAGMA table_info(committees)")
+				committee_names = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
+				conn.close()
+				updates = {}
+				chair_list = []
+				for cname in committee_names:
+					form_key = f'committee_{cname}'
+					value = request.form.get(form_key)
+					updates[cname] = 1 if value == '1' else 0
+					logging.debug(f"Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
+					# Check if chair checkbox is selected
+					chair_key = f'chair_{cname}'
+					chair_value = request.form.get(chair_key)
+					if chair_value == '1':
+						chair_list.append(f"{cname} Chair")
+						logging.debug(f"Chair selected for: {cname}")
+				# Build notes string with all chair designations
+				updates['notes'] = ', '.join(chair_list) if chair_list else ''
+				logging.debug(f"Updates dict: {updates}")
+				logging.debug(f"Notes field: {updates['notes']}")
 				database.update_member_committees(member_id, updates)
 				logging.debug(f"Successfully updated committees for member {member_id}")
-			except Exception as e:
-				logging.error(f"Error updating committees for member {member_id}: {e}")
-				import traceback
-				logging.error(traceback.format_exc())
-		return ('', 204)  # AJAX expects empty response
+			return ('', 204)  # AJAX expects empty response
+		except Exception as e:
+			print(f"Error updating section {section} for member {member_id}: {e}")
+			import traceback
+			traceback.print_exc()
+			return jsonify({'error': str(e)}), 400
 	# For GET, just show a message (should not be used with popup)
 	return f"Edit {section} for member {member_id}"  # Replace with render_template as needed
 
@@ -1433,6 +1442,15 @@ def email_list():
 	
 	member_stats = get_member_stats()
 	return render_template('email_list.html', emails=emails, member_type=member_type, count=len(emails), member_stats=member_stats)
+
+# ========== Favicon Route ==========
+
+@app.route('/favicon.ico')
+def favicon():
+	"""Serve the favicon"""
+	from flask import send_from_directory
+	return send_from_directory(os.path.join(app.root_path, 'static'),
+							   'Club_logo.ico', mimetype='image/vnd.microsoft.icon')
 
 # ========== Kiosk Routes ==========
 
