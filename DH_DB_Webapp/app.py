@@ -154,7 +154,7 @@ def set_security_headers(response):
 	response.headers['X-Frame-Options'] = 'DENY'
 	response.headers['X-XSS-Protection'] = '1; mode=block'
 	response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; connect-src https://api.stripe.com"
 	return response
 
 # Authentication routes
@@ -254,7 +254,6 @@ def login():
 					success=True
 				)
 				
-				flash('Login successful!', 'info')
 				next_page = request.args.get('next')
 				return redirect(next_page) if next_page else redirect(url_for('index'))
 			else:
@@ -681,7 +680,11 @@ def admin_users():
 	# Get all users
 	all_users = database.get_all_users()
 	member_stats = get_member_stats()
-	return render_template('admin_users.html', users=all_users, active_page='admin_users', member_stats=member_stats)
+	
+	# Get pending applications
+	applications = database.get_all_applications(status='pending')
+	
+	return render_template('admin_users.html', users=all_users, applications=applications, active_page='admin_users', member_stats=member_stats)
 
 # Before request handler to check for password change requirement
 @app.before_request
@@ -1087,6 +1090,7 @@ def add_member():
 
 # Edit Section route
 @app.route('/edit_section/<int:member_id>', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required
 def edit_section(member_id):
 	section = request.args.get('section')
@@ -1588,6 +1592,95 @@ def kiosk_report():
 						   start_date=start_date,
 						   end_date=end_date,
 						   active_page='kiosk_report')
+
+# Membership Application route
+@app.route('/membership_application', methods=['GET', 'POST'])
+@csrf.exempt
+def membership_application():
+	if request.method == 'POST':
+		data = (
+			request.form['first_name'],
+			request.form.get('middle_name', ''),
+			request.form['last_name'],
+			request.form.get('suffix', ''),
+			request.form.get('nickname', ''),
+			request.form['sex'],
+			request.form['dob'],
+			request.form['email'],
+			request.form.get('email2', ''),
+			request.form['phone'],
+			request.form.get('phone2', ''),
+			request.form['address'],
+			request.form['city'],
+			request.form['state'],
+			request.form['zip'],
+			request.form.get('sponsor', ''),
+			request.form.get('hql', ''),
+			request.form.get('carry_permit', ''),
+			request.form.get('hunters_education', ''),
+			request.form.get('felony_conviction', ''),
+			request.form.get('felony_details', ''),
+			request.form.get('inactive_docket', ''),
+			request.form.get('inactive_docket_details', ''),
+			request.form.get('restraining_order', ''),
+			request.form.get('restraining_order_details', ''),
+			request.form.get('firearm_legal', ''),
+			request.form.get('firearm_legal_details', ''),
+			'on' if request.form.get('payment_confirmation') else '',
+			'on' if request.form.get('waiver_agreement') else ''
+		)
+		database.add_application(data)
+		return render_template('membership_application.html', success=True)
+	return render_template('membership_application.html', success=False)
+
+@app.route('/admin/application/<int:app_id>')
+@login_required
+def view_application(app_id):
+	"""View application details"""
+	if not current_user.is_admin_or_bdfl():
+		return jsonify({'error': 'Access denied'}), 403
+	
+	app = database.get_application_by_id(app_id)
+	if not app:
+		return jsonify({'error': 'Application not found'}), 404
+	
+	return jsonify(dict(app))
+
+@app.route('/admin/application/<int:app_id>/approve', methods=['POST'])
+@login_required
+def approve_application(app_id):
+	"""Approve an application and create member"""
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can approve applications.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	badge_number = request.form.get('badge_number')
+	if not badge_number:
+		flash('Badge number is required to approve application.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	success = database.approve_application(app_id, current_user.id, badge_number)
+	if success:
+		flash(f'Application approved! Member created with badge number {badge_number}.', 'info')
+	else:
+		flash('Failed to approve application.', 'error')
+	return redirect(url_for('admin_users'))
+
+@app.route('/admin/application/<int:app_id>/reject', methods=['POST'])
+@login_required
+def reject_application(app_id):
+	"""Reject an application"""
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can reject applications.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	notes = request.form.get('notes', '')
+	success = database.reject_application(app_id, current_user.id, notes)
+	if success:
+		flash('Application rejected.', 'info')
+	else:
+		flash('Failed to reject application.', 'error')
+	return redirect(url_for('admin_users'))
 
 if __name__ == "__main__":
     import sys

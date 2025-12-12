@@ -311,6 +311,48 @@ def init_database():
 		)
 	""")
 	
+	# Create applications table for membership applications
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS applications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			first_name TEXT NOT NULL,
+			middle_name TEXT,
+			last_name TEXT NOT NULL,
+			suffix TEXT,
+			nickname TEXT,
+			sex TEXT,
+			dob TEXT,
+			email TEXT,
+			email2 TEXT,
+			phone TEXT,
+			phone2 TEXT,
+			address TEXT,
+			city TEXT,
+			state TEXT,
+			zip TEXT,
+			sponsor TEXT,
+			hql TEXT,
+			carry_permit TEXT,
+			hunters_education TEXT,
+			felony_conviction TEXT,
+			felony_details TEXT,
+			inactive_docket TEXT,
+			inactive_docket_details TEXT,
+			restraining_order TEXT,
+			restraining_order_details TEXT,
+			firearm_legal TEXT,
+			firearm_legal_details TEXT,
+			payment_confirmed TEXT,
+			waiver_agreed TEXT,
+			status TEXT DEFAULT 'pending',
+			submitted_at TEXT NOT NULL,
+			reviewed_at TEXT,
+			reviewed_by INTEGER,
+			notes TEXT,
+			FOREIGN KEY (reviewed_by) REFERENCES users(id)
+		)
+	""")
+	
 	conn.commit()
 	conn.close()
 
@@ -837,3 +879,108 @@ def get_checkins_by_date_range(start_date, end_date):
     rows = c.fetchall()
     conn.close()
     return rows
+
+def add_application(data):
+	"""Add a new membership application"""
+	from datetime import datetime
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("""
+		INSERT INTO applications (
+			first_name, middle_name, last_name, suffix, nickname, sex, dob,
+			email, email2, phone, phone2, address, city, state, zip,
+			sponsor, hql, carry_permit, hunters_education,
+			felony_conviction, felony_details, inactive_docket, inactive_docket_details,
+			restraining_order, restraining_order_details, firearm_legal, firearm_legal_details,
+			payment_confirmed, waiver_agreed,
+			status, submitted_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+	""", data + (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
+	conn.commit()
+	app_id = c.lastrowid
+	conn.close()
+	return app_id
+
+def get_all_applications(status='pending'):
+	"""Get all applications, optionally filtered by status"""
+	conn = get_connection()
+	c = conn.cursor()
+	if status:
+		c.execute("SELECT * FROM applications WHERE status = ? ORDER BY submitted_at DESC", (status,))
+	else:
+		c.execute("SELECT * FROM applications ORDER BY submitted_at DESC")
+	rows = c.fetchall()
+	conn.close()
+	return rows
+
+def get_application_by_id(app_id):
+	"""Get a specific application by ID"""
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT * FROM applications WHERE id = ?", (app_id,))
+	row = c.fetchone()
+	conn.close()
+	return row
+
+def approve_application(app_id, user_id, badge_number):
+	"""Approve an application and create a member record"""
+	from datetime import datetime
+	conn = get_connection()
+	c = conn.cursor()
+	
+	# Get application data
+	c.execute("SELECT * FROM applications WHERE id = ?", (app_id,))
+	app = c.fetchone()
+	if not app:
+		conn.close()
+		return False
+	
+	# Create member record
+	member_data = (
+		badge_number,
+		'Prospective',
+		app['first_name'],
+		app['middle_name'],
+		app['last_name'],
+		app['suffix'],
+		app['nickname'],
+		app['dob'],
+		app['email'],
+		app['email2'],
+		app['phone'],
+		app['phone2'],
+		app['address'],
+		app['city'],
+		app['state'],
+		app['zip'],
+		datetime.now().strftime('%Y-%m-%d'),
+		app['sponsor'],
+		'',  # card_internal
+		''   # card_external
+	)
+	add_member(member_data)
+	
+	# Update application status
+	c.execute("""
+		UPDATE applications 
+		SET status = 'approved', reviewed_at = ?, reviewed_by = ?
+		WHERE id = ?
+	""", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_id, app_id))
+	conn.commit()
+	conn.close()
+	return True
+
+def reject_application(app_id, user_id, notes=''):
+	"""Reject an application"""
+	from datetime import datetime
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("""
+		UPDATE applications 
+		SET status = 'rejected', reviewed_at = ?, reviewed_by = ?, notes = ?
+		WHERE id = ?
+	""", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_id, notes, app_id))
+	conn.commit()
+	affected = c.rowcount
+	conn.close()
+	return affected > 0

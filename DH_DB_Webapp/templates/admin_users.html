@@ -302,6 +302,52 @@
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Applicants Section -->
+            <div class="user-table" style="margin-top:30px; margin-bottom:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h2 style="color:#384839; margin:0;">📋 Applicants ({{ applications|length }})</h2>
+                </div>
+                {% if applications %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>City, State</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                        <tr>
+                            <td><strong>{{ app.first_name }} {{ app.middle_name }} {{ app.last_name }} {{ app.suffix }}</strong></td>
+                            <td>{{ app.email }}</td>
+                            <td>{{ app.phone }}</td>
+                            <td>{{ app.city }}, {{ app.state }}</td>
+                            <td>{{ app.submitted_at[5:7] }}-{{ app.submitted_at[8:10] }}-{{ app.submitted_at[:4] }}</td>
+                            <td>
+                                <button onclick="viewApplication({{ app.id }})" class="btn-action btn-edit">View</button>
+                                <button onclick="approveApplication({{ app.id }})" class="btn-action btn-enable">Approve</button>
+                                <button onclick="rejectApplication({{ app.id }})" class="btn-action btn-disable">Reject</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div style="padding:20px; text-align:center; color:#666;">
+                    <p>No pending applications at this time.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Links Section -->
+            <div style="text-align:center; margin-top:30px;">
+                <a href="{{ url_for('membership_application') }}" target="_blank" style="display:inline-block; padding:12px 24px; background-color:#5a7a5c; color:white; text-decoration:none; border-radius:6px; font-size:1em; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:background-color 0.3s;">📝 Membership Application</a>
+            </div>
         </div>
     </div>
     
@@ -345,6 +391,22 @@
                     <button type="submit" class="btn-add">Add User</button>
                 </div>
             </form>
+        </div>
+    </div>
+    
+    <!-- View Application Modal -->
+    <div id="viewApplicationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background-color:#f5f5f5; border-radius:10px; padding:30px; width:700px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="color:#384839; margin:0;">Application Details</h2>
+                <button onclick="closeViewApplicationModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#384839;">&times;</button>
+            </div>
+            <div id="applicationDetails" style="color:#333; line-height:1.8;">
+                <!-- Application details will be inserted here -->
+            </div>
+            <div class="button-group" style="margin-top:20px;">
+                <button type="button" onclick="closeViewApplicationModal()" class="btn-cancel">Close</button>
+            </div>
         </div>
     </div>
     
@@ -403,6 +465,14 @@
             document.getElementById('addUserModal').style.display = 'none';
         }
         
+        function openViewApplicationModal() {
+            document.getElementById('viewApplicationModal').style.display = 'flex';
+        }
+        
+        function closeViewApplicationModal() {
+            document.getElementById('viewApplicationModal').style.display = 'none';
+        }
+        
         function openEditUserModal() {
             document.getElementById('editUserModal').style.display = 'flex';
         }
@@ -415,6 +485,12 @@
         document.getElementById('addUserModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeAddUserModal();
+            }
+        });
+        
+        document.getElementById('viewApplicationModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeViewApplicationModal();
             }
         });
         
@@ -473,6 +549,128 @@
                 csrfInput.name = 'csrf_token';
                 csrfInput.value = '{{ csrf_token() }}';
                 form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function viewApplication(appId) {
+            fetch('/admin/application/' + appId)
+                .then(response => response.json())
+                .then(app => {
+                    let html = `
+                        <div style="display:grid; grid-template-columns:150px 1fr; gap:10px; margin-bottom:20px;">
+                            <strong>Name:</strong>
+                            <span>${app.first_name} ${app.middle_name || ''} ${app.last_name} ${app.suffix || ''}</span>
+                            
+                            ${app.nickname ? `<strong>Nickname:</strong><span>${app.nickname}</span>` : ''}
+                            
+                            <strong>Date of Birth:</strong>
+                            <span>${app.dob}</span>
+                            
+                            <strong>Primary Email:</strong>
+                            <span>${app.email}</span>
+                            
+                            ${app.email2 ? `<strong>Secondary Email:</strong><span>${app.email2}</span>` : ''}
+                            
+                            <strong>Primary Phone:</strong>
+                            <span>${app.phone}</span>
+                            
+                            ${app.phone2 ? `<strong>Secondary Phone:</strong><span>${app.phone2}</span>` : ''}
+                            
+                            <strong>Address:</strong>
+                            <span>${app.address}<br>${app.city}, ${app.state} ${app.zip}</span>
+                            
+                            <strong>Sponsor:</strong>
+                            <span>${app.sponsor || 'None'}</span>
+                        </div>
+                        
+                        <h3 style="color:#384839; margin-top:20px; margin-bottom:10px; border-bottom:2px solid #384839; padding-bottom:5px;">Supplemental Questions</h3>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px;">
+                            <div><strong>MD HQL:</strong> ${app.hql || 'N/A'}</div>
+                            <div><strong>Carry Permit:</strong> ${app.carry_permit || 'N/A'}</div>
+                            <div><strong>Hunter's Education:</strong> ${app.hunters_education || 'N/A'}</div>
+                        </div>
+                        
+                        <h3 style="color:#384839; margin-top:20px; margin-bottom:10px; border-bottom:2px solid #384839; padding-bottom:5px;">Firearms Eligibility</h3>
+                        <div style="margin-bottom:15px;">
+                            <strong>Felony Conviction:</strong> ${app.felony_conviction || 'N/A'}
+                            ${app.felony_details ? '<div style="margin-left:20px; color:#666; font-style:italic;">' + app.felony_details + '</div>' : ''}
+                        </div>
+                        
+                        <div style="margin-bottom:15px;">
+                            <strong>Inactive Docket:</strong> ${app.inactive_docket || 'N/A'}
+                            ${app.inactive_docket_details ? '<div style="margin-left:20px; color:#666; font-style:italic;">' + app.inactive_docket_details + '</div>' : ''}
+                        </div>
+                        
+                        <div style="margin-bottom:15px;">
+                            <strong>Restraining Order/Domestic Abuse:</strong> ${app.restraining_order || 'N/A'}
+                            ${app.restraining_order_details ? '<div style="margin-left:20px; color:#666; font-style:italic;">' + app.restraining_order_details + '</div>' : ''}
+                        </div>
+                        
+                        <div style="margin-bottom:15px;">
+                            <strong>Can Legally Own Firearm:</strong> ${app.firearm_legal || 'N/A'}
+                            ${app.firearm_legal_details ? '<div style="margin-left:20px; color:#666; font-style:italic;">' + app.firearm_legal_details + '</div>' : ''}
+                        </div>
+                        
+                        <div style="margin-top:20px; padding-top:15px; border-top:1px solid #ccc; color:#666; font-size:0.9em;">
+                            <strong>Submitted:</strong> ${app.submitted_at}
+                        </div>
+                    `;
+                    
+                    document.getElementById('applicationDetails').innerHTML = html;
+                    openViewApplicationModal();
+                })
+                .catch(error => {
+                    alert('Error loading application');
+                    console.error(error);
+                });
+        }
+        
+        function approveApplication(appId) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/admin/application/' + appId + '/approve';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            form.appendChild(csrfInput);
+            
+            const badgeInput = document.createElement('input');
+            badgeInput.type = 'hidden';
+            badgeInput.name = 'badge_number';
+            badgeInput.value = '0';
+            form.appendChild(badgeInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        function rejectApplication(appId) {
+            const notes = prompt('Enter rejection reason (optional):');
+            if (notes === null) return;  // User clicked cancel
+            
+            if (confirm('Are you sure you want to reject this application?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/application/' + appId + '/reject';
+                
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
+                
+                if (notes) {
+                    const notesInput = document.createElement('input');
+                    notesInput.type = 'hidden';
+                    notesInput.name = 'notes';
+                    notesInput.value = notes;
+                    form.appendChild(notesInput);
+                }
+                
                 document.body.appendChild(form);
                 form.submit();
             }
