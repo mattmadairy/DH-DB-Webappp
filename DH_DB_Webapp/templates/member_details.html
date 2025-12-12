@@ -386,6 +386,7 @@ function generateEmailList() {
 					   {% endif %}
 				   </td>
 			   </tr>
+			   <tr><td style="border:2px solid #222;"><b>Notes:</b></td><td style="border:2px solid #222; white-space:pre-wrap; word-wrap:break-word;">{{ member['member_notes'] if member['member_notes'] else '' }}</td></tr>
 		   </table>
 		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
 			   <button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
@@ -785,6 +786,10 @@ function submitCommittees() {
 				</select>
 				<label for="term_start">Term Start:</label><input type="date" id="term_start" name="term_start" value="{{ position['term_start'] if position and position['term_start'] else '' }}">
 				<label for="term_end">Term End:</label><input type="date" id="term_end" name="term_end" value="{{ position['term_end'] if position and position['term_end'] else '' }}">
+			</div>
+			<div style="margin-top:12px;">
+				<label for="member_notes" style="display:block; margin-bottom:5px; font-weight:bold;">Notes:</label>
+				<textarea id="member_notes" name="member_notes" rows="5" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:Arial, sans-serif; resize:vertical;">{{ member['member_notes'] if member['member_notes'] else '' }}</textarea>
 			</div>
 					<div style="margin-top:18px; text-align:center;">
 						<button type="button" onclick="submitSection('membership')" style="margin-right:12px;">Save</button>

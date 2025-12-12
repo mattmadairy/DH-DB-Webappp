@@ -1113,6 +1113,7 @@ def edit_section(member_id):
 					'sponsor': request.form['sponsor'],
 					'card_internal': request.form['card_internal'],
 					'card_external': request.form['card_external'],
+					'member_notes': request.form['member_notes'],
 				})
 				# Update position in roles table
 				database.update_member_position(

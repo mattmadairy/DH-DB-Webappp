@@ -177,6 +177,7 @@ def init_database():
 			sponsor TEXT,
 			card_internal TEXT,
 			card_external TEXT,
+			member_notes TEXT,
 			deleted INTEGER DEFAULT 0,
 			deleted_on TEXT
 		)
