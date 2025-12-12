@@ -776,12 +776,29 @@ def get_today_checkins():
     """Get today's check-ins that haven't been signed out"""
     conn = get_connection()
     c = conn.cursor()
+    # Get today's date in YYYY-MM-DD format from Python to ensure consistency
+    import datetime
+    today = datetime.date.today().strftime('%Y-%m-%d')
     c.execute("""
         SELECT * FROM check_ins 
-        WHERE DATE(check_in_time) = DATE('now', 'localtime')
+        WHERE DATE(check_in_time) = ?
         AND (sign_out_time IS NULL OR sign_out_time = '')
         ORDER BY check_in_time DESC
-    """)
+    """, (today,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_today_checkins_by_date(date_str):
+    """Get check-ins for a specific date that haven't been signed out"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM check_ins 
+        WHERE DATE(check_in_time) = ?
+        AND (sign_out_time IS NULL OR sign_out_time = '')
+        ORDER BY check_in_time DESC
+    """, (date_str,))
     rows = c.fetchall()
     conn.close()
     return rows

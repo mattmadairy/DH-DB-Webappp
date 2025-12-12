@@ -1533,7 +1533,9 @@ def kiosk_submit():
 def kiosk_today_checkins():
 	"""Get today's check-ins for the kiosk display"""
 	try:
-		records = database.get_today_checkins()
+		# Get today's date in the configured timezone
+		today = datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d')
+		records = database.get_today_checkins_by_date(today)
 		checkins = [dict(row) for row in records]
 		return jsonify({'success': True, 'checkins': checkins})
 	except Exception as e:
