@@ -119,6 +119,7 @@
         .content-box h2 {
             color: #384839;
             margin-top: 0;
+            text-align: center;
         }
 
         .filters {
@@ -244,6 +245,22 @@
             color: #666;
             margin-top: 5px;
         }
+
+        /* Print styles */
+        @media print {
+            .side-menu {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            button {
+                display: none;
+            }
+            .filters {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -313,6 +330,7 @@
                             </div>
                             <button type="submit" class="filter-btn">Filter</button>
                             <a href="{{ url_for('kiosk_report') }}" class="filter-btn" style="display: inline-block; text-decoration: none; padding: 9px 20px;">Clear</a>
+                            <a href="javascript:window.print()" class="filter-btn" style="display: inline-block; text-decoration: none; padding: 9px 20px;">🖨️ Print</a>
                         </div>
                     </form>
                 </div>

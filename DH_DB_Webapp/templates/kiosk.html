@@ -205,6 +205,36 @@
             background: #ff5252;
         }
 
+        .guest-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .guest-list-item span {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .guest-list-item button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .guest-list-item button:hover {
+            background: #ff5252;
+        }
+
         .submit-btn {
             width: 100%;
             padding: 15px;
@@ -388,6 +418,120 @@
         .signout-btn:active {
             transform: scale(0.95);
         }
+
+        /* Waiver Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 700px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .waiver-text {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .agreement-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+        }
+
+        .agreement-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .agreement-checkbox label {
+            font-weight: 600;
+            color: #856404;
+            cursor: pointer;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-accept {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .btn-accept:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        .btn-accept:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-cancel {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -456,36 +600,11 @@
                     </div>
 
                     <button type="button" class="guest-btn" id="addGuestBtn">Add Guest</button>
+                    <div id="guestList" style="margin-top: 15px;"></div>
+                    <input type="hidden" id="guest1" name="guest1" value="">
+                    <input type="hidden" id="guest2" name="guest2" value="">
 
-                    <div id="guestFieldsContainer" style="display: none;">
-                        <div class="guest-input-row" id="guest1Group">
-                            <div style="flex: 1;">
-                                <label for="guest1">Guest 1 Name:</label>
-                                <input 
-                                    type="text" 
-                                    id="guest1" 
-                                    name="guest1" 
-                                    placeholder="Enter guest name" 
-                                >
-                            </div>
-                            <button type="button" class="remove-single-guest-btn" id="removeGuest1Btn">✕</button>
-                        </div>
-
-                        <div class="guest-input-row" id="guest2Group" style="display: none;">
-                            <div style="flex: 1;">
-                                <label for="guest2">Guest 2 Name:</label>
-                                <input 
-                                    type="text" 
-                                    id="guest2" 
-                                    name="guest2" 
-                                    placeholder="Enter guest name" 
-                                >
-                            </div>
-                            <button type="button" class="remove-single-guest-btn" id="removeGuest2Btn">✕</button>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="submit-btn">Check In</button>
+                    <button type="submit" class="submit-btn">Sign In</button>
                 </form>
             </div>
 
@@ -494,11 +613,61 @@
                 <ul class="tree-list" id="checkinTree">
                     <li class="no-checkins">Loading check-ins...</li>
                 </ul>
-                <div class="refresh-info">Auto-refreshes every 30 seconds</div>
+                <div class="refresh-info">Auto-refreshes every 30 minutes</div>
             </div>
         </div>
         
         <img src="{{ url_for('static', filename='Main Logo.png') }}" alt="Club Logo">
+    </div>
+
+    <!-- Member Waiver Modal -->
+    <div id="waiverModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Liability Waiver & Release</h2>
+                <p style="color: #666; font-size: 14px;">Please read and agree to continue</p>
+            </div>
+            <div class="waiver-text" id="waiverText">
+                <p>Loading waiver...</p>
+            </div>
+            <div class="agreement-checkbox">
+                <input type="checkbox" id="agreeCheckbox">
+                <label for="agreeCheckbox">I have read and agree to the terms and conditions above</label>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn btn-accept" id="acceptWaiverBtn" disabled>Accept & Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guest Waiver Modal -->
+    <div id="guestWaiverModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Guest Information & Waiver</h2>
+                <p style="color: #666; font-size: 14px;" id="guestModalSubtitle">Guest 1</p>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="guestNameInput">Guest Name:</label>
+                <input 
+                    type="text" 
+                    id="guestNameInput" 
+                    placeholder="Enter guest full name"
+                    style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px;"
+                >
+            </div>
+            <div class="waiver-text" id="guestWaiverText">
+                <p>Loading waiver...</p>
+            </div>
+            <div class="agreement-checkbox">
+                <input type="checkbox" id="guestAgreeCheckbox">
+                <label for="guestAgreeCheckbox">I have read and agree to the terms and conditions above</label>
+            </div>
+            <div class="modal-buttons">
+                <button type="button" class="modal-btn btn-cancel" id="cancelGuestBtn">Cancel</button>
+                <button type="button" class="modal-btn btn-accept" id="acceptGuestBtn" disabled>Add Guest</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -513,63 +682,156 @@
             }
         });
 
-        // Show/hide guest name inputs when "Add Guest" button is clicked
+        // Guest management
         let guestCount = 0;
-        document.getElementById('addGuestBtn').addEventListener('click', function() {
-            const guestFieldsContainer = document.getElementById('guestFieldsContainer');
-            const guest1Group = document.getElementById('guest1Group');
-            const guest2Group = document.getElementById('guest2Group');
-            
-            if (guestCount === 0) {
-                guestFieldsContainer.style.display = 'block';
-                guest1Group.style.display = 'flex';
-                guestCount = 1;
-                this.textContent = 'Add Another Guest';
-            } else if (guestCount === 1) {
-                guest2Group.style.display = 'flex';
-                guestCount = 2;
-                this.style.display = 'none';
-            }
-        });
+        let currentGuestNumber = 0;
+        const guests = { guest1: null, guest2: null };
 
-        // Remove individual guest 1
-        document.getElementById('removeGuest1Btn').addEventListener('click', function() {
-            const guest1Group = document.getElementById('guest1Group');
-            const guest2Group = document.getElementById('guest2Group');
-            const guestFieldsContainer = document.getElementById('guestFieldsContainer');
+        // Load waiver text for both modals
+        fetch('{{ url_for("static", filename="waiver.txt") }}')
+            .then(response => response.text())
+            .then(text => {
+                const formattedText = '<p>' + text.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>') + '</p>';
+                document.getElementById('waiverText').innerHTML = formattedText;
+                document.getElementById('guestWaiverText').innerHTML = formattedText;
+            })
+            .catch(error => {
+                console.error('Error loading waiver:', error);
+                document.getElementById('waiverText').innerHTML = '<p style="color: red;">Error loading waiver. Please contact staff.</p>';
+                document.getElementById('guestWaiverText').innerHTML = '<p style="color: red;">Error loading waiver. Please contact staff.</p>';
+            });
+
+        // Update guest list display
+        function updateGuestList() {
+            const guestListDiv = document.getElementById('guestList');
+            guestListDiv.innerHTML = '';
+            
+            if (guests.guest1) {
+                const item = document.createElement('div');
+                item.className = 'guest-list-item';
+                item.innerHTML = `
+                    <span>Guest 1: ${guests.guest1}</span>
+                    <button onclick="removeGuest(1)">Remove</button>
+                `;
+                guestListDiv.appendChild(item);
+            }
+            
+            if (guests.guest2) {
+                const item = document.createElement('div');
+                item.className = 'guest-list-item';
+                item.innerHTML = `
+                    <span>Guest 2: ${guests.guest2}</span>
+                    <button onclick="removeGuest(2)">Remove</button>
+                `;
+                guestListDiv.appendChild(item);
+            }
+            
+            // Update button text and visibility
             const addGuestBtn = document.getElementById('addGuestBtn');
-            
-            document.getElementById('guest1').value = '';
-            
-            // If guest 2 exists, move it to guest 1
-            if (guestCount === 2) {
-                document.getElementById('guest1').value = document.getElementById('guest2').value;
-                document.getElementById('guest2').value = '';
-                guest2Group.style.display = 'none';
-                guestCount = 1;
-                addGuestBtn.textContent = 'Add Another Guest';
-                addGuestBtn.style.display = 'block';
+            if (guestCount >= 2) {
+                addGuestBtn.style.display = 'none';
             } else {
-                // No guests left, hide everything
-                guest1Group.style.display = 'none';
-                guestFieldsContainer.style.display = 'none';
-                guestCount = 0;
-                addGuestBtn.textContent = 'Add Guest';
                 addGuestBtn.style.display = 'block';
+                addGuestBtn.textContent = guestCount === 0 ? 'Add Guest' : 'Add Another Guest';
+            }
+            
+            // Update hidden inputs
+            document.getElementById('guest1').value = guests.guest1 || '';
+            document.getElementById('guest2').value = guests.guest2 || '';
+        }
+
+        // Remove guest function
+        function removeGuest(guestNum) {
+            if (guestNum === 1) {
+                guests.guest1 = null;
+                // If guest 2 exists, move it to guest 1
+                if (guests.guest2) {
+                    guests.guest1 = guests.guest2;
+                    guests.guest2 = null;
+                } else {
+                    guestCount--;
+                }
+            } else if (guestNum === 2) {
+                guests.guest2 = null;
+                guestCount--;
+            }
+            updateGuestList();
+        }
+
+        // Add guest button click - show modal
+        document.getElementById('addGuestBtn').addEventListener('click', function() {
+            if (guestCount >= 2) return;
+            
+            // Determine which guest slot to fill
+            currentGuestNumber = guests.guest1 ? 2 : 1;
+            
+            // Update modal title
+            document.getElementById('guestModalSubtitle').textContent = `Guest ${currentGuestNumber}`;
+            
+            // Reset modal inputs
+            document.getElementById('guestNameInput').value = '';
+            document.getElementById('guestAgreeCheckbox').checked = false;
+            document.getElementById('acceptGuestBtn').disabled = true;
+            
+            // Show modal
+            document.getElementById('guestWaiverModal').style.display = 'block';
+        });
+
+        // Guest waiver checkbox handler
+        document.getElementById('guestAgreeCheckbox').addEventListener('change', function() {
+            const guestName = document.getElementById('guestNameInput').value.trim();
+            document.getElementById('acceptGuestBtn').disabled = !this.checked || !guestName;
+        });
+
+        // Guest name input handler
+        document.getElementById('guestNameInput').addEventListener('input', function() {
+            const isChecked = document.getElementById('guestAgreeCheckbox').checked;
+            const guestName = this.value.trim();
+            document.getElementById('acceptGuestBtn').disabled = !isChecked || !guestName;
+        });
+
+        // Cancel guest button
+        document.getElementById('cancelGuestBtn').addEventListener('click', function() {
+            document.getElementById('guestWaiverModal').style.display = 'none';
+        });
+
+        // Accept guest button
+        document.getElementById('acceptGuestBtn').addEventListener('click', function() {
+            const guestName = document.getElementById('guestNameInput').value.trim();
+            
+            if (!guestName) {
+                alert('Please enter guest name');
+                return;
+            }
+            
+            if (currentGuestNumber === 1) {
+                guests.guest1 = guestName;
+            } else {
+                guests.guest2 = guestName;
+            }
+            
+            guestCount++;
+            updateGuestList();
+            
+            // Hide modal
+            document.getElementById('guestWaiverModal').style.display = 'none';
+        });
+
+        // Close guest modal when clicking outside of it
+        window.addEventListener('click', function(event) {
+            const guestModal = document.getElementById('guestWaiverModal');
+            if (event.target === guestModal) {
+                guestModal.style.display = 'none';
             }
         });
 
-        // Remove individual guest 2
-        document.getElementById('removeGuest2Btn').addEventListener('click', function() {
-            const guest2Group = document.getElementById('guest2Group');
-            const addGuestBtn = document.getElementById('addGuestBtn');
-            
-            document.getElementById('guest2').value = '';
-            guest2Group.style.display = 'none';
-            guestCount = 1;
-            addGuestBtn.textContent = 'Add Another Guest';
-            addGuestBtn.style.display = 'block';
+        // Handle member waiver checkbox
+        document.getElementById('agreeCheckbox').addEventListener('change', function() {
+            document.getElementById('acceptWaiverBtn').disabled = !this.checked;
         });
+
+        // Store form data temporarily for waiver flow
+        let pendingFormData = null;
 
         document.getElementById('checkInForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -605,32 +867,55 @@
             if (guest1) guests.push(guest1);
             if (guest2) guests.push(guest2);
             
-            // Prepare data for submission
-            const formData = new FormData(this);
+            // Store form data and show waiver modal
+            pendingFormData = {
+                formData: new FormData(this),
+                memberNumber: memberNumber,
+                activities: activities,
+                guests: guests
+            };
+            
+            // Reset waiver agreement
+            document.getElementById('agreeCheckbox').checked = false;
+            document.getElementById('acceptWaiverBtn').disabled = true;
+            
+            // Show waiver modal
+            document.getElementById('waiverModal').style.display = 'block';
+        });
+
+        // Handle waiver acceptance and submit form
+        document.getElementById('acceptWaiverBtn').addEventListener('click', function() {
+            if (!pendingFormData) return;
+            
+            // Hide modal
+            document.getElementById('waiverModal').style.display = 'none';
             
             // Submit to server
             fetch('/kiosk/submit', {
                 method: 'POST',
-                body: formData
+                body: pendingFormData.formData
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    let message = `Check-in successful!\nMember: ${memberNumber}\nActivities: ${activities.join(', ')}`;
-                    if (guests.length > 0) {
-                        message += `\nGuests: ${guests.join(', ')}`;
+                    let message = `Check-in successful!\nMember: ${pendingFormData.memberNumber}\nActivities: ${pendingFormData.activities.join(', ')}`;
+                    if (pendingFormData.guests.length > 0) {
+                        message += `\nGuests: ${pendingFormData.guests.join(', ')}`;
                     }
                     alert(message);
                     
                     // Reset form
-                    this.reset();
-                    document.getElementById('guestFieldsContainer').style.display = 'none';
-                    document.getElementById('guest1Group').style.display = 'none';
-                    document.getElementById('guest2Group').style.display = 'none';
+                    document.getElementById('checkInForm').reset();
                     document.getElementById('otherActivityGroup').style.display = 'none';
-                    document.getElementById('addGuestBtn').textContent = 'Add Guest';
-                    document.getElementById('addGuestBtn').style.display = 'block';
+                    
+                    // Reset guests
+                    guests.guest1 = null;
+                    guests.guest2 = null;
                     guestCount = 0;
+                    updateGuestList();
+                    
+                    // Clear pending data
+                    pendingFormData = null;
                     
                     // Reload check-ins
                     loadCheckins();
@@ -718,8 +1003,8 @@
         // Load check-ins on page load
         loadCheckins();
 
-        // Refresh check-ins every 30 seconds
-        setInterval(loadCheckins, 30000);
+        // Refresh check-ins every 30 minutes
+        setInterval(loadCheckins, 1800000);
     </script>
 </body>
 </html>

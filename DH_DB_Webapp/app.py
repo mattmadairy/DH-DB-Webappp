@@ -12,6 +12,10 @@ import pytz
 
 app = Flask(__name__)
 
+# Disable template caching in development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 # Set timezone to America/New_York
 TIMEZONE = pytz.timezone('America/New_York')
 
@@ -1504,7 +1508,10 @@ def kiosk_submit():
 			check_in_time=check_in_time,
 			activities=activities_str,
 			guest1_name=guest1 if guest1 else None,
+			tos_accepted=1,
+			guest1_tos_accepted=1 if guest1 else 0,
 			guest2_name=guest2 if guest2 else None,
+			guest2_tos_accepted=1 if guest2 else 0,
 			other_activity=other_activity if other_activity else None
 		)
 		

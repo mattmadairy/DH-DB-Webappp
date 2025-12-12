@@ -303,6 +303,9 @@ def init_database():
 			guest2_name TEXT,
 			other_activity TEXT,
 			sign_out_time TEXT,
+			tos_accepted INTEGER DEFAULT 0,
+			guest1_tos_accepted INTEGER DEFAULT 0,
+			guest2_tos_accepted INTEGER DEFAULT 0,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)
 	""")
@@ -733,14 +736,14 @@ def get_active_checkin_for_member(member_number):
     conn.close()
     return row
 
-def add_checkin(member_number, check_in_time, activities, guest1_name=None, guest2_name=None, other_activity=None):
+def add_checkin(member_number, check_in_time, activities, guest1_name=None, guest2_name=None, other_activity=None, tos_accepted=0, guest1_tos_accepted=0, guest2_tos_accepted=0):
     """Add a new kiosk check-in"""
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        INSERT INTO check_ins (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity))
+        INSERT INTO check_ins (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity, tos_accepted, guest1_tos_accepted, guest2_tos_accepted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (member_number, check_in_time, activities, guest1_name, guest2_name, other_activity, tos_accepted, guest1_tos_accepted, guest2_tos_accepted))
     conn.commit()
     checkin_id = c.lastrowid
     conn.close()
