@@ -329,6 +329,55 @@ function generateEmailList() {
 				{% endif %}
 			</h3>
 			<div style="height:10px;"></div>
+			
+			<!-- Timeline for Prospective Members -->
+			{% if member['membership_type'] == 'Prospective' %}
+			<div style="width:100%; max-width:800px; margin:20px auto; padding:20px; background-color:#2c332b; border-radius:8px;">
+				<div style="display:flex; justify-content:space-between; align-items:flex-start; position:relative;">
+					<!-- Progress Line -->
+					   <div style="position:absolute; top:20px; left:13%; width:77%; height:4px; background-color:#555; z-index:1;"></div>
+					   {% set eligible = member.get('application_submitted') and member.get('introduced_date') and member.get('background_check_submitted') and member.get('background_check_passed') %}
+					   <div style="position:absolute; top:20px; left:13%; width:{% if eligible %}77{% elif member.get('background_check_passed') %}62{% elif member.get('background_check_submitted') %}47{% elif member.get('introduced_date') %}32{% elif member.get('application_submitted') %}17{% else %}0{% endif %}%; height:4px; background-color:#5bc0de; z-index:2; transition:width 0.3s;"></div>
+					
+					<!-- Step 1: Application Received -->
+					<div style="flex:1; text-align:center; position:relative; z-index:3;">
+						<div style="width:40px; height:40px; margin:0 auto 10px; border-radius:50%; background-color:{{ '#5bc0de' if member.get('application_submitted') else '#555' }}; border:3px solid {{ '#fff' if member.get('application_submitted') else '#888' }}; display:flex; align-items:center; justify-content:center; font-size:1.2em; color:white; font-weight:bold;">1</div>
+						<div style="color:#f5f5f5; font-size:0.9em; font-weight:bold; margin-bottom:5px;">Application<br>Received</div>
+						<div style="color:{{ '#5bc0de' if member.get('application_submitted') else '#999' }}; font-size:0.8em;">{{ member['application_submitted']|format_mmddyyyy if member.get('application_submitted') else '—' }}</div>
+					</div>
+					
+					<!-- Step 2: Introduced -->
+					<div style="flex:1; text-align:center; position:relative; z-index:3;">
+						<div style="width:40px; height:40px; margin:0 auto 10px; border-radius:50%; background-color:{{ '#5bc0de' if member.get('introduced_date') else '#555' }}; border:3px solid {{ '#fff' if member.get('introduced_date') else '#888' }}; display:flex; align-items:center; justify-content:center; font-size:1.2em; color:white; font-weight:bold;">2</div>
+						<div style="color:#f5f5f5; font-size:0.9em; font-weight:bold; margin-bottom:5px;">Introduced</div>
+						<div style="color:{{ '#5bc0de' if member.get('introduced_date') else '#999' }}; font-size:0.8em;">{{ member['introduced_date']|format_mmddyyyy if member.get('introduced_date') else '—' }}</div>
+					</div>
+					
+					<!-- Step 3: Background Submitted -->
+					<div style="flex:1; text-align:center; position:relative; z-index:3;">
+						<div style="width:40px; height:40px; margin:0 auto 10px; border-radius:50%; background-color:{{ '#5bc0de' if member.get('background_check_submitted') else '#555' }}; border:3px solid {{ '#fff' if member.get('background_check_submitted') else '#888' }}; display:flex; align-items:center; justify-content:center; font-size:1.2em; color:white; font-weight:bold;">3</div>
+						<div style="color:#f5f5f5; font-size:0.9em; font-weight:bold; margin-bottom:5px;">Background<br>Submitted</div>
+						<div style="color:{{ '#5bc0de' if member.get('background_check_submitted') else '#999' }}; font-size:0.8em;">{{ member['background_check_submitted']|format_mmddyyyy if member.get('background_check_submitted') else '—' }}</div>
+					</div>
+					
+					<!-- Step 4: Background Completed -->
+					<div style="flex:1; text-align:center; position:relative; z-index:3;">
+						<div style="width:40px; height:40px; margin:0 auto 10px; border-radius:50%; background-color:{{ '#5bc0de' if member.get('background_check_passed') else '#555' }}; border:3px solid {{ '#fff' if member.get('background_check_passed') else '#888' }}; display:flex; align-items:center; justify-content:center; font-size:1.2em; color:white; font-weight:bold;">4</div>
+						<div style="color:#f5f5f5; font-size:0.9em; font-weight:bold; margin-bottom:5px;">Background<br>Completed</div>
+						<div style="color:{{ '#5bc0de' if member.get('background_check_passed') else '#999' }}; font-size:0.8em;">{{ member['background_check_passed']|format_mmddyyyy if member.get('background_check_passed') else '—' }}</div>
+					</div>
+					
+					   <!-- Step 5: Eligible -->
+					   <div style="flex:1; text-align:center; position:relative; z-index:3;">
+						   {% set eligible = member.get('application_submitted') and member.get('introduced_date') and member.get('background_check_submitted') and member.get('background_check_passed') %}
+						   <div style="width:40px; height:40px; margin:0 auto 10px; border-radius:50%; background-color:{{ '#5bc0de' if eligible else '#555' }}; border:3px solid {{ '#fff' if eligible else '#888' }}; display:flex; align-items:center; justify-content:center; font-size:1.2em; color:white; font-weight:bold;">5</div>
+						   <div style="color:#f5f5f5; font-size:0.9em; font-weight:bold; margin-bottom:5px;">Eligible</div>
+						   <div style="color:{{ '#5bc0de' if eligible else '#999' }}; font-size:0.8em;">{% if eligible %}✔{% else %}—{% endif %}</div>
+					   </div>
+				</div>
+			</div>
+			{% endif %}
+			
 			<!-- Member Report button moved to sidebar -->
 			<!-- Tabs Navigation -->
 			<div class="tabbar" style="width:100%; max-width:700px; margin:auto; display:flex; align-items:center;">

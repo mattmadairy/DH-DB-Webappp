@@ -292,6 +292,7 @@
                     <th onclick="sortTable(3)" id="th3">Last Name</th>
                     <th onclick="sortTable(4)" id="th4">Primary Email</th>
                     <th onclick="sortTable(5)" id="th5">Primary Phone</th>
+                    {% if member_type == 'Prospective' %}<th>Status</th>{% endif %}
                     <th>Actions</th>
                 </tr>
                 {% for member in members %}
@@ -305,6 +306,18 @@
                         <td>{{ member['last_name'] }}</td>
                         <td>{{ member['email'] }}</td>
                         <td style="min-width:130px;">{{ member['phone'] }}</td>
+                        {% if member_type == 'Prospective' %}
+                        <td style="font-weight:bold; color:#111; background-color:
+                            {% if member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}#3ec96b
+                            {% else %}#ffe600{% endif %};">
+                            {% if member['application_submitted'] and not member['introduced_date'] %}Application Received
+                            {% elif member['introduced_date'] and not member['background_check_submitted'] %}Introduced
+                            {% elif member['background_check_submitted'] and not member['background_check_passed'] %}Background Submitted
+                            {% elif member['background_check_passed'] and not (member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed']) %}Background Completed
+                            {% elif member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}Eligible
+                            {% else %}—{% endif %}
+                        </td>
+                        {% endif %}
                         <td style="white-space:nowrap;">
                             <a href="{{ url_for('member_details', member_id=member['id']) }}" class="action-btn" style="display:inline-block; width:80px; padding:2px 0; margin-right:6px; border-radius:6px; border:1px solid #384839; background:#eaeaea; color:#384839; cursor:pointer; text-align:center; text-decoration:none; font-size:0.9em;">✏️ Edit</a>
                             <form action="{{ url_for('member_report', member_id=member['id']) }}" method="get" style="display:inline; margin-bottom:4px;">
