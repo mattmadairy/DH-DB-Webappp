@@ -307,15 +307,16 @@
                         <td>{{ member['email'] }}</td>
                         <td style="min-width:130px;">{{ member['phone'] }}</td>
                         {% if member_type == 'Prospective' %}
-                        <td style="font-weight:bold; color:#111; background-color:
-                            {% if member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}#3ec96b
-                            {% else %}#ffe600{% endif %};">
-                            {% if member['application_submitted'] and not member['introduced_date'] %}Application Received
-                            {% elif member['introduced_date'] and not member['background_check_submitted'] %}Introduced
-                            {% elif member['background_check_submitted'] and not member['background_check_passed'] %}Background Submitted
-                            {% elif member['background_check_passed'] and not (member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed']) %}Background Completed
-                            {% elif member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}Eligible
-                            {% else %}—{% endif %}
+                        {% set all_done = member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}
+                        <td style="font-weight:bold; color:#111; background-color:{% if all_done %}#3ec96b{% else %}#ffe600{% endif %}; text-align:left; padding:6px 8px;">
+                            {% if all_done %}
+                                <span style="font-weight:bold; color:#111;">Eligible</span>
+                            {% else %}
+                                <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['application_submitted'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['application_submitted'] %}✔{% else %}✗{% endif %}</span> Application Received</span>
+                                <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['introduced_date'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['introduced_date'] %}✔{% else %}✗{% endif %}</span> Introduced</span>
+                                <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['background_check_submitted'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['background_check_submitted'] %}✔{% else %}✗{% endif %}</span> Background Submitted</span>
+                                <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['background_check_passed'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['background_check_passed'] %}✔{% else %}✗{% endif %}</span> Background Completed</span>
+                            {% endif %}
                         </td>
                         {% endif %}
                         <td style="white-space:nowrap;">
