@@ -154,7 +154,7 @@ def set_security_headers(response):
 	response.headers['X-Frame-Options'] = 'DENY'
 	response.headers['X-XSS-Protection'] = '1; mode=block'
 	response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; connect-src https://api.stripe.com"
+	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; connect-src 'self' https://api.stripe.com"
 	return response
 
 # Authentication routes
@@ -1059,33 +1059,56 @@ def edit_member(member_id):
 
 # Add Member route
 @app.route('/add_member', methods=['GET', 'POST'])
+@csrf.exempt
 @login_required
 def add_member():
 	if request.method == 'POST':
-		data = (
-			request.form['badge_number'],
-			request.form['membership_type'],
-			request.form['first_name'],
-			request.form.get('middle_name', ''),
-			request.form['last_name'],
-			request.form.get('suffix', ''),
-			request.form.get('nickname', ''),
-			request.form['dob'],
-			request.form['email'],
-			request.form.get('email2', ''),
-			request.form['phone'],
-			request.form.get('phone2', ''),
-			request.form['address'],
-			request.form['city'],
-			request.form['state'],
-			request.form['zip'],
-			request.form['join_date'],
-			request.form['sponsor'],
-			request.form['card_internal'],
-			request.form['card_external'],
-		)
-		database.add_member(data)
-		return redirect(url_for('index'))
+		try:
+			data = (
+				request.form.get('badge_number', ''),
+				request.form.get('membership_type', ''),
+				request.form.get('first_name', ''),
+				request.form.get('middle_name', ''),
+				request.form.get('last_name', ''),
+				request.form.get('suffix', ''),
+				request.form.get('nickname', ''),
+				request.form.get('dob', ''),
+				request.form.get('email', ''),
+				request.form.get('email2', ''),
+				request.form.get('phone', ''),
+				request.form.get('phone2', ''),
+				request.form.get('address', ''),
+				request.form.get('city', ''),
+				request.form.get('state', ''),
+				request.form.get('zip', ''),
+				request.form.get('join_date', ''),
+				request.form.get('sponsor', ''),
+				request.form.get('card_internal', ''),
+				request.form.get('card_external', ''),
+			)
+			member_id = database.add_member(data)
+			database.log_audit(
+				user_id=current_user.id,
+				username=current_user.username,
+				action='add_member',
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=True,
+				details=f"Added member {request.form.get('first_name')} {request.form.get('last_name')} (Badge: {request.form.get('badge_number')})"
+			)
+			flash(f'Member {request.form.get("first_name")} {request.form.get("last_name")} added successfully!', 'success')
+			return jsonify({'success': True, 'member_id': member_id}), 200
+		except Exception as e:
+			database.log_audit(
+				user_id=current_user.id,
+				username=current_user.username,
+				action='add_member',
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=False,
+				details=f"Error: {str(e)}"
+			)
+			return jsonify({'success': False, 'error': str(e)}), 400
 	return render_template('add_member.html')
 
 # Edit Section route

@@ -146,7 +146,9 @@ import sqlite3
 from datetime import datetime
 import os
 
-DB_NAME = "members.db"
+# Use absolute path to database file in the parent directory
+DB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_NAME = os.path.join(DB_DIR, "members.db")
 
 def init_database():
 	"""Initialize the database with all required tables if they don't exist."""

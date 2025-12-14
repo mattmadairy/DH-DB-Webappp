@@ -210,15 +210,39 @@
                 }
                 
                 var formData = new FormData(form);
+                console.log('Submitting form to /add_member...');
                 fetch('/add_member', {
                     method: 'POST',
-                    body: formData
-                }).then(function(resp) {
-                    if (resp.ok) {
-                        location.reload();
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                .then(function(resp) {
+                    console.log('Response status:', resp.status, resp.statusText);
+                    console.log('Response headers:', resp.headers);
+                    
+                    // Check if response is JSON
+                    var contentType = resp.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return resp.json().then(function(data) {
+                            if (resp.ok && data.success) {
+                                alert('Member added successfully!');
+                                location.reload();
+                            } else {
+                                alert('Error adding member: ' + (data.error || 'Unknown error'));
+                                console.error('Error details:', data);
+                            }
+                        });
                     } else {
-                        alert('Error adding member');
+                        // Response is not JSON, probably HTML error or redirect
+                        return resp.text().then(function(text) {
+                            console.error('Non-JSON response:', text.substring(0, 500));
+                            alert('Server error: Received non-JSON response. Check console for details.');
+                        });
                     }
+                })
+                .catch(function(error) {
+                    console.error('Fetch error:', error);
+                    alert('Network error: ' + error.message + '\nCheck browser console for details.');
                 });
             };
 
