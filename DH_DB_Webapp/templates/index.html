@@ -292,7 +292,7 @@
                     <th onclick="sortTable(3)" id="th3">Last Name</th>
                     <th onclick="sortTable(4)" id="th4">Primary Email</th>
                     <th onclick="sortTable(5)" id="th5">Primary Phone</th>
-                    {% if member_type == 'Prospective' %}<th>Status</th>{% endif %}
+                    {% if member_type == 'Prospective' %}<th onclick="sortTable(6)" id="th6">Status</th>{% endif %}
                     <th>Actions</th>
                 </tr>
                 {% for member in members %}
@@ -309,6 +309,7 @@
                         {% if member_type == 'Prospective' %}
                         {% set all_done = member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}
                         <td style="font-weight:bold; color:#111; background-color:{% if all_done %}#3ec96b{% else %}#ffe600{% endif %}; text-align:left; padding:6px 8px;">
+                            <span class="status-sort-value" style="display:none;">{% if all_done %}1{% else %}0{% endif %}</span>
                             {% if all_done %}
                                 <span style="font-weight:bold; color:#111;">Eligible</span>
                             {% else %}
@@ -358,10 +359,18 @@
                 var rows = Array.from(table.rows).slice(1); // skip header
                 var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
                 rows.sort(function(a, b) {
-                    var x = a.cells[n].innerText.toLowerCase();
-                    var y = b.cells[n].innerText.toLowerCase();
-                    if (!isNaN(x) && !isNaN(y)) {
-                        x = parseFloat(x); y = parseFloat(y);
+                    var x, y;
+                    // Special handling for Status column (index 6)
+                    if (n === 6) {
+                        x = a.cells[n].querySelector('.status-sort-value')?.innerText || '0';
+                        y = b.cells[n].querySelector('.status-sort-value')?.innerText || '0';
+                        x = parseInt(x); y = parseInt(y);
+                    } else {
+                        x = a.cells[n].innerText.toLowerCase();
+                        y = b.cells[n].innerText.toLowerCase();
+                        if (!isNaN(x) && !isNaN(y)) {
+                            x = parseFloat(x); y = parseFloat(y);
+                        }
                     }
                     if (x < y) return asc ? -1 : 1;
                     if (x > y) return asc ? 1 : -1;
