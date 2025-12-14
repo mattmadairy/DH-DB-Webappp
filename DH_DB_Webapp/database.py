@@ -146,8 +146,8 @@ import sqlite3
 from datetime import datetime
 import os
 
-# Use absolute path to database file in the same directory
-DB_DIR = os.path.dirname(os.path.abspath(__file__))
+# Use absolute path to database file in the parent directory
+DB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_NAME = os.path.join(DB_DIR, "members.db")
 
 def init_database():
@@ -736,10 +736,8 @@ def check_password_history(user_id, new_password_hash, history_count=5):
         LIMIT ?
     """, (user_id, history_count))
     history = c.fetchall()
-    conn.close()
     
     # Check current password too
-    c = conn.cursor()
     c.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,))
     current = c.fetchone()
     conn.close()
