@@ -125,6 +125,9 @@
     </style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+        <div style="color:yellow; background:#222; font-size:1.1em; padding:8px 16px; margin:12px 0; border-radius:6px; z-index:9999; position:relative;">
+            <b>DEBUG applications:</b> {{ applications|default('None')|safe }} (type: {{ applications.__class__.__name__ if applications is not none else 'None' }})
+        </div>
     <!-- Print-only header, hidden on screen, visible in print -->
     <div class="print-header print-only">
         <h1 style="margin:0; line-height:1.1; font-size:2em; color:#000;">Dug Hill Rod & Gun Club</h1>
@@ -157,9 +160,19 @@
             <a href="{{ url_for('email_list') }}" class="{{ 'active-menu' if active_page == 'email_list' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'email_list' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📧 Email List</a>
             <a href="{{ url_for('kiosk') }}" target="_blank" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
             {% if current_user.is_admin_or_bdfl() %}
-            <a href="{{ url_for('admin_users') }}" class="{{ 'active-menu' if active_page == 'admin_users' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ '#5bc0de' if active_page != 'admin_users' else 'rgb(255,255,0)' }}; color:{{ '#ffffff' if active_page != 'admin_users' else '#000000' }}; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Admin Panel</a>
+            <a href="{{ url_for('admin_users') }}" class="{{ 'active-menu' if active_page == 'admin_users' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ '#5bc0de' if active_page != 'admin_users' else 'rgb(255,255,0)' }}; color:{{ '#ffffff' if active_page != 'admin_users' else '#000000' }}; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">
+                <span style="display:inline-block; width:100%; text-align:left;">
+                    <span style="display:inline-block; vertical-align:middle;"><span style="margin-left:6px;">👤</span> <span>Admin</span></span>
+                    {% if applications and applications|length > 0 %}
+                    <span style="display:inline-block; vertical-align:middle; margin-left:15px; background:#d9534f; color:white; border-radius:50%; padding:2px 8px; font-size:0.95em; font-weight:bold; min-width:22px; min-height:22px; box-shadow:0 1px 4px rgba(0,0,0,0.18); text-align:center; line-height:18px;">{{ applications|length }}</span>
+                    {% endif %}
+                </span>
+            </a>
             {% endif %}
             <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+                        <div style="color:yellow; background:#222; font-size:0.9em; padding:4px 8px; margin:8px 0; border-radius:4px;">
+                            <b>DEBUG applications:</b> {{ applications|default('None')|safe }} (type: {{ applications.__class__.__name__ if applications is not none else 'None' }})
+                        </div>
             <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
                 <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
                     <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>

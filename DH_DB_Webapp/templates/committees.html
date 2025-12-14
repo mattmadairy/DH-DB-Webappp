@@ -1,65 +1,3 @@
-
-<style>
-.print-header {
-    display: none;
-}
-@media print {
-    body * {
-        visibility: hidden !important;
-    }
-    .print-header, .print-header * {
-        visibility: visible !important;
-    }
-    .main-header, .sub-header, .page-header, .committee-header, h1, h2 {
-        display: none !important;
-        visibility: hidden !important;
-    }
-    .print-header {
-        display: block !important;
-        visibility: visible !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
-        text-align: center !important;
-        font-size: 2em !important;
-        color: #000 !important;
-        background: none !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        margin: 0 !important;
-        padding: 0.5em 0 0.2em 0 !important;
-        border: none !important;
-        z-index: 9999 !important;
-    }
-    #committee-table {
-        margin-top: 0 !important;
-        position: fixed !important;
-        left: 50% !important;
-    top: 7em !important;
-        transform: translateX(-50%) !important;
-        width: 100vw !important;
-        table-layout: fixed !important;
-        background: none !important;
-        border: none !important;
-    }
-    #committee-select, button[onclick*="window.print"] {
-        display: none !important;
-    }
-    #committee-table, #committee-table * {
-        visibility: visible !important;
-    }
-    #committee-table td, #committee-table th {
-        text-align: center !important;
-        vertical-align: middle !important;
-        background: none !important;
-        border: 2px solid #222 !important;
-        color: #000 !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 1em !important;
-        padding: 8px !important;
-    }
-}
-</style>
 {% extends "index.html" %}
 {% block content %}
 <div style="display:flex; flex-direction:row; justify-content:center; margin-bottom:20px; width:100%;">
@@ -81,115 +19,30 @@
                     <option value="{{ cname }}" {% if cname == request.args.get('committee') %}selected{% endif %}>{{ committee_display_names[cname] }}</option>
                 {% endfor %}
             </select>
-            <button type="button" onclick="window.print()" style="margin-left:18px; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-size:1.1em; cursor:pointer;">🖨️ Print</button>
-            {% if selected_committee and selected_committee != '' %}
-            <button type="button" onclick="window.location.href='{{ url_for('committee_email_list', committee=selected_committee) }}'" style="margin-left:8px; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-size:1.1em; cursor:pointer;">📧 Email List</button>
-            {% endif %}
         </div>
     </form>
-    {% set selected_committee = request.args.get('committee') %}
-    <div class="print-header">
-        {% if selected_committee %}
-            <div style="font-size:1.1em; font-weight:bold; margin-bottom:0.2em;">Committee Roster:</div>
-            <div>{% if selected_committee == 'committee_chairs' %}Committee Chairs{% else %}{{ committee_display_names[selected_committee] }}{% endif %}</div>
-            <div style="margin-top:0.3em;">Total Members: {{ committee_members[selected_committee]|length }}</div>
-        {% endif %}
+    <!-- Add your committee table and logic here, outside the select/option block -->
+    <!-- Example placeholder for committee table rendering -->
+    {# Add your committee table rendering logic here, outside the select/option block #}
+        <!-- End placeholder -->
     </div>
-    {% if selected_committee %}
-    {% if selected_committee == 'committee_chairs' %}
-    <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">Committee Chairs</h2>
-    <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#f5f5f5; font-weight:bold;">Total Members: {{ committee_members[selected_committee]|length }}</div>
-        <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
-            <tr style="background:#eaeaea;">
-                <th id="th0" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(0)">Badge #</th>
-                <th id="th1" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(1)">Name</th>
-                <th id="th2" style="border:2px solid #384839; padding:8px;">Chair Of</th>
-            </tr>
-            {% for member in committee_members[selected_committee] %}
-                <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
-                    <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
-                    <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
-                    <td style="border:2px solid #384839; padding:8px;">{{ member['chair_of'] }}</td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-    <h2 style="font-size:1.3em; margin-bottom:0.5em; text-align: center; color: #f5f5f5;">{{ committee_display_names[selected_committee] }}</h2>
-    <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#f5f5f5; font-weight:bold;">Total Members: {{ committee_members[selected_committee]|length }}</div>
-        <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:700px; background-color:#f5f5f5;">
-            <tr style="background:#eaeaea;">
-                {% if selected_committee == 'executive_committee' %}
-                <th id="th0" style="border:2px solid #384839; padding:8px;">Badge #</th>
-                <th id="th1" style="border:2px solid #384839; padding:8px;">Name</th>
-                <th id="th2" style="border:2px solid #384839; padding:8px;">Role</th>
-                <th id="th3" style="border:2px solid #384839; padding:8px;">Term</th>
-                <th id="th4" style="border:2px solid #384839; padding:8px;">Chair</th>
-                {% else %}
-                <th id="th0" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(0)">Badge #</th>
-                <th id="th1" style="border:2px solid #384839; padding:8px; cursor:pointer;" onclick="sortTable(1)">Name</th>
-                <th id="th2" style="border:2px solid #384839; padding:8px;">Chair</th>
-                {% endif %}
-            </tr>
-            {% if selected_committee == 'executive_committee' %}
-                {% set role_order = ['President', 'Vice President', 'Treasurer', 'Secretary', 'Trustee'] %}
-                {% for role in role_order %}
-                    {% for member in committee_members[selected_committee] if member['role'] == role %}
-                        <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
-                            <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
-                            <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
-                            <td style="border:2px solid #384839; padding:8px;">{{ member['role'] }}</td>
-                            <td style="border:2px solid #384839; padding:8px;">{{ member['term'] }}</td>
-                            <td style="border:2px solid #384839; padding:8px; text-align:center;">{% if member['is_chair'] %}✔️{% else %}—{% endif %}</td>
-                        </tr>
-                    {% endfor %}
-                {% endfor %}
-            {% else %}
-                {% for member in committee_members[selected_committee] %}
-                    <tr class="clickable-row" style="cursor:pointer;" onclick="window.location='{{ url_for('member_details', member_id=member['id']) }}';">  
-                        <td style="border:2px solid #384839; padding:8px; text-align:center;">{{ member['badge_number'] }}</td>
-                        <td style="border:2px solid #384839; padding:8px;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
-                        <td style="border:2px solid #384839; padding:8px; text-align:center;">{% if member['is_chair'] %}✔️{% else %}—{% endif %}</td>
-                    </tr>
-                {% endfor %}
-            {% endif %}
-        </table>
-    {% endif %}
-    {% endif %}
-<script>
-function toggleSubmenu() {
-    var submenu = document.getElementById('reports-submenu');
-    var arrow = document.getElementById('submenu-arrow');
-    submenu.classList.toggle('active');
-    arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
-}
-
-// Sortable table columns with arrow indicators
-function sortTable(n) {
-    var table = document.getElementById("committee-table");
-    var rows = Array.from(table.rows).slice(1); // skip header
-    var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
-    rows.sort(function(a, b) {
-        var x = a.cells[n].innerText.toLowerCase();
-        var y = b.cells[n].innerText.toLowerCase();
-        if (!isNaN(x) && !isNaN(y)) {
-            x = parseFloat(x); y = parseFloat(y);
-        }
-        if (x < y) return asc ? -1 : 1;
-        if (x > y) return asc ? 1 : -1;
-        return 0;
-    });
-    rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
-    table.setAttribute('data-sort-col', n);
-    table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
-    // Remove arrows from all headers
-    for (let i = 0; i < 4; i++) {
-        let th = document.getElementById('th'+i);
-        if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
+    <script>
+    // Sortable table columns with arrow indicators
+    function sortTable(n) {
+        var table = document.getElementById("committee-table");
+        var rows = Array.from(table.rows).slice(1); // skip header
+        var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
+        rows.sort(function(a, b) {
+            var x = a.cells[n].innerText.toLowerCase();
+            var y = b.cells[n].innerText.toLowerCase();
+            if (!isNaN(x) && !isNaN(y)) {
+                x = parseFloat(x); y = parseFloat(y);
+            }
+            if (x < y) return asc ? -1 : 1;
+            if (x > y) return asc ? 1 : -1;
+        });
+        rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
     }
-    // Add arrow to sorted column
-    let th = document.getElementById('th'+n);
-    if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
-}
-</script>
-</div>
+    </script>
 {% endblock %}
+            if (x < y) return asc ? -1 : 1;

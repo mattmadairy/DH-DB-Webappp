@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin Panel - Dug Hill Rod & Gun Club</title>
+    <title>Admin - Dug Hill Rod & Gun Club</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
 <style>
     .active-menu {
@@ -231,7 +231,10 @@
             <a href="javascript:void(0);" onclick="generateEmailList()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📧 Email List</a>
             <a href="{{ url_for('kiosk') }}" target="_blank" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
             {% if current_user.is_admin_or_bdfl() %}
-            <a href="{{ url_for('admin_users') }}" class="active-menu" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:rgb(255,255,0); color:#000000; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Admin Panel</a>
+            <a href="{{ url_for('admin_users') }}" class="active-menu" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:rgb(255,255,0); color:#000000; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">
+                <span style="display:inline-block; vertical-align:middle;"><span style="margin-left:6px;">👤</span> <span>Admin</span></span>
+                {# No notification bubble on the admin page #}
+            </a>
             {% endif %}
             <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
             <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
@@ -245,7 +248,7 @@
         
         <!-- Main content area -->
         <div style="flex:1; margin-left:210px; padding:40px;">
-            <h1 style="color:#f5f5f5; text-align:center; margin-bottom:30px;">👤 Admin Panel - User Management</h1>
+            <h1 style="color:#f5f5f5; text-align:center; margin-bottom:30px;">👤 Admin - User Management</h1>
             
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}

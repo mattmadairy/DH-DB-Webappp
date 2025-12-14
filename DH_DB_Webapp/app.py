@@ -1,5 +1,33 @@
+# ...existing code...
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+
+# ...existing code...
+
+# Place this after 'app = Flask(__name__)' and all app config
+
+# Context processor to inject applications into all templates
+def register_context_processors(app):
+	@app.context_processor
+	def inject_applications():
+		try:
+			from flask_login import current_user
+			import database
+			if current_user.is_authenticated and current_user.is_admin_or_bdfl():
+				applications = database.get_all_applications(status='pending')
+			else:
+				applications = []
+		except Exception:
+			applications = []
+		return dict(applications=applications)
+
+# ...existing code...
+
+
+# After all imports and before any route definitions:
+app = Flask(__name__)
+register_context_processors(app)
+
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -9,8 +37,6 @@ import datetime
 import socket
 import os
 import pytz
-
-app = Flask(__name__)
 
 # Disable template caching in development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -851,7 +877,7 @@ def index():
 		def member_matches(m):
 			return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
 		members = [m for m in members if member_matches(m)]
-	
+    
 	# Calculate member counts for each type
 	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
 	member_counts = {}
@@ -860,9 +886,10 @@ def index():
 			member_counts[mt] = len(all_members)
 		else:
 			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
-	
+    
 	member_stats = get_member_stats()
-	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats)
+	applications = database.get_all_applications(status='pending')
+	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
 
 @app.route('/member/<int:member_id>')
 @login_required
