@@ -1136,7 +1136,11 @@ def edit_section(member_id):
 				database.update_member_section(member_id, {
 					'badge_number': request.form['badge_number'],
 					'membership_type': request.form['membership_type'],
-					'join_date': request.form['join_date'],
+					'join_date': request.form['join_date'] or None,
+					'application_submitted': request.form.get('application_submitted') or None,
+					'introduced_date': request.form.get('introduced_date') or None,
+					'background_check_submitted': request.form.get('background_check_submitted') or None,
+					'background_check_passed': request.form.get('background_check_passed') or None,
 					'sponsor': request.form['sponsor'],
 					'card_internal': request.form['card_internal'],
 					'card_external': request.form['card_external'],

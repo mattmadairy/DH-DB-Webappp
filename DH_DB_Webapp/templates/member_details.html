@@ -365,6 +365,10 @@ function generateEmailList() {
 			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Membership Info</th></tr>
 			   <tr><td style="border:2px solid #222;"><b>Badge Number:</b></td><td style="border:2px solid #222;">{{ member['badge_number'] }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Membership Type:</b></td><td style="border:2px solid #222;">{{ member['membership_type'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Application Submitted:</b></td><td style="border:2px solid #222;">{{ member['application_submitted']|format_mmddyyyy if member.get('application_submitted') else '' }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Introduced:</b></td><td style="border:2px solid #222;">{{ member['introduced_date']|format_mmddyyyy if member.get('introduced_date') else '' }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Background Check Submitted:</b></td><td style="border:2px solid #222;">{{ member['background_check_submitted']|format_mmddyyyy if member.get('background_check_submitted') else '' }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Background Check Passed:</b></td><td style="border:2px solid #222;">{{ member['background_check_passed']|format_mmddyyyy if member.get('background_check_passed') else '' }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
@@ -771,6 +775,10 @@ function submitCommittees() {
 					<option value="Wait List" {% if member['membership_type'] == 'Wait List' %}selected{% endif %}>Wait List</option>
 					<option value="Former" {% if member['membership_type'] == 'Former' %}selected{% endif %}>Former</option>
 				</select>
+				<label for="application_submitted">Application Submitted:</label><input type="date" id="application_submitted" name="application_submitted" value="{{ member['application_submitted'] if member.get('application_submitted') else '' }}">
+				<label for="introduced_date">Introduced:</label><input type="date" id="introduced_date" name="introduced_date" value="{{ member['introduced_date'] if member.get('introduced_date') else '' }}">
+				<label for="background_check_submitted">Background Check Submitted:</label><input type="date" id="background_check_submitted" name="background_check_submitted" value="{{ member['background_check_submitted'] if member.get('background_check_submitted') else '' }}">
+				<label for="background_check_passed">Background Check Passed:</label><input type="date" id="background_check_passed" name="background_check_passed" value="{{ member['background_check_passed'] if member.get('background_check_passed') else '' }}">
 				<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date" value="{{ member['join_date'] }}">
 				<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}">
 				<label for="card_internal">Card Internal:</label><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}">

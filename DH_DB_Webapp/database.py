@@ -358,6 +358,35 @@ def init_database():
 	conn.commit()
 	conn.close()
 
+def ensure_membership_tracking_columns():
+	"""Add membership tracking columns to members table if they don't exist"""
+	conn = sqlite3.connect(DB_NAME)
+	c = conn.cursor()
+	
+	# Get existing columns
+	c.execute("PRAGMA table_info(members)")
+	existing_columns = {row[1] for row in c.fetchall()}
+	
+	# Add new columns if they don't exist
+	new_columns = {
+		'application_submitted': 'TEXT',
+		'introduced_date': 'TEXT',
+		'background_check_submitted': 'TEXT',
+		'background_check_passed': 'TEXT',
+		'member_notes': 'TEXT'
+	}
+	
+	for col_name, col_type in new_columns.items():
+		if col_name not in existing_columns:
+			try:
+				c.execute(f"ALTER TABLE members ADD COLUMN {col_name} {col_type}")
+				print(f"Added column {col_name} to members table")
+			except sqlite3.OperationalError as e:
+				print(f"Column {col_name} may already exist: {e}")
+	
+	conn.commit()
+	conn.close()
+
 def get_connection():
 	conn = sqlite3.connect(DB_NAME, timeout=30.0)  # Increase timeout for PythonAnywhere
 	conn.row_factory = sqlite3.Row
@@ -367,6 +396,7 @@ def get_connection():
 
 # Initialize database on module import
 init_database()
+ensure_membership_tracking_columns()
 
 def get_all_members():
 	conn = get_connection()
