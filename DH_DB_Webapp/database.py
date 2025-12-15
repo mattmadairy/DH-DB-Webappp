@@ -266,7 +266,6 @@ def init_database():
 			executive_committee INTEGER DEFAULT 0,
 			gun_bingo_social_events INTEGER DEFAULT 0,
 			building_and_grounds INTEGER DEFAULT 0,
-			fundraising INTEGER DEFAULT 0,
 			membership INTEGER DEFAULT 0,
 			FOREIGN KEY (member_id) REFERENCES members(id)
 		)

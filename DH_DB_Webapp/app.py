@@ -914,18 +914,17 @@ def member_details(member_id):
 		if cname:
 			committees[cname] = 1
 			committee_roles[cname] = row['role']
-	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
-	activity_display_names = {
-		'general_maintenance': 'General Maintenance',
-		'event_setup': 'Event Setup',
-		'event_cleanup': 'Event Cleanup',
-		'fundraising': 'Fundraising',
-		'committee_work': 'Committee Work',
-		'building_and_grounds': 'Building/Grounds',
-		'gun_bingo_social_events': 'Gun Bingo/Social Events',
-		'executive_committee': 'Executive',
-		'other': 'Other'
-	}
+		total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
+		activity_display_names = {
+			'general_maintenance': 'General Maintenance',
+			'event_setup': 'Event Setup',
+			'event_cleanup': 'Event Cleanup',
+			'committee_work': 'Committee Work',
+			'building_and_grounds': 'Building/Grounds',
+			'gun_bingo_social_events': 'Gun Bingo/Social Events',
+			'executive_committee': 'Executive',
+			'other': 'Other'
+		}
 	import datetime
 	current_year = datetime.datetime.now().year
 	dues_years = list(range(current_year + 1, current_year - 10, -1))
@@ -950,43 +949,42 @@ def member_details(member_id):
 @app.route('/member_report/<int:member_id>')
 @login_required
 def member_report(member_id):
-    member = database.get_member_by_id(member_id)
-    if not member:
-        return "Member not found", 404
-    dues = database.get_dues_by_member(member_id)
-    work_hours = database.get_work_hours_by_member(member_id)
-    attendance = database.get_meeting_attendance(member_id)
-    position = database.get_member_position(member_id)
-    committees = database.get_member_committees(member_id)
-    import datetime
-    now = datetime.datetime.now()
-    exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-    committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
-    committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-    activity_display_names = {
-        'general_maintenance': 'General Maintenance',
-        'event_setup': 'Event Setup',
-        'event_cleanup': 'Event Cleanup',
-        'fundraising': 'Fundraising',
-        'committee_work': 'Committee Work',
-        'building_and_grounds': 'Building/Grounds',
-        'gun_bingo_social_events': 'Gun Bingo/Social Events',
-        'executive_committee': 'Executive',
-        'other': 'Other'
-    }
-    return render_template(
-        'member_report.html',
-        member=member,
-        dues=dues,
-        work_hours=work_hours,
-        attendance=attendance,
-        position=position,
-        committees=committees,
-        committee_names=committee_names,
-        committee_display_names=committee_display_names,
-        work_activity_display_names=activity_display_names,
-        now=now
-    )
+	member = database.get_member_by_id(member_id)
+	if not member:
+		return "Member not found", 404
+	dues = database.get_dues_by_member(member_id)
+	work_hours = database.get_work_hours_by_member(member_id)
+	attendance = database.get_meeting_attendance(member_id)
+	position = database.get_member_position(member_id)
+	committees = database.get_member_committees(member_id)
+	import datetime
+	now = datetime.datetime.now()
+	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
+	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+	activity_display_names = {
+		'general_maintenance': 'General Maintenance',
+		'event_setup': 'Event Setup',
+		'event_cleanup': 'Event Cleanup',
+		'committee_work': 'Committee Work',
+		'building_and_grounds': 'Building/Grounds',
+		'gun_bingo_social_events': 'Gun Bingo/Social Events',
+		'executive_committee': 'Executive',
+		'other': 'Other'
+	}
+	return render_template(
+		'member_report.html',
+		member=member,
+		dues=dues,
+		work_hours=work_hours,
+		attendance=attendance,
+		position=position,
+		committees=committees,
+		committee_names=committee_names,
+		committee_display_names=committee_display_names,
+		work_activity_display_names=activity_display_names,
+		now=now
+	)
 
 # Soft delete member (move to recycle bin)
 @app.route('/delete_member/<int:member_id>', methods=['POST'])

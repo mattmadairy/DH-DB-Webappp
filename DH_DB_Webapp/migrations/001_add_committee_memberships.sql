@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS committee_names (
 INSERT OR IGNORE INTO committee_names (name) VALUES ('executive_committee');
 INSERT OR IGNORE INTO committee_names (name) VALUES ('gun_bingo_social_events');
 INSERT OR IGNORE INTO committee_names (name) VALUES ('building_and_grounds');
-INSERT OR IGNORE INTO committee_names (name) VALUES ('fundraising');
 INSERT OR IGNORE INTO committee_names (name) VALUES ('membership');
 
 -- Migration script to add committee_memberships table
