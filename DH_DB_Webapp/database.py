@@ -456,12 +456,14 @@ def get_member_position(member_id):
     return row
 
 def get_member_committees(member_id):
-	conn = get_connection()
-	c = conn.cursor()
-	c.execute("SELECT * FROM committees WHERE member_id=?", (member_id,))
-	row = c.fetchone()
-	conn.close()
-	return dict(row) if row else {}
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM committees WHERE member_id=?", (member_id,))
+    row = c.fetchone()
+    conn.close()
+    result = dict(row) if row else {}
+    print(f"[DEBUG] get_member_committees({member_id}) fetched: {result}")
+    return result
 
 def add_member(data):
 	conn = get_connection()

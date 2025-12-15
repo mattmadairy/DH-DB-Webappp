@@ -285,11 +285,11 @@
                 <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
                     <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
                 </a>
-                <a href="{{ url_for('kiosk_report') }}" class="{{ 'active-menu' if active_page == 'kiosk_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'kiosk_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📋 Kiosk</a>
+                <a href="{{ url_for('kiosk_report') }}" class="{{ 'active-menu' if active_page == 'kiosk_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'kiosk_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🟩 Check-ins</a>
             </div>
 
             <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
-            <a href="javascript:void(0);" onclick="generateEmailList()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📧 Email List</a>
+            <!-- Email List button removed -->
             <a href="{{ url_for('kiosk') }}" target="_blank" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
             {% if current_user.is_admin_or_bdfl() %}
             <a href="{{ url_for('admin_users') }}" class="{{ 'active-menu' if active_page == 'admin_users' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ '#5bc0de' if active_page != 'admin_users' else 'rgb(255,255,0)' }}; color:{{ '#ffffff' if active_page != 'admin_users' else '#000000' }}; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">
@@ -311,7 +311,7 @@
                 </div>
             </div>
         </div>
-
+<!-- Email List button removed -->
         <!-- Main content area -->
         <div class="main-content">
             <div class="header">

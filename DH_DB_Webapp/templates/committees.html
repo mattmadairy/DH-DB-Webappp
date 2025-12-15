@@ -8,9 +8,9 @@
         <h1 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5; text-decoration:underline;">Committees</h1>
     </div>
 </div>
-<div style="width:100%; max-width:800px; margin:0 auto;">
+<div style="width:100%; max-width:1100px; margin:0 auto;">
     <form method="get" style="margin-bottom:2em;">
-    <div style="display:flex; justify-content:center; align-items:center; gap:12px; width:100%; text-align:center;">
+        <div style="display:flex; justify-content:center; align-items:center; gap:12px; width:100%; text-align:center;">
             <label for="committee-select" style="font-size:1.1em; color:#f5f5f5;">Select Committee:</label>
             <select id="committee-select" name="committee" style="font-size:1.1em; padding:6px 18px; border-radius:6px; border:1px solid #384839;" onchange="this.form.submit()">
                 <option value="">-- Choose Committee --</option>
@@ -20,12 +20,87 @@
                 {% endfor %}
             </select>
         </div>
+        <div style="display:flex; justify-content:center; margin-top:16px;">
+            <a href="{{ url_for('committee_email_list', committee=request.args.get('committee', '') or 'committee_chairs') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04);">📧 Email List</a>
+        </div>
     </form>
-    <!-- Add your committee table and logic here, outside the select/option block -->
-    <!-- Example placeholder for committee table rendering -->
-    {# Add your committee table rendering logic here, outside the select/option block #}
-        <!-- End placeholder -->
-    </div>
+    <!-- No search bar needed -->
+    {% if selected_committee %}
+        {% set members = committee_members[selected_committee] %}
+        <h2 style="text-align:center; color:#f5f5f5; margin-bottom:0.5em;">
+            {{ committee_display_names[selected_committee] if selected_committee in committee_display_names else 'Committee Chairs' }} Members
+        </h2>
+        {% if members and members|length > 0 %}
+        <table id="committee-table" border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px; background-color:#f5f5f5;">
+            <thead>
+                <tr>
+                    <th onclick="sortCommitteeTable(0)" id="cth0">Name</th>
+                    <th onclick="sortCommitteeTable(1)" id="cth1">Email</th>
+                    <th onclick="sortCommitteeTable(2)" id="cth2">Phone</th>
+                    {% if selected_committee == 'committee_chairs' %}<th onclick="sortCommitteeTable(3)" id="cth3">Chairs</th>{% endif %}
+                    {% if selected_committee == 'executive_committee' %}<th onclick="sortCommitteeTable(3)" id="cth4">Role</th><th onclick="sortCommitteeTable(4)" id="cth5">Term</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in members %}
+                <tr class="committee-member-row" ondblclick="window.location='{{ url_for('member_details', member_id=member['id']) }}'" style="cursor:pointer;">
+                    <td style="text-align:center;">{{ member['first_name'] }} {{ member['last_name'] }}</td>
+                    <td>{{ member['email'] }}</td>
+                    <td style="min-width:130px;">{{ member['phone'] }}</td>
+                    {% if selected_committee == 'committee_chairs' %}<td>{{ member['chair_of'] }}</td>{% endif %}
+                    {% if selected_committee == 'executive_committee' %}<td>{{ member.get('role', '') }}</td><td>{{ member.get('term', '') }}</td>{% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="text-align:center; color:#f5f5f5;">No members found for this committee.</p>
+        {% endif %}
+    {% endif %}
+</div>
+<script>
+// No search logic needed
+// Row highlighting for committee table
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.committee-member-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+            document.querySelectorAll('.committee-member-row').forEach(function(r) {
+                r.style.backgroundColor = '';
+                r.style.fontWeight = '';
+            });
+            row.style.backgroundColor = 'rgb(255,255,0)';
+            row.style.fontWeight = 'bold';
+        });
+    });
+});
+// Sortable table columns with arrow indicators
+function sortCommitteeTable(n) {
+    var table = document.getElementById('committee-table');
+    var rows = Array.from(table.rows).slice(1); // skip header
+    var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
+    rows.sort(function(a, b) {
+        var x = a.cells[n].innerText.toLowerCase();
+        var y = b.cells[n].innerText.toLowerCase();
+        if (!isNaN(x) && !isNaN(y)) {
+            x = parseFloat(x); y = parseFloat(y);
+        }
+        if (x < y) return asc ? -1 : 1;
+        if (x > y) return asc ? 1 : -1;
+        return 0;
+    });
+    rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
+    table.setAttribute('data-sort-col', n);
+    table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+    // Remove arrows from all headers
+    for (let i = 0; i < 8; i++) {
+        let th = document.getElementById('cth'+i);
+        if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
+    }
+    // Add arrow to sorted column
+    let th = document.getElementById('cth'+n);
+    if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
+}
+</script>
     <script>
     // Sortable table columns with arrow indicators
     function sortTable(n) {

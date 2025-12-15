@@ -1149,6 +1149,8 @@ def edit_section(member_id):
 		return "Member not found", 404
 	if request.method == 'POST':
 		try:
+			print(f"[DEBUG] Received POST to /edit_section/{member_id} with section={section}")
+			print(f"[DEBUG] Form data: {request.form.to_dict(flat=False)}")
 			# Update only the requested section
 			if section == 'personal':
 				database.update_member_section(member_id, {
@@ -1212,8 +1214,6 @@ def edit_section(member_id):
 					request.form.get('notes', '')
 				)
 			elif section == 'committees':
-				import logging
-				logging.basicConfig(level=logging.DEBUG)
 				# Get master list of all possible committee columns from the committees table
 				import sqlite3
 				conn = sqlite3.connect(database.DB_NAME)
@@ -1227,19 +1227,19 @@ def edit_section(member_id):
 					form_key = f'committee_{cname}'
 					value = request.form.get(form_key)
 					updates[cname] = 1 if value == '1' else 0
-					logging.debug(f"Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
+					print(f"[DEBUG] Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
 					# Check if chair checkbox is selected
 					chair_key = f'chair_{cname}'
 					chair_value = request.form.get(chair_key)
 					if chair_value == '1':
 						chair_list.append(f"{cname} Chair")
-						logging.debug(f"Chair selected for: {cname}")
+						print(f"[DEBUG] Chair selected for: {cname}")
 				# Build notes string with all chair designations
 				updates['notes'] = ', '.join(chair_list) if chair_list else ''
-				logging.debug(f"Updates dict: {updates}")
-				logging.debug(f"Notes field: {updates['notes']}")
+				print(f"[DEBUG] Updates dict: {updates}")
+				print(f"[DEBUG] Notes field: {updates['notes']}")
 				database.update_member_committees(member_id, updates)
-				logging.debug(f"Successfully updated committees for member {member_id}")
+				print(f"[DEBUG] Successfully updated committees for member {member_id}")
 			return ('', 204)  # AJAX expects empty response
 		except Exception as e:
 			print(f"Error updating section {section} for member {member_id}: {e}")
@@ -1385,13 +1385,13 @@ def committees():
 		member_committees = database.get_member_committees(member['id'])
 		position = database.get_member_position(member['id'])
 		for cname in committee_names:
-			if member_committees.get(cname, 0) == 1:
+			if str(member_committees.get(cname, '0')) == '1':
 				member_copy = dict(member)
 				# Check if member is chair of this committee
 				notes = member_committees.get('notes', '')
 				is_chair = notes and (cname + ' chair') in notes.lower()
 				member_copy['is_chair'] = is_chair
-				
+
 				if cname == 'executive_committee':
 					member_copy['role'] = position['position'] if position and 'position' in position.keys() else ''
 					if position and (('term_start' in position.keys() and position['term_start']) or ('term_end' in position.keys() and position['term_end'])):
@@ -1457,11 +1457,11 @@ def committee_email_list():
 				committee_member_list.append(member)
 		committee_display = 'Committee Chairs'
 	else:
-		# Filter members who are in the selected committee
+		# Filter members who are in the selected committee (handle both int 1 and str '1')
 		committee_member_list = []
 		for member in all_members:
 			member_committees = database.get_member_committees(member['id'])
-			if member_committees and member_committees.get(committee, 0) == 1:
+			if member_committees and (committee in member_committees) and (str(member_committees.get(committee)) == '1' or member_committees.get(committee) == 1):
 				committee_member_list.append(member)
 		# Format committee name for display
 		committee_display = ' '.join(word.capitalize() for word in committee.replace('_', ' ').split())

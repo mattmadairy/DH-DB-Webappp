@@ -481,7 +481,7 @@ function generateEmailList() {
 			<th id="dues-sort-2" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 2)">Amount</th>
 			<th id="dues-sort-3" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 3)">Method</th>
 			<th id="dues-sort-4" style="border:2px solid #222; cursor:pointer;" onclick="sortTable('duesTable', 4)">Notes</th>
-
+			<!-- Email List button removed -->
 			<th style="border:2px solid #222;">Actions</th>
 			</tr>
 			{% for due in dues %}
@@ -553,7 +553,7 @@ function generateEmailList() {
 			{% for cname in committee_names|sort %}
 			<tr>
 				<td style="border:2px solid #222;">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</td>
-				<td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default(0) == 1 %}✔️{% else %}—{% endif %}</td>
+				<td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default('0') == '1' %}✔️{% else %}—{% endif %}</td>
 				<td style="border:2px solid #222; text-align:center;">{% if committees.notes and ((cname + ' Chair') in committees.notes or (cname.lower() + ' chair') in committees.notes.lower()) %}✔️{% else %}—{% endif %}</td>
 			</tr>
 			{% endfor %}
