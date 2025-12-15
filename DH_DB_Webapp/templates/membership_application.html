@@ -103,11 +103,7 @@
 		</div>
 		<h1>Dug Hill Rod & Gun Club<br>Membership Application</h1>
 		
-		{% if success %}
-		<div class="success-message">
-			Application submitted successfully! We will contact you soon.
-		</div>
-		{% endif %}
+		<!-- Success message removed: now handled by confirmation page -->
 		
 		<form method="POST">
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

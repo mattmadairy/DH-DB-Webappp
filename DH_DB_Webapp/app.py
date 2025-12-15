@@ -1604,6 +1604,11 @@ def kiosk_report():
 						   end_date=end_date,
 						   active_page='kiosk_report')
 
+# Confirmation page route
+@app.route('/application_confirmation')
+def application_confirmation():
+	return render_template('application_confirmation.html')
+
 # Membership Application route
 @app.route('/membership_application', methods=['GET', 'POST'])
 @csrf.exempt
@@ -1641,8 +1646,10 @@ def membership_application():
 			'on' if request.form.get('waiver_agreement') else ''
 		)
 		database.add_application(data)
-		return render_template('membership_application.html', success=True)
+		return redirect(url_for('application_confirmation'))
 	return render_template('membership_application.html', success=False)
+
+
 
 @app.route('/admin/application/<int:app_id>')
 @login_required
