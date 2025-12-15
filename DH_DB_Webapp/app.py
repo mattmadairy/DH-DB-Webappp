@@ -914,17 +914,18 @@ def member_details(member_id):
 		if cname:
 			committees[cname] = 1
 			committee_roles[cname] = row['role']
-		total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
-		activity_display_names = {
-			'general_maintenance': 'General Maintenance',
-			'event_setup': 'Event Setup',
-			'event_cleanup': 'Event Cleanup',
-			'committee_work': 'Committee Work',
-			'building_and_grounds': 'Building/Grounds',
-			'gun_bingo_social_events': 'Gun Bingo/Social Events',
-			'executive_committee': 'Executive',
-			'other': 'Other'
-		}
+
+	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
+	activity_display_names = {
+		'general_maintenance': 'General Maintenance',
+		'event_setup': 'Event Setup',
+		'event_cleanup': 'Event Cleanup',
+		'committee_work': 'Committee Work',
+		'building_and_grounds': 'Building/Grounds',
+		'gun_bingo_social_events': 'Gun Bingo/Social Events',
+		'executive_committee': 'Executive',
+		'other': 'Other'
+	}
 	import datetime
 	current_year = datetime.datetime.now().year
 	dues_years = list(range(current_year + 1, current_year - 10, -1))
