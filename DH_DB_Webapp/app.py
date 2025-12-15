@@ -1,8 +1,5 @@
-# ...existing code...
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-
-# ...existing code...
 
 # Place this after 'app = Flask(__name__)' and all app config
 
@@ -20,9 +17,6 @@ def register_context_processors(app):
 		except Exception:
 			applications = []
 		return dict(applications=applications)
-
-# ...existing code...
-
 
 # After all imports and before any route definitions:
 app = Flask(__name__)
@@ -891,6 +885,8 @@ def index():
 	applications = database.get_all_applications(status='pending')
 	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
 
+
+
 @app.route('/member/<int:member_id>')
 @login_required
 def member_details(member_id):
@@ -903,26 +899,22 @@ def member_details(member_id):
 	total_work_hours = sum(wh['hours'] for wh in work_hours)
 	attendance = database.get_meeting_attendance(member_id)
 	position = database.get_member_position(member_id)
-	committees = database.get_member_committees(member_id)
-	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
-	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-	# Get master list of all possible committee columns from the committees table
-	import sqlite3
-	conn = sqlite3.connect(database.DB_NAME)
-	c = conn.cursor()
-	c.execute("PRAGMA table_info(committees)")
-	all_committee_columns = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
-	conn.close()
-	committee_names = all_committee_columns
-	# Ensure committees dict has all keys, default to 0 if missing
-	if committees:
-		for cname in committee_names:
-			if cname not in committees:
-				committees[cname] = 0
-	else:
-		committees = {cname: 0 for cname in committee_names}
+	# Use new normalized committee structure
+	committee_rows = database.get_all_committees()
+	committee_names = [row['name'] for row in committee_rows]
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-	# Map raw activity names to display names
+	# Get this member's committees and roles
+	member_committees = database.get_member_committees_new(member_id)
+	# Build a dict: {committee_name: 1/0, ...} and {committee_name: 'chair'/'member'}
+	committees = {cname: 0 for cname in committee_names}
+	committee_roles = {cname: '' for cname in committee_names}
+	for row in member_committees:
+		row = dict(row)
+		cname = row.get('name') or row.get('committee_name')
+		if cname:
+			committees[cname] = 1
+			committee_roles[cname] = row['role']
+	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt'])
 	activity_display_names = {
 		'general_maintenance': 'General Maintenance',
 		'event_setup': 'Event Setup',
@@ -948,60 +940,53 @@ def member_details(member_id):
 		meetings=attendance,
 		position=position,
 		committees=committees,
+		committee_roles=committee_roles,
 		committee_names=committee_names,
 		committee_display_names=committee_display_names,
 		total_meetings=total_meetings,
 		work_activity_display_names=activity_display_names,
 		current_year=current_year
 	)
-
-# Add /reports route for the Reports page
-@app.route('/reports')
-@login_required
-def reports():
-	return render_template('reports.html', active_page='reports')
-
-# Member Report route
 @app.route('/member_report/<int:member_id>')
 @login_required
 def member_report(member_id):
-	member = database.get_member_by_id(member_id)
-	if not member:
-		return "Member not found", 404
-	dues = database.get_dues_by_member(member_id)
-	work_hours = database.get_work_hours_by_member(member_id)
-	attendance = database.get_meeting_attendance(member_id)
-	position = database.get_member_position(member_id)
-	committees = database.get_member_committees(member_id)
-	import datetime
-	now = datetime.datetime.now()
-	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
-	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-	activity_display_names = {
-		'general_maintenance': 'General Maintenance',
-		'event_setup': 'Event Setup',
-		'event_cleanup': 'Event Cleanup',
-		'fundraising': 'Fundraising',
-		'committee_work': 'Committee Work',
-		'building_and_grounds': 'Building/Grounds',
-		'gun_bingo_social_events': 'Gun Bingo/Social Events',
-		'executive_committee': 'Executive',
-		'other': 'Other'
-	}
-	return render_template(
-		'member_report.html',
-		member=member,
-		dues=dues,
-		work_hours=work_hours,
-		attendance=attendance,
-		position=position,
-		committees=committees,
-		committee_names=committee_names,
-		committee_display_names=committee_display_names,
-		work_activity_display_names=activity_display_names,
-		now=now
-	)
+    member = database.get_member_by_id(member_id)
+    if not member:
+        return "Member not found", 404
+    dues = database.get_dues_by_member(member_id)
+    work_hours = database.get_work_hours_by_member(member_id)
+    attendance = database.get_meeting_attendance(member_id)
+    position = database.get_member_position(member_id)
+    committees = database.get_member_committees(member_id)
+    import datetime
+    now = datetime.datetime.now()
+    exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
+    committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
+    committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+    activity_display_names = {
+        'general_maintenance': 'General Maintenance',
+        'event_setup': 'Event Setup',
+        'event_cleanup': 'Event Cleanup',
+        'fundraising': 'Fundraising',
+        'committee_work': 'Committee Work',
+        'building_and_grounds': 'Building/Grounds',
+        'gun_bingo_social_events': 'Gun Bingo/Social Events',
+        'executive_committee': 'Executive',
+        'other': 'Other'
+    }
+    return render_template(
+        'member_report.html',
+        member=member,
+        dues=dues,
+        work_hours=work_hours,
+        attendance=attendance,
+        position=position,
+        committees=committees,
+        committee_names=committee_names,
+        committee_display_names=committee_display_names,
+        work_activity_display_names=activity_display_names,
+        now=now
+    )
 
 # Soft delete member (move to recycle bin)
 @app.route('/delete_member/<int:member_id>', methods=['POST'])
@@ -1214,32 +1199,17 @@ def edit_section(member_id):
 					request.form.get('notes', '')
 				)
 			elif section == 'committees':
-				# Get master list of all possible committee columns from the committees table
-				import sqlite3
-				conn = sqlite3.connect(database.DB_NAME)
-				c = conn.cursor()
-				c.execute("PRAGMA table_info(committees)")
-				committee_names = [row[1] for row in c.fetchall() if row[1] not in ('member_id', 'committee_id', 'notes')]
-				conn.close()
-				updates = {}
-				chair_list = []
+				# Use normalized committee_memberships table
+				committee_names = [row['name'] for row in database.get_all_committees()]
+				new_memberships = {}
 				for cname in committee_names:
-					form_key = f'committee_{cname}'
-					value = request.form.get(form_key)
-					updates[cname] = 1 if value == '1' else 0
-					print(f"[DEBUG] Committee: {cname}, Form Key: {form_key}, Value: {value}, Update: {updates[cname]}")
-					# Check if chair checkbox is selected
-					chair_key = f'chair_{cname}'
-					chair_value = request.form.get(chair_key)
-					if chair_value == '1':
-						chair_list.append(f"{cname} Chair")
-						print(f"[DEBUG] Chair selected for: {cname}")
-				# Build notes string with all chair designations
-				updates['notes'] = ', '.join(chair_list) if chair_list else ''
-				print(f"[DEBUG] Updates dict: {updates}")
-				print(f"[DEBUG] Notes field: {updates['notes']}")
-				database.update_member_committees(member_id, updates)
-				print(f"[DEBUG] Successfully updated committees for member {member_id}")
+					is_member = request.form.get(f'committee_{cname}') == '1'
+					is_chair = request.form.get(f'chair_{cname}') == '1'
+					if is_member:
+						new_memberships[cname] = 'chair' if is_chair else 'member'
+					else:
+						new_memberships[cname] = 'none'
+				database.update_member_committees_normalized(member_id, new_memberships)
 			return ('', 204)  # AJAX expects empty response
 		except Exception as e:
 			print(f"Error updating section {section} for member {member_id}: {e}")
@@ -1371,67 +1341,55 @@ def meeting_attendance_report():
 @app.route('/committees')
 @login_required
 def committees():
-	import sqlite3
-	conn = sqlite3.connect(database.DB_NAME)
-	c = conn.cursor()
-	c.execute("PRAGMA table_info(committees)")
-	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
-	committee_names = [row[1] for row in c.fetchall() if row[1].lower().replace('_', ' ') not in exclude_keys and row[1] != 'member_id']
+	# Use new normalized schema
+	committee_names = [row['name'] for row in database.get_all_committees()]
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-	# Get all members and their committee memberships
-	members = database.get_all_members()
 	committee_members = {cname: [] for cname in committee_names}
-	for member in members:
-		member_committees = database.get_member_committees(member['id'])
-		position = database.get_member_position(member['id'])
-		for cname in committee_names:
-			if str(member_committees.get(cname, '0')) == '1':
-				member_copy = dict(member)
-				# Check if member is chair of this committee
-				notes = member_committees.get('notes', '')
-				is_chair = notes and (cname + ' chair') in notes.lower()
-				member_copy['is_chair'] = is_chair
-
-				if cname == 'executive_committee':
-					member_copy['role'] = position['position'] if position and 'position' in position.keys() else ''
-					if position and (('term_start' in position.keys() and position['term_start']) or ('term_end' in position.keys() and position['term_end'])):
-						term_start = position['term_start'] if 'term_start' in position.keys() and position['term_start'] else ''
-						term_end = position['term_end'] if 'term_end' in position.keys() and position['term_end'] else ''
-						if term_start and term_end:
-							member_copy['term'] = f"{term_start} until {term_end}"
-						elif term_start:
-							member_copy['term'] = f"{term_start}"
-						elif term_end:
-							member_copy['term'] = f"until {term_end}"
-						else:
-							member_copy['term'] = ''
+	# Get all committee_names with ids
+	committee_name_rows = database.get_all_committees()
+	committee_name_id_map = {row['name']: row['id'] for row in committee_name_rows}
+	# For each committee, get members
+	for cname, cid in committee_name_id_map.items():
+		members = database.get_committee_members(cid)
+		unique_members = {}
+		for member in members:
+			member_copy = dict(member)
+			mid = member_copy['id']
+			# If already present, prefer 'chair' role
+			if mid in unique_members:
+				if member_copy.get('role') == 'chair':
+					unique_members[mid] = member_copy
+			else:
+				unique_members[mid] = member_copy
+			member_copy['is_chair'] = (member_copy.get('role') == 'chair')
+			if cname == 'executive_committee':
+				position = database.get_member_position(member['id'])
+				member_copy['role'] = position['position'] if position and 'position' in position.keys() else ''
+				if position and (('term_start' in position.keys() and position['term_start']) or ('term_end' in position.keys() and position['term_end'])):
+					term_start = position['term_start'] if 'term_start' in position.keys() and position['term_start'] else ''
+					term_end = position['term_end'] if 'term_end' in position.keys() and position['term_end'] else ''
+					if term_start and term_end:
+						member_copy['term'] = f"{term_start} until {term_end}"
+					elif term_start:
+						member_copy['term'] = f"{term_start}"
+					elif term_end:
+						member_copy['term'] = f"until {term_end}"
 					else:
 						member_copy['term'] = ''
-				committee_members[cname].append(member_copy)
-	conn.close()
-	
+				else:
+					member_copy['term'] = ''
+		committee_members[cname] = list(unique_members.values())
 	# Add special "Committee Chairs" option
 	chair_members = []
-	for member in members:
-		member_committees = database.get_member_committees(member['id'])
-		if member_committees and member_committees.get('notes', '') and 'chair' in member_committees.get('notes', '').lower():
-			# Parse which committees they chair and format them
-			member_copy = dict(member)
-			notes = member_committees.get('notes', '')
-			# Extract committee names from notes (format: "committee_name Chair, other_committee Chair")
-			chair_committees = []
-			for part in notes.split(','):
-				part = part.strip()
-				if 'chair' in part.lower():
-					# Remove " Chair" suffix and format the committee name
-					committee_name = part.replace(' Chair', '').replace(' chair', '').strip()
-					# Format: capitalize each word and replace underscores with spaces
-					formatted_name = ' '.join(word.capitalize() for word in committee_name.replace('_', ' ').split())
-					chair_committees.append(formatted_name)
-			member_copy['chair_of'] = ', '.join(chair_committees)
-			chair_members.append(member_copy)
+	for cname, cid in committee_name_id_map.items():
+		members = database.get_committee_members(cid)
+		for member in members:
+			member_dict = dict(member)
+			if member_dict.get('role') == 'chair':
+				member_copy = dict(member)
+				member_copy['chair_of'] = committee_display_names[cname]
+				chair_members.append(member_copy)
 	committee_members['committee_chairs'] = chair_members
-	
 	import datetime
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')

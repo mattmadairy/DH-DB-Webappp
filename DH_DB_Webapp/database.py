@@ -125,6 +125,29 @@ def update_member_committees(member_id, updates):
         c.execute(f"UPDATE committees SET {set_clause} WHERE member_id=?", values)
     conn.commit()
     conn.close()
+def update_member_committees_normalized(member_id, new_memberships):
+    """
+    Update the committee_memberships table for a member based on a dict:
+    {committee_name: 'none'|'member'|'chair'}
+    """
+    conn = get_connection()
+    c = conn.cursor()
+    # Get all committee names and their ids
+    c.execute("SELECT id, name FROM committee_names")
+    committee_map = {row['name']: row['id'] for row in c.fetchall()}
+    # Remove all current memberships for this member
+    c.execute("DELETE FROM committee_memberships WHERE member_id=?", (member_id,))
+    # Insert new memberships
+    for cname, role in new_memberships.items():
+        if role in ('member', 'chair'):
+            committee_id = committee_map.get(cname)
+            if committee_id:
+                c.execute(
+                    "INSERT INTO committee_memberships (member_id, committee_id, role) VALUES (?, ?, ?)",
+                    (member_id, committee_id, role)
+                )
+    conn.commit()
+    conn.close()
 def update_member_position(member_id, position, term_start=None, term_end=None):
     conn = get_connection()
     c = conn.cursor()
@@ -1016,3 +1039,67 @@ def reject_application(app_id, user_id, notes=''):
 	affected = c.rowcount
 	conn.close()
 	return affected > 0
+
+def get_all_committees():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM committee_names")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_committee_by_id(committee_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM committees WHERE id=?", (committee_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def get_committee_members(committee_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT m.*, cm.role FROM members m
+        JOIN committee_memberships cm ON m.id = cm.member_id
+        WHERE cm.committee_id = ? AND m.deleted = 0
+    """, (committee_id,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_member_committees_new(member_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT cn.*, cm.role FROM committee_names cn
+        JOIN committee_memberships cm ON cn.id = cm.committee_id
+        WHERE cm.member_id = ?
+    """, (member_id,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def add_member_to_committee(member_id, committee_id, role=None):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("INSERT INTO committee_memberships (member_id, committee_id, role) VALUES (?, ?, ?)", (member_id, committee_id, role))
+    conn.commit()
+    conn.close()
+
+def remove_member_from_committee(member_id, committee_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM committee_memberships WHERE member_id=? AND committee_id=?", (member_id, committee_id))
+    conn.commit()
+    conn.close()
+
+def update_member_committee_role(member_id, committee_id, role):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE committee_memberships SET role=? WHERE member_id=? AND committee_id=?", (role, member_id, committee_id))
+    conn.commit()
+    conn.close()
+
+# Deprecated: get_member_committees (old per-member columns)
+# Deprecated: update_member_committees (old per-member columns)

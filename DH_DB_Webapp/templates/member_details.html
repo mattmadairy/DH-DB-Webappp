@@ -553,8 +553,8 @@ function generateEmailList() {
 			{% for cname in committee_names|sort %}
 			<tr>
 				<td style="border:2px solid #222;">{{ work_activity_display_names[cname] if work_activity_display_names and cname in work_activity_display_names else committee_display_names[cname] }}</td>
-				<td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default('0') == '1' %}✔️{% else %}—{% endif %}</td>
-				<td style="border:2px solid #222; text-align:center;">{% if committees.notes and ((cname + ' Chair') in committees.notes or (cname.lower() + ' chair') in committees.notes.lower()) %}✔️{% else %}—{% endif %}</td>
+				   <td style="border:2px solid #222; text-align:center;">{% if committees[cname]|default('0') == 1 %}✔️{% else %}—{% endif %}</td>
+				   <td style="border:2px solid #222; text-align:center;">{% if committee_roles[cname] == 'chair' %}✔️{% else %}—{% endif %}</td>
 			</tr>
 			{% endfor %}
 		</table>
@@ -733,15 +733,12 @@ function generateEmailList() {
 		<form id="editCommitteesForm">
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
-			<div style="display:grid; grid-template-columns:1fr auto auto; gap:10px 12px; align-items:center;">
-				<div style="font-weight:bold;">Committee</div>
-				<div style="font-weight:bold; text-align:center;">Member</div>
-				<div style="font-weight:bold; text-align:center;">Chair</div>
-				{% for cname in committee_names|sort %}
-					<label for="committee_{{ cname }}">{{ committee_display_names[cname] }}</label>
-					<input type="checkbox" id="committee_{{ cname }}" name="committee_{{ cname }}" value="1" {% if committees[cname]|default(0) == 1 %}checked{% endif %} style="justify-self:center;" onchange="toggleChairCheckbox('{{ cname }}')">
-					<input type="checkbox" id="chair_{{ cname }}" name="chair_{{ cname }}" value="1" {% if committees.notes and ((cname + ' Chair') in committees.notes or (cname.lower() + ' chair') in committees.notes.lower()) %}checked{% endif %} style="justify-self:center;" {% if not (committees[cname]|default(0) == 1) %}disabled{% endif %}>
-				{% endfor %}
+			   <div style="display:grid; grid-template-columns:1fr auto auto; gap:10px 12px; align-items:center;">
+				   {% for cname in committee_names|sort %}
+					   <label for="committee_{{ cname }}">{{ committee_display_names[cname] }}</label>
+					   <input type="checkbox" id="committee_{{ cname }}" name="committee_{{ cname }}" value="1" {% if committees[cname]|default(0) == 1 %}checked{% endif %} style="justify-self:center;" onchange="toggleChairCheckbox('{{ cname }}')">
+					   <input type="checkbox" id="chair_{{ cname }}" name="chair_{{ cname }}" value="1" {% if committee_roles[cname] == 'chair' %}checked{% endif %} style="justify-self:center;" {% if not (committees[cname]|default(0) == 1) %}disabled{% endif %}>
+				   {% endfor %}
 			</div>
 			<div style="margin-top:18px; text-align:center;">
 				<button type="button" onclick="submitCommittees()" style="margin-right:12px;">Save</button>
