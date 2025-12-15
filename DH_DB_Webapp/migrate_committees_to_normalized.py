@@ -49,7 +49,7 @@ def migrate_committees(db_path):
     c.execute("SELECT * FROM committees")
     for row in c.fetchall():
         member_id = row['member_id']
-        notes = row['notes'] if 'notes' in row.keys() else ''
+        notes = row['notes'] or ''
         for cname in columns:
             if row[cname] == 1:
                 role = 'chair' if (f"{cname} Chair" in notes or f"{cname.lower()} chair" in notes.lower()) else 'member'
