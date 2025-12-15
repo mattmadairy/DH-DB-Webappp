@@ -1659,7 +1659,7 @@ def membership_application():
 			request.form.get('suffix', ''),
 			request.form.get('nickname', ''),
 			request.form['sex'],
-			request.form['dob'],
+			request.form['date_of_birth'],
 			request.form['email'],
 			request.form.get('email2', ''),
 			request.form['phone'],
