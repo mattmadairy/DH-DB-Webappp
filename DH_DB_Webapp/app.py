@@ -606,14 +606,9 @@ def edit_user():
 		flash('Email already registered.', 'error')
 		return redirect(url_for('admin_users'))
 	
-	# Update user
-	import sqlite3
-	conn = sqlite3.connect(database.DB_NAME)
-	
-	# Only BDFL can update roles
+	# Update user using database function
 	if role and current_user.is_bdfl():
-		conn.execute('UPDATE users SET username = ?, name = ?, email = ?, role = ? WHERE id = ?', 
-					 (username, name, email, role, user_id))
+		database.update_user(user_id, username, name, email, role)
 		database.log_audit(
 			user_id=current_user.id,
 			username=current_user.username,
@@ -625,8 +620,7 @@ def edit_user():
 			details=f'Updated role to {role}'
 		)
 	else:
-		conn.execute('UPDATE users SET username = ?, name = ?, email = ? WHERE id = ?', 
-					 (username, name, email, user_id))
+		database.update_user(user_id, username, name, email)
 		database.log_audit(
 			user_id=current_user.id,
 			username=current_user.username,
@@ -636,8 +630,6 @@ def edit_user():
 			user_agent=request.headers.get('User-Agent'),
 			success=True
 		)
-	conn.commit()
-	conn.close()
 	
 	flash(f'User "{username}" updated successfully!', 'info')
 	return redirect(url_for('admin_users'))

@@ -1,3 +1,14 @@
+# ========== User Update Function ==========
+def update_user(user_id, username, name, email, role=None):
+    """Update user details. If role is provided, update it as well."""
+    conn = get_connection()
+    c = conn.cursor()
+    if role is not None:
+        c.execute("UPDATE users SET username=?, name=?, email=?, role=? WHERE id=?", (username, name, email, role, user_id))
+    else:
+        c.execute("UPDATE users SET username=?, name=?, email=? WHERE id=?", (username, name, email, user_id))
+    conn.commit()
+    conn.close()
 def get_meeting_attendance_report(year=None, month=None):
     """
     Return a list of dicts with badge_number, first_name, last_name, meeting_date, status for all meeting attendance records, filtered by year and month if provided.
