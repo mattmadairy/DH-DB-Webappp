@@ -58,7 +58,7 @@ csrf = CSRFProtect(app)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["200 per day", "100 per hour"],
     storage_uri="memory://"
 )
 
@@ -738,7 +738,8 @@ def dues_report():
 	dues = database.get_all_dues_by_year(year)
 	now = datetime.datetime.now()
 	member_stats = get_member_stats()
-	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats)
+	total_dues_revenue = sum(float(due['amount'] or 0) for due in dues)
+	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats, total_dues_revenue=total_dues_revenue)
 
 @app.route('/dues_email_list')
 @login_required

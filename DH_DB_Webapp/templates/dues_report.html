@@ -103,10 +103,14 @@
             }
             #duesTable {
                 position: absolute !important;
-                top: 8em !important;
+                top: 4em !important;
             }
             .print-header h1, .print-header h2, #generatedLine {
                 color: #000 !important;
+            }
+            .print-header h3, .print-header span {
+                color: #000 !important;
+                font-weight: normal !important;
             }
             body.hide-names-print .name-col {
                 display: none !important;
@@ -178,10 +182,10 @@
     <h1 style="margin:0; line-height:1.1; font-size:2em;">Membership Database</h1>
     <div style="height:0.7em;"></div>
     <h2 style="margin:0; line-height:1.1;">Dues Report</h2>
-    {% if selected_year %}
-    <h3 style="margin:0; line-height:1.1; padding-bottom:0;">Year: {{ selected_year }}</h3>
-    {% endif %}
-    <h3 style="margin:0; line-height:1.1; padding-top:0.3em;">Total Records: {{ dues|length }}</h3>
+    <div style="height:1em;"></div>
+    <span style="font-size:1.17em; font-weight:normal; text-align:center;">
+    {% if selected_year %}Year: {{ selected_year }}<br>{% endif %}Total Records: {{ dues|length }}<br>Total Revenue: ${{ '%.2f'|format(total_dues_revenue) }}
+    </span>
     </div>
         <style>
             body.hide-names-print .name-col {
@@ -271,6 +275,7 @@
                 </div>
                 <div style="text-align:center; margin-bottom:12px; font-size:1.1em; color:#384839; font-weight:bold;">
                     Total Records: {{ dues|length }}
+                    <span style="margin-left:24px; font-weight:bold; color:#384839;">Total Revenue: ${{ '%.2f'|format(total_dues_revenue) }}</span>
                 </div>
                 <table id="duesTable" style="width:100%; max-width:700px; margin:auto; border-collapse:collapse;">
                     <thead>
