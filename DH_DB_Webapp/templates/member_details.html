@@ -24,8 +24,16 @@
 							<label for="suffix">Suffix:</label><input type="text" id="suffix" name="suffix">
 							<label for="nickname">Nickname:</label><input type="text" id="nickname" name="nickname">
 							<label for="dob">Date of Birth:</label><input type="date" id="dob" name="dob">
-							<label for="email">Primary Email:</label><input type="email" id="email" name="email">
-							<label for="email2">Secondary Email:</label><input type="email" id="email2" name="email2">
+							   <label for="email">Primary Email:</label>
+							   <div style="display:flex; align-items:center; gap:4px;">
+								   <input type="email" id="email" name="email">
+								   <button type="button" onclick="copyEmail('email')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer;">📋</button>
+							   </div>
+							   <label for="email2">Secondary Email:</label>
+							   <div style="display:flex; align-items:center; gap:4px;">
+								   <input type="email" id="email2" name="email2">
+								   <button type="button" onclick="copyEmail('email2')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer;">📋</button>
+							   </div>
 							<label for="phone">Primary Phone:</label><input type="text" id="phone" name="phone">
 							<label for="phone2">Secondary Phone:</label><input type="text" id="phone2" name="phone2">
 							<label for="address">Address:</label><input type="text" id="address" name="address">
@@ -449,8 +457,45 @@ function generateEmailList() {
 		   <!-- Contact Info Section -->
 		   <table border="1" cellpadding="6" cellspacing="0" style="margin:auto; width:100%; max-width:700px; table-layout:fixed; background-color:#f5f5f5; border-collapse:collapse; border:2px solid #222;">
 			   <tr><th colspan="2" style="background:#f0f0f0; border:2px solid #222;">Contact Info</th></tr>
-			   <tr><td style="border:2px solid #222;"><b>Primary Email:</b></td><td style="border:2px solid #222;">{{ member['email'] }}</td></tr>
-			   <tr><td style="border:2px solid #222;"><b>Secondary Email:</b></td><td style="border:2px solid #222;">{{ member['email2'] }}</td></tr>
+			   <tr>
+				   <td style="border:2px solid #222;"><b>Primary Email:</b></td>
+				   <td style="border:2px solid #222;">
+					   <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+						   <span id="details-email">{{ member['email'] }}</span>
+						   {% if member['email'] %}
+						   <button type="button" onclick="copyEmailText('details-email')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer; margin-left:8px;">📋</button>
+						   {% endif %}
+					   </div>
+				   </td>
+			   </tr>
+			   <tr>
+				   <td style="border:2px solid #222;"><b>Secondary Email:</b></td>
+				   <td style="border:2px solid #222;">
+					   <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+						   <span id="details-email2">{{ member['email2'] }}</span>
+						   {% if member['email2'] %}
+						   <button type="button" onclick="copyEmailText('details-email2')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer; margin-left:8px;">📋</button>
+						   {% endif %}
+					   </div>
+				   </td>
+			   </tr>
+			</script>
+			<script>
+			function copyEmailText(spanId) {
+				var span = document.getElementById(spanId);
+				if (span) {
+					var text = span.innerText || span.textContent;
+					var tempInput = document.createElement('input');
+					tempInput.value = text;
+					document.body.appendChild(tempInput);
+					tempInput.select();
+					tempInput.setSelectionRange(0, 99999);
+					document.execCommand('copy');
+					document.body.removeChild(tempInput);
+					alert('Email copied to clipboard!');
+				}
+			}
+			</script>
 			   <tr><td style="border:2px solid #222;"><b>Primary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone'] }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Secondary Phone:</b></td><td style="border:2px solid #222;">{{ member['phone2'] }}</td></tr>
 		   </table>
@@ -861,8 +906,28 @@ function submitCommittees() {
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
-				<label for="contact_email">Primary Email:</label><input type="email" id="contact_email" name="email" value="{{ member['email'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
-				<label for="contact_email2">Secondary Email:</label><input type="email" id="contact_email2" name="email2" value="{{ member['email2'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
+				   <label for="contact_email">Primary Email:</label>
+				   <div style="display:flex; align-items:center; gap:4px;">
+					   <input type="email" id="contact_email" name="email" value="{{ member['email'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
+					   <button type="button" onclick="copyEmail('contact_email')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer;">📋</button>
+				   </div>
+				   <label for="contact_email2">Secondary Email:</label>
+				   <div style="display:flex; align-items:center; gap:4px;">
+					   <input type="email" id="contact_email2" name="email2" value="{{ member['email2'] }}" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}" title="Please include a valid email with domain extension (e.g., user@example.com)">
+					   <button type="button" onclick="copyEmail('contact_email2')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer;">📋</button>
+				   </div>
+				</script>
+				<script>
+				function copyEmail(inputId) {
+					var input = document.getElementById(inputId);
+					if (input) {
+						input.select();
+						input.setSelectionRange(0, 99999); // For mobile
+						document.execCommand('copy');
+						alert('Email copied to clipboard!');
+					}
+				}
+				</script>
 				<label for="contact_phone">Primary Phone:</label><input type="tel" id="contact_phone" name="phone" value="{{ member['phone'] }}" placeholder="(xxx) xxx-xxxx" oninput="formatPhoneNumber(this)" maxlength="14">
 				<label for="contact_phone2">Secondary Phone:</label><input type="tel" id="contact_phone2" name="phone2" value="{{ member['phone2'] }}" placeholder="(xxx) xxx-xxxx" oninput="formatPhoneNumber(this)" maxlength="14">
 			</div>

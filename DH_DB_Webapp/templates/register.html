@@ -116,7 +116,22 @@
             
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
+                <div style="display:flex; align-items:center; gap:4px;">
+                    <input type="email" id="email" name="email" required>
+                    <button type="button" onclick="copyEmail('email')" title="Copy Email" style="padding:2px 8px; font-size:1em; cursor:pointer;">📋</button>
+                </div>
+            </script>
+            <script>
+            function copyEmail(inputId) {
+                var input = document.getElementById(inputId);
+                if (input) {
+                    input.select();
+                    input.setSelectionRange(0, 99999); // For mobile
+                    document.execCommand('copy');
+                    alert('Email copied to clipboard!');
+                }
+            }
+            </script>
             </div>
             
             <div class="form-group">
