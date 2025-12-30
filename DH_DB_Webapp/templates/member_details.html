@@ -648,6 +648,7 @@ function generateEmailList() {
 	}
 	document.getElementById('addWorkHoursForm').onsubmit = function(e) {
 		e.preventDefault();
+		var csrf = document.querySelector('input[name="csrf_token"]').value;
 		var date = document.getElementById('work_date').value;
 		var activity = document.getElementById('work_activity').value;
 		var hours = document.getElementById('work_hours').value;
@@ -655,12 +656,12 @@ function generateEmailList() {
 		fetch("/add_work_hours/{{ member['id'] }}", {
 			method: "POST",
 			headers: {"Content-Type": "application/x-www-form-urlencoded"},
-			body: "date=" + encodeURIComponent(date) + "&activity=" + encodeURIComponent(activity) + "&hours=" + encodeURIComponent(hours) + "&notes=" + encodeURIComponent(notes)
+			body: "csrf_token=" + encodeURIComponent(csrf) + "&date=" + encodeURIComponent(date) + "&activity=" + encodeURIComponent(activity) + "&hours=" + encodeURIComponent(hours) + "&notes=" + encodeURIComponent(notes)
 		}).then(function(resp) {
 			if (resp.ok) {
 				location.reload();
 			} else {
-				alert('Failed to add work hours');
+				resp.text().then(text => alert('Failed to add work hours: ' + text));
 			}
 		});
 	};
@@ -710,17 +711,18 @@ function generateEmailList() {
 	<script>
 	document.getElementById('addMeetingForm').onsubmit = function(e) {
 		e.preventDefault();
+		var csrf = document.querySelector('input[name="csrf_token"]').value;
 		var date = document.getElementById('meeting_date').value;
 		var status = document.getElementById('meeting_status').value;
 		fetch("/add_meeting_attendance/{{ member['id'] }}", {
 			method: "POST",
 			headers: {"Content-Type": "application/x-www-form-urlencoded"},
-			body: "date=" + encodeURIComponent(date) + "&status=" + encodeURIComponent(status)
+			body: "csrf_token=" + encodeURIComponent(csrf) + "&date=" + encodeURIComponent(date) + "&status=" + encodeURIComponent(status)
 		}).then(function(resp) {
 			if (resp.ok) {
 				location.reload();
 			} else {
-				alert('Failed to add meeting attendance');
+				resp.text().then(text => alert('Failed to add meeting attendance: ' + text));
 			}
 		});
 	};

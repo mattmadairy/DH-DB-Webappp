@@ -715,10 +715,14 @@ def check_password_change_required():
 @login_required
 def add_work_hours(member_id):
 	date = request.form.get('date')
+	activity = request.form.get('activity')
 	hours = request.form.get('hours')
-	description = request.form.get('description', '')
-	database.add_work_hours(member_id, date, hours, description)
-	return redirect(url_for('member_details', member_id=member_id))
+	notes = request.form.get('notes', '')
+	try:
+		database.add_work_hours(member_id, date, activity, hours, notes)
+		return ('', 204)
+	except Exception as e:
+		return jsonify({'error': str(e)}), 400
 
 @app.route('/dues_report')
 @login_required
@@ -844,8 +848,11 @@ def work_hours_report():
 def add_meeting_attendance(member_id):
     date = request.form['date']
     status = request.form['status']
-    database.add_meeting_attendance(member_id, date, status)
-    return ('', 204)
+    try:
+        database.add_meeting_attendance(member_id, date, status)
+        return ('', 204)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/', methods=['GET'])
 @login_required
