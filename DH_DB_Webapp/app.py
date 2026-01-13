@@ -56,12 +56,17 @@ login_manager.login_message_category = 'info'
 csrf = CSRFProtect(app)
 
 # Initialize rate limiter
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "100 per hour"],
-    storage_uri="memory://"
-)
+if env == 'development':
+    # Disable rate limiting in development
+    limiter = Limiter(app=app, key_func=get_remote_address)
+else:
+    # Production limits
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["500 per day", "100 per hour"],
+        storage_uri="memory://"
+    )
 
 # User class for Flask-Login
 class User(UserMixin):
