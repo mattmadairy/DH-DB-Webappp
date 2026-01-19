@@ -210,6 +210,7 @@
                         {% endfor %}
                     </select>
                     <button type="button" class="print-btn" onclick="printReport()" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">🖨️ Print Report</button>
+                    <button type="button" class="print-btn" onclick="window.location.href='{{ url_for('work_hours_export_csv', year=selected_year) }}'" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#fff; cursor:pointer; margin-left:8px;">📥 Export CSV</button>
                     <label class="hide-names-label" style="font-size:1em; color:#384839; margin-left:12px;">
                         <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
                     </label>

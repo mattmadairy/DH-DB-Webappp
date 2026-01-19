@@ -86,7 +86,7 @@
             
             <div style="max-width: 800px; width: 100%; padding: 20px; background: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
                 <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 6px;">
-                    <h3 style="margin-top: 0; color: #384839;">� Bulk Dues Payments</h3>
+                    <h3 style="margin-top: 0; color: #384839;">💵 Bulk Dues Payments</h3>
                     <p>Add dues payments for multiple members at once.</p>
                     <button style="padding: 10px 20px; background-color: #384839; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;" onclick="openModal('bulkDuesModal')">Add Dues Payments</button>
                 </div>
@@ -95,6 +95,12 @@
                     <h3 style="margin-top: 0; color: #384839;">⏰ Bulk Work Hours</h3>
                     <p>Add work hours for multiple members at once.</p>
                     <button style="padding: 10px 20px; background-color: #384839; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;" onclick="openModal('bulkWorkHoursModal')">Add Work Hours</button>
+                </div>
+                
+                <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 6px;">
+                    <h3 style="margin-top: 0; color: #384839;">📅 Bulk Meeting Attendance</h3>
+                    <p>Add meeting attendance for multiple members at once.</p>
+                    <button style="padding: 10px 20px; background-color: #384839; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;" onclick="openModal('bulkMeetingAttendanceModal')">Add Meeting Attendance</button>
                 </div>
             </div>
         </div>
@@ -193,6 +199,44 @@
         </div>
     </div>
 
+    <!-- Bulk Meeting Attendance Modal -->
+    <div id="bulkMeetingAttendanceModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+        <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:500px; border-radius:8px; position:relative;">
+            <button onclick="closeModal('bulkMeetingAttendanceModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+            <h3 style="margin-top:0; text-align:center;">Add Meeting Attendance</h3>
+            <form id="bulkMeetingAttendanceForm">
+                <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+                    <label for="meeting_date">Meeting Date:</label>
+                    <input type="date" id="meeting_date" name="meeting_date" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="meeting_status">Status:</label>
+                    <select id="meeting_status" name="meeting_status" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        <option value="Attended">Attended</option>
+                        <option value="Exempt">Exempt</option>
+                        <option value="Absent">Absent</option>
+                    </select>
+                    
+                    <label for="meeting_search">Search Members:</label>
+                    <input type="text" id="meeting_search" name="meeting_search" placeholder="Search by name or badge..." style="padding:8px; border:1px solid #ccc; border-radius:4px;" onkeyup="searchMembersForBulkMeetingAttendance()">
+                    
+                    <div style="grid-column: 1/3;">
+                        <div id="meeting_search_results" style="border:1px solid #ccc; border-radius:4px; max-height:200px; overflow-y:auto; background:#fff;">
+                            <div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>
+                        </div>
+                        <input type="hidden" id="meeting_selected_member_ids" name="meeting_selected_member_ids" value="">
+                        <div id="meeting_selected_members" style="margin-top:10px; padding:8px; background:#f0f0f0; border-radius:4px; min-height:30px; border:1px solid #ddd;">
+                            <span style="color:#666; font-size:0.9em;">Selected: <span id="meeting_selected_count">0</span> member(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:20px; text-align:center;">
+                    <button type="button" onclick="closeModal('bulkMeetingAttendanceModal')" style="padding:8px 16px; margin-right:10px; background-color:#ccc; color:#000; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="padding:8px 16px; background-color:#384839; color:white; border:none; border-radius:4px; cursor:pointer;">Add Meeting Attendance</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
     function toggleSubmenu() {
         var submenu = document.getElementById('reports-submenu');
@@ -223,6 +267,15 @@
                 document.getElementById('work_search').value = '';
                 document.getElementById('work_selected_member_ids').value = '';
                 document.getElementById('work_selected_count').textContent = '0';
+            } else if (modalId === 'bulkMeetingAttendanceModal') {
+                // Set today's date as default
+                var today = new Date().toISOString().split('T')[0];
+                document.getElementById('meeting_date').value = today;
+                loadMembersForBulkMeetingAttendance();
+                // Clear search and selected members
+                document.getElementById('meeting_search').value = '';
+                document.getElementById('meeting_selected_member_ids').value = '';
+                document.getElementById('meeting_selected_count').textContent = '0';
             }
         }
     }
@@ -691,6 +744,254 @@
             alert('An error occurred while adding work hours: ' + error.message);
         });
     }
+    
+    var selectedMeetingAttendanceMemberIds = [];
+    
+    function loadMembersForBulkMeetingAttendance() {
+        fetch('/api/get_all_members')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load members: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    allMembers = data;
+                    selectedMeetingAttendanceMemberIds = [];
+                    var resultsDiv = document.getElementById('meeting_search_results');
+                    resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+                    updateSelectedMeetingAttendanceMembersDisplay();
+                } else {
+                    console.error('Expected array but got:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading members:', error);
+                alert('Failed to load members: ' + error.message);
+            });
+    }
+    
+    function searchMembersForBulkMeetingAttendance() {
+        var searchTerm = document.getElementById('meeting_search').value.toLowerCase();
+        displayMeetingAttendanceSearchResults(searchTerm);
+    }
+    
+    function displayMeetingAttendanceSearchResults(searchTerm) {
+        var resultsDiv = document.getElementById('meeting_search_results');
+        
+        if (!searchTerm) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+            return;
+        }
+        
+        if (!allMembers || allMembers.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No members available</div>';
+            return;
+        }
+        
+        var filteredMembers = [];
+        for (var i = 0; i < allMembers.length; i++) {
+            var member = allMembers[i];
+            var fullName = (member.first_name + ' ' + member.last_name).toLowerCase();
+            var badgeStr = String(member.badge_number).toLowerCase();
+            if (fullName.indexOf(searchTerm) !== -1 || badgeStr.indexOf(searchTerm) !== -1) {
+                filteredMembers.push(member);
+            }
+        }
+        
+        if (filteredMembers.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No members found</div>';
+            return;
+        }
+        
+        var displayMembers = filteredMembers.slice(0, 10);
+        resultsDiv.innerHTML = '';
+        
+        for (var i = 0; i < displayMembers.length; i++) {
+            var member = displayMembers[i];
+            var isSelected = false;
+            for (var j = 0; j < selectedMeetingAttendanceMemberIds.length; j++) {
+                if (selectedMeetingAttendanceMemberIds[j] == member.id) {
+                    isSelected = true;
+                    break;
+                }
+            }
+            
+            var div = document.createElement('div');
+            div.style.padding = '8px 10px';
+            div.style.borderBottom = '1px solid #eee';
+            div.style.cursor = 'pointer';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.innerHTML = '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' style="cursor:pointer;" onclick="event.stopPropagation();">' +
+                          '<label style="cursor:pointer; flex:1; margin:0; margin-left:10px;">' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</label>';
+            div.onclick = function(memberId) {
+                return function(e) {
+                    toggleMeetingAttendanceMemberSelection(memberId);
+                };
+            }(member.id);
+            
+            resultsDiv.appendChild(div);
+        }
+        
+        if (filteredMembers.length > 10) {
+            var countDiv = document.createElement('div');
+            countDiv.style.padding = '8px 10px';
+            countDiv.style.color = '#999';
+            countDiv.style.textAlign = 'center';
+            countDiv.style.fontSize = '0.9em';
+            countDiv.textContent = 'Showing 10 of ' + filteredMembers.length + ' results';
+            resultsDiv.appendChild(countDiv);
+        }
+    }
+    
+    function toggleMeetingAttendanceMemberSelection(memberId) {
+        var index = -1;
+        for (var i = 0; i < selectedMeetingAttendanceMemberIds.length; i++) {
+            if (selectedMeetingAttendanceMemberIds[i] == memberId) {
+                index = i;
+                break;
+            }
+        }
+        
+        if (index > -1) {
+            // Remove from selected
+            selectedMeetingAttendanceMemberIds.splice(index, 1);
+        } else {
+            // Add to selected
+            selectedMeetingAttendanceMemberIds.push(memberId);
+        }
+        
+        updateSelectedMeetingAttendanceMembersDisplay();
+        
+        // Re-display results to update checkboxes
+        searchMembersForBulkMeetingAttendance();
+    }
+    
+    function updateSelectedMeetingAttendanceMembersDisplay() {
+        var display = document.getElementById('meeting_selected_members');
+        if (!display) return;
+        
+        var countSpan = document.getElementById('meeting_selected_count');
+        if (countSpan) {
+            countSpan.textContent = selectedMeetingAttendanceMemberIds.length;
+        }
+        
+        var hiddenInput = document.getElementById('meeting_selected_member_ids');
+        if (hiddenInput) {
+            hiddenInput.value = selectedMeetingAttendanceMemberIds.join(',');
+        }
+        
+        if (selectedMeetingAttendanceMemberIds.length === 0) {
+            display.innerHTML = '<span style="color:#999; font-size:0.9em;">Selected: 0 member(s)</span>';
+            return;
+        }
+        
+        var html = '<div style="font-size:0.9em; font-weight:bold; margin-bottom:8px;">Selected Members (' + selectedMeetingAttendanceMemberIds.length + '):</div>';
+        html += '<div style="display:flex; flex-wrap:wrap; gap:5px;">';
+        
+        for (var i = 0; i < selectedMeetingAttendanceMemberIds.length; i++) {
+            var id = selectedMeetingAttendanceMemberIds[i];
+            var member = null;
+            
+            // Find the member in allMembers array
+            for (var j = 0; j < allMembers.length; j++) {
+                if (allMembers[j].id == id) {
+                    member = allMembers[j];
+                    break;
+                }
+            }
+            
+            if (member) {
+                html += '<div style="background:#e8f4f8; border:1px solid #b3d9e0; padding:5px 8px; border-radius:3px; display:flex; align-items:center; gap:5px;">';
+                html += '<span>' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</span>';
+                html += '<button type="button" onclick="removeMeetingAttendanceMemberSelection(' + member.id + '); return false;" style="background:none; border:none; color:#d9534f; cursor:pointer; font-weight:bold; padding:0; margin:0; font-size:1.2em; line-height:1;">×</button>';
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        display.innerHTML = html;
+    }
+    
+    function removeMeetingAttendanceMemberSelection(memberId) {
+        for (var i = 0; i < selectedMeetingAttendanceMemberIds.length; i++) {
+            if (selectedMeetingAttendanceMemberIds[i] == memberId) {
+                selectedMeetingAttendanceMemberIds.splice(i, 1);
+                break;
+            }
+        }
+        
+        updateSelectedMeetingAttendanceMembersDisplay();
+        
+        // Re-display results
+        searchMembersForBulkMeetingAttendance();
+    }
+    
+    function submitBulkMeetingAttendance() {
+        if (selectedMeetingAttendanceMemberIds.length === 0) {
+            alert('Please select at least one member');
+            return;
+        }
+        
+        var data = {
+            date: document.getElementById('meeting_date').value,
+            status: document.getElementById('meeting_status').value,
+            member_ids: selectedMeetingAttendanceMemberIds
+        };
+        
+        console.log('Submitting meeting attendance data:', data);
+        
+        fetch('/bulk_add_meeting_attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response content-type:', response.headers.get('content-type'));
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                return response.text().then(text => {
+                    console.error('HTML response received:', text.substring(0, 500));
+                    throw new Error('Server returned HTML instead of JSON. Status: ' + response.status);
+                });
+            }
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                alert('Successfully added meeting attendance for ' + data.count + ' member(s)');
+                closeModal('bulkMeetingAttendanceModal');
+                document.getElementById('bulkMeetingAttendanceForm').reset();
+                selectedMeetingAttendanceMemberIds = [];
+                updateSelectedMeetingAttendanceMembersDisplay();
+            } else {
+                alert('Error: ' + (data.message || 'Unknown error'));
+                console.error('Server error:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            alert('An error occurred while adding meeting attendance: ' + error.message);
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        var meetingAttendanceForm = document.getElementById('bulkMeetingAttendanceForm');
+        if (meetingAttendanceForm) {
+            meetingAttendanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBulkMeetingAttendance();
+            });
+        }
+    });
     </script>
 </body>
 </html>

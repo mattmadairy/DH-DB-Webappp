@@ -915,6 +915,99 @@ def dues_unpaid_export_csv():
 	response.headers['Content-Disposition'] = f'attachment; filename=dues_unpaid_{year}.csv'
 	return response
 
+@app.route('/work_hours_export_csv')
+@login_required
+def work_hours_export_csv():
+	year = request.args.get('year')
+	if not year:
+		now = datetime.datetime.now()
+		year = str(now.year)
+	
+	start_date = f"{year}-01-01"
+	end_date = f"{year}-12-31"
+	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
+	
+	# Create CSV content
+	import csv
+	import io
+	
+	output = io.StringIO()
+	writer = csv.writer(output)
+	
+	# Write header
+	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Total Hours'])
+	
+	# Write data
+	for wh in work_hours:
+		writer.writerow([
+			wh[0],  # badge_number
+			wh[2],  # last_name
+			wh[1],  # first_name
+			wh[3]   # total_hours
+		])
+	
+	# Create response
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = f'attachment; filename=work_hours_{year}.csv'
+	return response
+
+@app.route('/meeting_attendance_export_csv')
+@login_required
+def meeting_attendance_export_csv():
+	year = request.args.get('year')
+	month = request.args.get('month') or 'all'
+	
+	attendance = database.get_meeting_attendance_report(year=year, month=month)
+	
+	# Create CSV content
+	import csv
+	import io
+	
+	output = io.StringIO()
+	writer = csv.writer(output)
+	
+	# Write header
+	if month == 'all':
+		writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Total Meetings Attended'])
+	else:
+		writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Meeting Date', 'Status'])
+	
+	# Write data
+	for att in attendance:
+		if month == 'all':
+			writer.writerow([
+				att[0],  # badge_number
+				att[2],  # last_name
+				att[1],  # first_name
+				att[3]   # total_meetings
+			])
+		else:
+			writer.writerow([
+				att[0],  # badge_number
+				att[2],  # last_name
+				att[1],  # first_name
+				att[3],  # meeting_date
+				att[4]   # status
+			])
+	
+	# Create response
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	
+	# Create filename based on filters
+	if month == 'all':
+		filename = f'meeting_attendance_{year}.csv' if year else 'meeting_attendance_all.csv'
+	else:
+		month_name = ['January', 'February', 'March', 'April', 'May', 'June', 
+					 'July', 'August', 'September', 'October', 'November', 'December'][int(month)-1]
+		filename = f'meeting_attendance_{year}_{month_name}.csv' if year else f'meeting_attendance_{month_name}.csv'
+	
+	response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+	return response
+
 def add_work_hours(member_id):
 	date = request.form['date']
 	activity = request.form['activity']
@@ -1260,6 +1353,56 @@ def bulk_add_work_hours():
 		return jsonify(response)
 	except Exception as e:
 		print(f"Bulk add work hours error: {str(e)}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/bulk_add_meeting_attendance', methods=['POST'])
+@csrf.exempt
+@login_required
+def bulk_add_meeting_attendance():
+	try:
+		data = request.get_json()
+		
+		if not data:
+			return jsonify({'success': False, 'message': 'No data received'}), 400
+		
+		date = data.get('date')
+		status = data.get('status')
+		member_ids = data.get('member_ids', [])
+		
+		# Validate required fields
+		if not date:
+			return jsonify({'success': False, 'message': 'Date is required'}), 400
+		if not status:
+			return jsonify({'success': False, 'message': 'Status is required'}), 400
+		if not member_ids:
+			return jsonify({'success': False, 'message': 'No members selected'}), 400
+		
+		# Validate status
+		valid_statuses = ['Attended', 'Exempt', 'Absent']
+		if status not in valid_statuses:
+			return jsonify({'success': False, 'message': 'Invalid status. Must be one of: ' + ', '.join(valid_statuses)}), 400
+		
+		success_count = 0
+		errors = []
+		for member_id in member_ids:
+			try:
+				database.add_meeting_attendance(int(member_id), date, status)
+				success_count += 1
+			except Exception as e:
+				error_msg = f"Member {member_id}: {str(e)}"
+				print(error_msg)
+				errors.append(error_msg)
+				continue
+		
+		response = {'success': True, 'count': success_count}
+		if errors:
+			response['errors'] = errors
+		
+		return jsonify(response)
+	except Exception as e:
+		print(f"Bulk add meeting attendance error: {str(e)}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 400
@@ -1833,6 +1976,64 @@ def kiosk_report():
 						   start_date=start_date,
 						   end_date=end_date,
 						   active_page='kiosk_report')
+
+@app.route('/kiosk_export_csv')
+@login_required
+def kiosk_export_csv():
+	date_filter = request.args.get('date')
+	start_date = request.args.get('start_date')
+	end_date = request.args.get('end_date')
+	
+	if start_date and end_date:
+		checkins = database.get_checkins_by_date_range(start_date, end_date)
+		filename = f'checkins_{start_date}_to_{end_date}.csv'
+	elif date_filter:
+		checkins = database.get_all_checkins(date=date_filter)
+		filename = f'checkins_{date_filter}.csv'
+	else:
+		# Default to today
+		today = datetime.date.today().strftime('%Y-%m-%d')
+		checkins = database.get_all_checkins(date=today)
+		filename = f'checkins_{today}.csv'
+	
+	# Create CSV content
+	import csv
+	import io
+	
+	output = io.StringIO()
+	writer = csv.writer(output)
+	
+	# Write header
+	writer.writerow(['Check-in Time', 'Check-out Time', 'Member Number', 'First Name', 'Last Name', 'Duration'])
+	
+	# Write data
+	for checkin in checkins:
+		# Calculate duration if checked out
+		duration = ''
+		if checkin['check_out_time']:
+			check_in_dt = datetime.datetime.fromisoformat(checkin['check_in_time'])
+			check_out_dt = datetime.datetime.fromisoformat(checkin['check_out_time'])
+			duration_delta = check_out_dt - check_in_dt
+			total_seconds = int(duration_delta.total_seconds())
+			hours, remainder = divmod(total_seconds, 3600)
+			minutes, seconds = divmod(remainder, 60)
+			duration = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+		
+		writer.writerow([
+			checkin['check_in_time'],
+			checkin['check_out_time'] or '',
+			checkin['member_number'],
+			checkin['first_name'] or '',
+			checkin['last_name'] or '',
+			duration
+		])
+	
+	# Create response
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+	return response
 
 # Confirmation page route
 @app.route('/application_confirmation')

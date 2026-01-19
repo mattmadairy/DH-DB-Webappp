@@ -342,6 +342,7 @@
                             <button type="submit" class="filter-btn">Filter</button>
                             <a href="{{ url_for('kiosk_report') }}" class="filter-btn" style="display: inline-block; text-decoration: none; padding: 9px 20px;">Clear</a>
                             <a href="javascript:window.print()" class="filter-btn" style="display: inline-block; text-decoration: none; padding: 9px 20px;">🖨️ Print</a>
+                            <a href="{{ url_for('kiosk_export_csv', date=date_filter, start_date=start_date, end_date=end_date) }}" class="filter-btn" style="display: inline-block; text-decoration: none; padding: 9px 20px; background-color:#28a745; color:#fff; border:1px solid #28a745;">📥 Export CSV</a>
                         </div>
                     </form>
                 </div>
