@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 # Place this after 'app = Flask(__name__)' and all app config
@@ -821,6 +821,100 @@ def dues_unpaid_email_list():
 	member_stats = get_member_stats()
 	return render_template('email_list.html', emails=emails, member_type=f'Unpaid Dues {year}', count=len(emails), member_stats=member_stats)
 
+@app.route('/dues_export_csv')
+@login_required
+def dues_export_csv():
+	year = request.args.get('year')
+	if not year:
+		now = datetime.datetime.now()
+		year = str(now.year)
+	
+	dues = database.get_all_dues_by_year(year)
+	
+	# Create CSV content
+	import csv
+	import io
+	
+	output = io.StringIO()
+	writer = csv.writer(output)
+	
+	# Write header
+	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Payment Date', 'Amount', 'Year', 'Method', 'Notes'])
+	
+	# Write data
+	for due in dues:
+		writer.writerow([
+			due['badge_number'],
+			due['last_name'],
+			due['first_name'],
+			due['payment_date'],
+			due['amount'],
+			due['year'],
+			due['method'],
+			due['notes'] or ''
+		])
+	
+	# Create response
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = f'attachment; filename=dues_paid_{year}.csv'
+	return response
+
+@app.route('/dues_unpaid_export_csv')
+@login_required
+def dues_unpaid_export_csv():
+	year = request.args.get('year')
+	if not year:
+		now = datetime.datetime.now()
+		year = str(now.year)
+	
+	# Get all dues for the selected year
+	dues = database.get_all_dues_by_year(year)
+	
+	# Get unique member IDs who paid
+	paid_member_ids = list(set([due['member_id'] for due in dues]))
+	
+	# Get all members
+	all_members = database.get_all_members()
+	
+	# Filter for Probationary, Associate, and Active members who have NOT paid
+	unpaid_members = [m for m in all_members 
+					  if m['membership_type'] in ['Probationary', 'Associate', 'Active'] 
+					  and m['id'] not in paid_member_ids]
+	
+	# Sort by badge number
+	unpaid_members.sort(key=lambda x: int(x['badge_number']) if x['badge_number'].isdigit() else 0)
+	
+	# Create CSV content
+	import csv
+	import io
+	
+	output = io.StringIO()
+	writer = csv.writer(output)
+	
+	# Write header
+	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Membership Type', 'Email', 'Secondary Email', 'Phone'])
+	
+	# Write data
+	for member in unpaid_members:
+		writer.writerow([
+			member['badge_number'],
+			member['last_name'],
+			member['first_name'],
+			member['membership_type'],
+			member['email'] or '',
+			member['email2'] or '',
+			member['phone'] or ''
+		])
+	
+	# Create response
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = f'attachment; filename=dues_unpaid_{year}.csv'
+	return response
+
 def add_work_hours(member_id):
 	date = request.form['date']
 	activity = request.form['activity']
@@ -1039,6 +1133,136 @@ def recycle_bin_delete_all():
 def restore_member(member_id):
 	database.restore_member_by_id(member_id)
 	return redirect(url_for('recycle_bin'))
+
+@app.route('/bulk_actions')
+@login_required
+def bulk_actions():
+	member_stats = get_member_stats()
+	committee_names = [row['name'] for row in database.get_all_committees()]
+	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
+	return render_template('bulk_actions.html', active_page='bulk_actions', member_stats=member_stats, committee_names=committee_names, committee_display_names=committee_display_names)
+
+@app.route('/api/get_all_members', methods=['GET'])
+@login_required
+def api_get_all_members():
+	try:
+		members = database.get_all_members()
+		# Convert Row objects to dictionaries and exclude Life and Honorary members
+		members_list = []
+		for member in members:
+			# Skip Life and Honorary members
+			if member['membership_type'] in ['Life', 'Honorary']:
+				continue
+			members_list.append({
+				'id': member['id'],
+				'badge_number': member['badge_number'],
+				'first_name': member['first_name'],
+				'last_name': member['last_name']
+			})
+		return jsonify(members_list)
+	except Exception as e:
+		return jsonify({'error': str(e)}), 400
+
+@app.route('/bulk_add_dues', methods=['POST'])
+@csrf.exempt
+@login_required
+def bulk_add_dues():
+	try:
+		data = request.get_json()
+		
+		if not data:
+			return jsonify({'success': False, 'message': 'No data received'}), 400
+		
+		year = data.get('year')
+		amount = data.get('amount')
+		method = data.get('method')
+		date = data.get('date')
+		notes = data.get('notes', '')
+		member_ids = data.get('member_ids', [])
+		
+		# Validate required fields
+		if not year:
+			return jsonify({'success': False, 'message': 'Year is required'}), 400
+		if not amount:
+			return jsonify({'success': False, 'message': 'Amount is required'}), 400
+		if not method:
+			return jsonify({'success': False, 'message': 'Payment method is required'}), 400
+		if not date:
+			return jsonify({'success': False, 'message': 'Date is required'}), 400
+		if not member_ids:
+			return jsonify({'success': False, 'message': 'No members selected'}), 400
+		
+		success_count = 0
+		errors = []
+		for member_id in member_ids:
+			try:
+				database.add_due(int(member_id), date, float(amount), year, method, notes)
+				success_count += 1
+			except Exception as e:
+				error_msg = f"Member {member_id}: {str(e)}"
+				print(error_msg)
+				errors.append(error_msg)
+				continue
+		
+		response = {'success': True, 'count': success_count}
+		if errors:
+			response['errors'] = errors
+		
+		return jsonify(response)
+	except Exception as e:
+		print(f"Bulk add dues error: {str(e)}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/bulk_add_work_hours', methods=['POST'])
+@csrf.exempt
+@login_required
+def bulk_add_work_hours():
+	try:
+		data = request.get_json()
+		
+		if not data:
+			return jsonify({'success': False, 'message': 'No data received'}), 400
+		
+		date = data.get('date')
+		activity = data.get('activity')
+		hours = data.get('hours')
+		notes = data.get('notes', '')
+		member_ids = data.get('member_ids', [])
+		
+		# Validate required fields
+		if not date:
+			return jsonify({'success': False, 'message': 'Date is required'}), 400
+		if not activity:
+			return jsonify({'success': False, 'message': 'Activity is required'}), 400
+		if not hours:
+			return jsonify({'success': False, 'message': 'Hours is required'}), 400
+		if not member_ids:
+			return jsonify({'success': False, 'message': 'No members selected'}), 400
+		
+		success_count = 0
+		errors = []
+		for member_id in member_ids:
+			try:
+				database.add_work_hours(int(member_id), date, activity, float(hours), notes)
+				success_count += 1
+			except Exception as e:
+				error_msg = f"Member {member_id}: {str(e)}"
+				print(error_msg)
+				errors.append(error_msg)
+				continue
+		
+		response = {'success': True, 'count': success_count}
+		if errors:
+			response['errors'] = errors
+		
+		return jsonify(response)
+	except Exception as e:
+		print(f"Bulk add work hours error: {str(e)}")
+		import traceback
+		traceback.print_exc()
+		return jsonify({'success': False, 'message': str(e)}), 400
 
 # Edit Member route
 @app.route('/edit_member/<int:member_id>', methods=['GET', 'POST'])

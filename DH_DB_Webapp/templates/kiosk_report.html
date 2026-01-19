@@ -273,6 +273,7 @@
             <a href="{{ url_for('index') }}" class="{{ 'active-menu' if active_page == 'home' else '' }}" style="background-color:{{ 'rgb(255,255,0)' if active_page == 'home' else '#eaeaea' }}; font-weight:{{ 'bold' if active_page == 'home' else 'normal' }};">🏠 Home</a>
             <a href="javascript:void(0);" onclick="openModal('addMemberModal')">➕ Add Member</a>
             <a href="{{ url_for('recycle_bin') }}" class="{{ 'active-menu' if active_page == 'recycle_bin' else '' }}" style="font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }};">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('bulk_actions') }}" class="{{ 'active-menu' if active_page == 'bulk_actions' else '' }}" style="font-weight:{{ 'bold' if active_page == 'bulk_actions' else 'normal' }};">⚡ Bulk Actions</a>
 
             <div class="menu-toggle" onclick="toggleSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; cursor:pointer; user-select:none;">
                 📊 Reports <span id="submenu-arrow">▼</span>

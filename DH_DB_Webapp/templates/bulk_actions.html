@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bulk Actions - Dug Hill Rod & Gun Club</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
+    <style>
+        .active-menu {
+            background-color: rgb(255,255,0) !important;
+            font-weight: bold !important;
+        }
+        .submenu {
+            display: none;
+            flex-direction: column;
+            margin-left: 10px;
+        }
+        .submenu.active {
+            display: flex;
+        }
+        .submenu a {
+            width: 160px !important;
+            font-size: 0.9em !important;
+            padding: 8px 0 !important;
+            margin-bottom: 6px !important;
+        }
+        .menu-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
+        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+    </style>
+</head>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('index') }}" class="{{ 'active-menu' if active_page == 'home' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ 'rgb(255,255,0)' if active_page == 'home' else '#eaeaea' }}; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'home' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Home</a>
+            <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+            <a href="{{ url_for('recycle_bin') }}" class="{{ 'active-menu' if active_page == 'recycle_bin' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('bulk_actions') }}" class="{{ 'active-menu' if active_page == 'bulk_actions' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'bulk_actions' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">⚡ Bulk Actions</a>
+            
+            <div class="menu-toggle" onclick="toggleSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                📊 Reports <span id="submenu-arrow">▼</span>
+            </div>
+            <div id="reports-submenu" class="submenu {% if active_page in ['dues_report', 'work_hours_report', 'meeting_attendance_report', 'kiosk_report'] %}active{% endif %}">
+                <a href="{{ url_for('dues_report') }}" class="{{ 'active-menu' if active_page == 'dues_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'dues_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues</a>
+                <a href="{{ url_for('work_hours_report') }}" class="{{ 'active-menu' if active_page == 'work_hours_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'work_hours_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                    <img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours
+                </a>
+                <a href="{{ url_for('meeting_attendance_report') }}" class="{{ 'active-menu' if active_page == 'meeting_attendance_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'meeting_attendance_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+                    <img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+                </a>
+                <a href="{{ url_for('kiosk_report') }}" class="{{ 'active-menu' if active_page == 'kiosk_report' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'kiosk_report' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🟩 Check-ins</a>
+            </div>
+            
+            <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <a href="{{ url_for('kiosk') }}" class="{{ 'active-menu' if active_page == 'kiosk' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'kiosk' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
+            <!-- Email List button removed -->
+            {% if current_user.is_admin_or_bdfl() %}
+            <a href="{{ url_for('admin_users') }}" class="{{ 'active-menu' if active_page == 'admin_users' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:{{ '#5bc0de' if active_page != 'admin_users' else 'rgb(255,255,0)' }}; color:{{ '#ffffff' if active_page != 'admin_users' else '#000000' }}; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">
+                <span style="display: flex; align-items: center; width: 100%; justify-content: center; text-align: center;">
+                    <span style="display:inline-block; vertical-align:middle;">👤 Admin</span>
+                </span>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+            <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+                <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
+                    <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
+                    <div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
+                    <div style="border-top:1px solid #555; padding-top:8px;"><strong>Total:</strong> {{ member_stats.total_members }}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main content area -->
+        <div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+            <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+                <div style="text-align:center; width:100%;">
+                    <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                    <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+                    <h2 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; text-align:center; color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; font-weight:bold; text-decoration:underline;">Bulk Actions</h2>
+                </div>
+            </div>
+            
+            <div style="max-width: 800px; width: 100%; padding: 20px; background: #f5f5f5; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 6px;">
+                    <h3 style="margin-top: 0; color: #384839;">� Bulk Dues Payments</h3>
+                    <p>Add dues payments for multiple members at once.</p>
+                    <button style="padding: 10px 20px; background-color: #384839; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;" onclick="openModal('bulkDuesModal')">Add Dues Payments</button>
+                </div>
+                
+                <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 6px;">
+                    <h3 style="margin-top: 0; color: #384839;">⏰ Bulk Work Hours</h3>
+                    <p>Add work hours for multiple members at once.</p>
+                    <button style="padding: 10px 20px; background-color: #384839; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px;" onclick="openModal('bulkWorkHoursModal')">Add Work Hours</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bulk Dues Modal -->
+    <div id="bulkDuesModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+        <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:500px; border-radius:8px; position:relative;">
+            <button onclick="closeModal('bulkDuesModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+            <h3 style="margin-top:0; text-align:center;">Add Dues Payments</h3>
+            <form id="bulkDuesForm">
+                <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+                    <label for="dues_year">Year:</label>
+                    <input type="number" id="dues_year" name="dues_year" value="2026" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="dues_amount">Amount:</label>
+                    <input type="number" id="dues_amount" name="dues_amount" step="0.01" placeholder="0.00" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="dues_method">Payment Method:</label>
+                    <select id="dues_method" name="dues_method" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        <option value="Cash">Cash</option>
+                        <option value="Check">Check</option>
+                        <option value="Card">Card</option>
+                        <option value="Online">Online</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    
+                    <label for="dues_date">Payment Date:</label>
+                    <input type="date" id="dues_date" name="dues_date" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="dues_notes">Notes:</label>
+                    <input type="text" id="dues_notes" name="dues_notes" placeholder="Optional notes" style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="dues_search">Search Members:</label>
+                    <input type="text" id="dues_search" name="dues_search" placeholder="Search by name or badge..." style="padding:8px; border:1px solid #ccc; border-radius:4px;" onkeyup="searchMembersForBulkDues()">
+                    
+                    <div style="grid-column: 1/3;">
+                        <div id="dues_search_results" style="border:1px solid #ccc; border-radius:4px; max-height:200px; overflow-y:auto; background:#fff;">
+                            <div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>
+                        </div>
+                        <input type="hidden" id="selected_member_ids" name="selected_member_ids" value="">
+                        <div id="selected_members_display" style="margin-top:10px; padding:8px; background:#f0f0f0; border-radius:4px; min-height:30px; border:1px solid #ddd;">
+                            <span style="color:#666; font-size:0.9em;">Selected: <span id="selected_count">0</span> member(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:20px; text-align:center;">
+                    <button type="button" onclick="closeModal('bulkDuesModal')" style="padding:8px 16px; margin-right:10px; background-color:#ccc; color:#000; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="padding:8px 16px; background-color:#384839; color:white; border:none; border-radius:4px; cursor:pointer;">Add Dues</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Bulk Work Hours Modal -->
+    <div id="bulkWorkHoursModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+        <div style="background-color:#f5f5f5; margin:4% auto; padding:20px; border:1px solid #888; width:500px; border-radius:8px; position:relative;">
+            <button onclick="closeModal('bulkWorkHoursModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+            <h3 style="margin-top:0; text-align:center;">Add Work Hours</h3>
+            <form id="bulkWorkHoursForm">
+                <div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
+                    <label for="work_date">Date:</label>
+                    <input type="date" id="work_date" name="work_date" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="work_activity">Activity:</label>
+                    <select id="work_activity" name="work_activity" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                        {% for cname in committee_names|sort %}
+                            <option value="{{ cname }}">{{ committee_display_names[cname] }}</option>
+                        {% endfor %}
+                    </select>
+                    
+                    <label for="work_hours">Hours:</label>
+                    <input type="number" id="work_hours" name="work_hours" min="0" step="0.1" placeholder="0.0" required style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="work_notes">Notes:</label>
+                    <input type="text" id="work_notes" name="work_notes" placeholder="Optional notes" style="padding:8px; border:1px solid #ccc; border-radius:4px;">
+                    
+                    <label for="work_search">Search Members:</label>
+                    <input type="text" id="work_search" name="work_search" placeholder="Search by name or badge..." style="padding:8px; border:1px solid #ccc; border-radius:4px;" onkeyup="searchMembersForBulkWorkHours()">
+                    
+                    <div style="grid-column: 1/3;">
+                        <div id="work_search_results" style="border:1px solid #ccc; border-radius:4px; max-height:200px; overflow-y:auto; background:#fff;">
+                            <div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>
+                        </div>
+                        <input type="hidden" id="work_selected_member_ids" name="work_selected_member_ids" value="">
+                        <div id="work_selected_members" style="margin-top:10px; padding:8px; background:#f0f0f0; border-radius:4px; min-height:30px; border:1px solid #ddd;">
+                            <span style="color:#666; font-size:0.9em;">Selected: <span id="work_selected_count">0</span> member(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:20px; text-align:center;">
+                    <button type="button" onclick="closeModal('bulkWorkHoursModal')" style="padding:8px 16px; margin-right:10px; background-color:#ccc; color:#000; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+                    <button type="submit" style="padding:8px 16px; background-color:#384839; color:white; border:none; border-radius:4px; cursor:pointer;">Add Work Hours</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function toggleSubmenu() {
+        var submenu = document.getElementById('reports-submenu');
+        var arrow = document.getElementById('submenu-arrow');
+        submenu.classList.toggle('active');
+        arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
+    }
+    
+    function openModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'block';
+            if (modalId === 'bulkDuesModal') {
+                // Set today's date as default
+                var today = new Date().toISOString().split('T')[0];
+                document.getElementById('dues_date').value = today;
+                loadMembersForBulkDues();
+                // Clear search and selected members
+                document.getElementById('dues_search').value = '';
+                document.getElementById('selected_member_ids').value = '';
+                document.getElementById('selected_count').textContent = '0';
+            } else if (modalId === 'bulkWorkHoursModal') {
+                // Set today's date as default
+                var today = new Date().toISOString().split('T')[0];
+                document.getElementById('work_date').value = today;
+                loadMembersForBulkWorkHours();
+                // Clear search and selected members
+                document.getElementById('work_search').value = '';
+                document.getElementById('work_selected_member_ids').value = '';
+                document.getElementById('work_selected_count').textContent = '0';
+            }
+        }
+    }
+    
+    function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+    var allMembers = [];
+    var selectedMemberIds = [];
+    
+    function loadMembersForBulkDues() {
+        fetch('/api/get_all_members')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load members: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    allMembers = data;
+                    selectedMemberIds = [];
+                    var resultsDiv = document.getElementById('dues_search_results');
+                    resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+                    updateSelectedMembersDisplay();
+                } else {
+                    console.error('Data is not an array:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading members:', error);
+                var resultsDiv = document.getElementById('dues_search_results');
+                resultsDiv.innerHTML = '<div style="padding:10px; color:red; text-align:center;">Error loading members</div>';
+            });
+    }
+    
+    function searchMembersForBulkDues() {
+        var searchText = document.getElementById('dues_search').value.toLowerCase();
+        displaySearchResults(searchText);
+    }
+    
+    function displaySearchResults(searchText) {
+        var resultsDiv = document.getElementById('dues_search_results');
+        
+        if (!searchText) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+            return;
+        }
+        
+        var filtered = allMembers.filter(function(member) {
+            var searchField = (member.badge_number + ' ' + member.first_name + ' ' + member.last_name).toLowerCase();
+            return searchField.includes(searchText);
+        });
+        
+        if (filtered.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No members found</div>';
+            return;
+        }
+        
+        var html = '';
+        filtered.slice(0, 10).forEach(function(member) {
+            var isSelected = selectedMemberIds.indexOf(member.id) !== -1;
+            html += '<div style="padding:8px 10px; border-bottom:1px solid #eee; display:flex; align-items:center; cursor:pointer;" onclick="toggleMemberSelection(' + member.id + ')">';
+            html += '<input type="checkbox" id="member_' + member.id + '" ' + (isSelected ? 'checked' : '') + ' style="cursor:pointer;" onclick="event.stopPropagation();">';
+            html += '<label style="cursor:pointer; flex:1; margin:0; margin-left:10px;">' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</label>';
+            html += '</div>';
+        });
+        
+        if (filtered.length > 10) {
+            html += '<div style="padding:8px 10px; color:#999; text-align:center; font-size:0.9em;">Showing 10 of ' + filtered.length + ' results</div>';
+        }
+        
+        resultsDiv.innerHTML = html;
+    }
+    
+    function toggleMemberSelection(memberId) {
+        var index = selectedMemberIds.indexOf(memberId);
+        
+        if (index > -1) {
+            // Remove from selected
+            selectedMemberIds.splice(index, 1);
+        } else {
+            // Add to selected
+            selectedMemberIds.push(memberId);
+        }
+        
+        // Update hidden field
+        document.getElementById('selected_member_ids').value = selectedMemberIds.join(',');
+        updateSelectedMembersDisplay();
+        
+        // Re-display results to update checkboxes
+        searchMembersForBulkDues();
+    }
+    
+    function updateSelectedMembersDisplay() {
+        var display = document.getElementById('selected_members_display');
+        if (!display) return;
+        
+        var countSpan = selectedMemberIds.length;
+        
+        if (selectedMemberIds.length === 0) {
+            display.innerHTML = '<span style="color:#999; font-size:0.9em;">Selected: 0 member(s)</span>';
+            return;
+        }
+        
+        var html = '<div style="font-size:0.9em; font-weight:bold; margin-bottom:8px;">Selected Members (' + selectedMemberIds.length + '):</div>';
+        html += '<div style="display:flex; flex-wrap:wrap; gap:5px;">';
+        
+        for (var i = 0; i < selectedMemberIds.length; i++) {
+            var id = selectedMemberIds[i];
+            var member = null;
+            
+            // Find the member in allMembers array
+            for (var j = 0; j < allMembers.length; j++) {
+                if (allMembers[j].id == id) {
+                    member = allMembers[j];
+                    break;
+                }
+            }
+            
+            if (member) {
+                html += '<div style="background:#e8f4f8; border:1px solid #b3d9e0; padding:5px 8px; border-radius:3px; display:flex; align-items:center; gap:5px;">';
+                html += '<span>' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</span>';
+                html += '<button type="button" onclick="removeMemberSelection(' + member.id + '); return false;" style="background:none; border:none; color:#d9534f; cursor:pointer; font-weight:bold; padding:0; margin:0; font-size:1.2em; line-height:1;">×</button>';
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        display.innerHTML = html;
+    }
+    
+    function removeMemberSelection(memberId) {
+        for (var i = 0; i < selectedMemberIds.length; i++) {
+            if (selectedMemberIds[i] == memberId) {
+                selectedMemberIds.splice(i, 1);
+                break;
+            }
+        }
+        
+        // Update hidden field
+        document.getElementById('selected_member_ids').value = selectedMemberIds.join(',');
+        updateSelectedMembersDisplay();
+        
+        // Re-display results
+        searchMembersForBulkDues();
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        var form = document.getElementById('bulkDuesForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBulkDues();
+            });
+        }
+        
+        var workHoursForm = document.getElementById('bulkWorkHoursForm');
+        if (workHoursForm) {
+            workHoursForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitBulkWorkHours();
+            });
+        }
+    });
+    
+    function submitBulkDues() {
+        if (selectedMemberIds.length === 0) {
+            alert('Please select at least one member');
+            return;
+        }
+        
+        var data = {
+            year: document.getElementById('dues_year').value,
+            amount: document.getElementById('dues_amount').value,
+            method: document.getElementById('dues_method').value,
+            date: document.getElementById('dues_date').value,
+            notes: document.getElementById('dues_notes').value,
+            member_ids: selectedMemberIds
+        };
+        
+        console.log('Submitting dues data:', data);
+        
+        fetch('/bulk_add_dues', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response content-type:', response.headers.get('content-type'));
+            
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                // Response is HTML (error page)
+                return response.text().then(text => {
+                    console.error('HTML response received:', text.substring(0, 500));
+                    throw new Error('Server returned HTML instead of JSON. Status: ' + response.status);
+                });
+            }
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                alert('Successfully added dues payments for ' + data.count + ' member(s)');
+                closeModal('bulkDuesModal');
+                document.getElementById('bulkDuesForm').reset();
+                selectedMemberIds = [];
+                updateSelectedMembersDisplay();
+            } else {
+                alert('Error: ' + (data.message || 'Unknown error'));
+                console.error('Server error:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            alert('An error occurred while adding dues: ' + error.message);
+        });
+    }
+    
+    var selectedWorkHoursMemberIds = [];
+    
+    function loadMembersForBulkWorkHours() {
+        fetch('/api/get_all_members')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load members: ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (Array.isArray(data)) {
+                    allMembers = data;
+                    selectedWorkHoursMemberIds = [];
+                    var resultsDiv = document.getElementById('work_search_results');
+                    resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+                    updateSelectedWorkHoursMembersDisplay();
+                } else {
+                    console.error('Expected array but got:', data);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading members:', error);
+                alert('Failed to load members: ' + error.message);
+            });
+    }
+    
+    function searchMembersForBulkWorkHours() {
+        var searchTerm = document.getElementById('work_search').value.toLowerCase();
+        displayWorkHoursSearchResults(searchTerm);
+    }
+    
+    function displayWorkHoursSearchResults(searchTerm) {
+        var resultsDiv = document.getElementById('work_search_results');
+        
+        if (!searchTerm) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">Type to search for members</div>';
+            return;
+        }
+        
+        if (!allMembers || allMembers.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No members available</div>';
+            return;
+        }
+        
+        var filteredMembers = [];
+        for (var i = 0; i < allMembers.length; i++) {
+            var member = allMembers[i];
+            var fullName = (member.first_name + ' ' + member.last_name).toLowerCase();
+            var badgeStr = String(member.badge_number).toLowerCase();
+            if (fullName.indexOf(searchTerm) !== -1 || badgeStr.indexOf(searchTerm) !== -1) {
+                filteredMembers.push(member);
+            }
+        }
+        
+        if (filteredMembers.length === 0) {
+            resultsDiv.innerHTML = '<div style="padding:10px; color:#999; text-align:center;">No members found</div>';
+            return;
+        }
+        
+        var displayMembers = filteredMembers.slice(0, 10);
+        resultsDiv.innerHTML = '';
+        
+        for (var i = 0; i < displayMembers.length; i++) {
+            var member = displayMembers[i];
+            var isSelected = false;
+            for (var j = 0; j < selectedWorkHoursMemberIds.length; j++) {
+                if (selectedWorkHoursMemberIds[j] == member.id) {
+                    isSelected = true;
+                    break;
+                }
+            }
+            
+            var div = document.createElement('div');
+            div.style.padding = '8px 10px';
+            div.style.borderBottom = '1px solid #eee';
+            div.style.cursor = 'pointer';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.innerHTML = '<input type="checkbox" ' + (isSelected ? 'checked' : '') + ' style="cursor:pointer;" onclick="event.stopPropagation();">' +
+                          '<label style="cursor:pointer; flex:1; margin:0; margin-left:10px;">' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</label>';
+            div.onclick = function(memberId) {
+                return function(e) {
+                    toggleWorkHoursMemberSelection(memberId);
+                };
+            }(member.id);
+            
+            resultsDiv.appendChild(div);
+        }
+        
+        if (filteredMembers.length > 10) {
+            var countDiv = document.createElement('div');
+            countDiv.style.padding = '8px 10px';
+            countDiv.style.color = '#999';
+            countDiv.style.textAlign = 'center';
+            countDiv.style.fontSize = '0.9em';
+            countDiv.textContent = 'Showing 10 of ' + filteredMembers.length + ' results';
+            resultsDiv.appendChild(countDiv);
+        }
+    }
+    
+    function toggleWorkHoursMemberSelection(memberId) {
+        var index = -1;
+        for (var i = 0; i < selectedWorkHoursMemberIds.length; i++) {
+            if (selectedWorkHoursMemberIds[i] == memberId) {
+                index = i;
+                break;
+            }
+        }
+        
+        if (index > -1) {
+            // Remove from selected
+            selectedWorkHoursMemberIds.splice(index, 1);
+        } else {
+            // Add to selected
+            selectedWorkHoursMemberIds.push(memberId);
+        }
+        
+        updateSelectedWorkHoursMembersDisplay();
+        
+        // Re-display results to update checkboxes
+        searchMembersForBulkWorkHours();
+    }
+    
+    function updateSelectedWorkHoursMembersDisplay() {
+        var display = document.getElementById('work_selected_members');
+        if (!display) return;
+        
+        var countSpan = document.getElementById('work_selected_count');
+        if (countSpan) {
+            countSpan.textContent = selectedWorkHoursMemberIds.length;
+        }
+        
+        var hiddenInput = document.getElementById('work_selected_member_ids');
+        if (hiddenInput) {
+            hiddenInput.value = selectedWorkHoursMemberIds.join(',');
+        }
+        
+        if (selectedWorkHoursMemberIds.length === 0) {
+            display.innerHTML = '<span style="color:#999; font-size:0.9em;">Selected: 0 member(s)</span>';
+            return;
+        }
+        
+        var html = '<div style="font-size:0.9em; font-weight:bold; margin-bottom:8px;">Selected Members (' + selectedWorkHoursMemberIds.length + '):</div>';
+        html += '<div style="display:flex; flex-wrap:wrap; gap:5px;">';
+        
+        for (var i = 0; i < selectedWorkHoursMemberIds.length; i++) {
+            var id = selectedWorkHoursMemberIds[i];
+            var member = null;
+            
+            // Find the member in allMembers array
+            for (var j = 0; j < allMembers.length; j++) {
+                if (allMembers[j].id == id) {
+                    member = allMembers[j];
+                    break;
+                }
+            }
+            
+            if (member) {
+                html += '<div style="background:#e8f4f8; border:1px solid #b3d9e0; padding:5px 8px; border-radius:3px; display:flex; align-items:center; gap:5px;">';
+                html += '<span>' + member.badge_number + ' - ' + member.first_name + ' ' + member.last_name + '</span>';
+                html += '<button type="button" onclick="removeWorkHoursMemberSelection(' + member.id + '); return false;" style="background:none; border:none; color:#d9534f; cursor:pointer; font-weight:bold; padding:0; margin:0; font-size:1.2em; line-height:1;">×</button>';
+                html += '</div>';
+            }
+        }
+        
+        html += '</div>';
+        display.innerHTML = html;
+    }
+    
+    function removeWorkHoursMemberSelection(memberId) {
+        for (var i = 0; i < selectedWorkHoursMemberIds.length; i++) {
+            if (selectedWorkHoursMemberIds[i] == memberId) {
+                selectedWorkHoursMemberIds.splice(i, 1);
+                break;
+            }
+        }
+        
+        updateSelectedWorkHoursMembersDisplay();
+        
+        // Re-display results
+        searchMembersForBulkWorkHours();
+    }
+    
+    function submitBulkWorkHours() {
+        if (selectedWorkHoursMemberIds.length === 0) {
+            alert('Please select at least one member');
+            return;
+        }
+        
+        var data = {
+            date: document.getElementById('work_date').value,
+            activity: document.getElementById('work_activity').value,
+            hours: document.getElementById('work_hours').value,
+            notes: document.getElementById('work_notes').value,
+            member_ids: selectedWorkHoursMemberIds
+        };
+        
+        console.log('Submitting work hours data:', data);
+        
+        fetch('/bulk_add_work_hours', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response content-type:', response.headers.get('content-type'));
+            
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                return response.text().then(text => {
+                    console.error('HTML response received:', text.substring(0, 500));
+                    throw new Error('Server returned HTML instead of JSON. Status: ' + response.status);
+                });
+            }
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                alert('Successfully added work hours for ' + data.count + ' member(s)');
+                closeModal('bulkWorkHoursModal');
+                document.getElementById('bulkWorkHoursForm').reset();
+                selectedWorkHoursMemberIds = [];
+                updateSelectedWorkHoursMembersDisplay();
+            } else {
+                alert('Error: ' + (data.message || 'Unknown error'));
+                console.error('Server error:', data);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            alert('An error occurred while adding work hours: ' + error.message);
+        });
+    }
+    </script>
+</body>
+</html>
