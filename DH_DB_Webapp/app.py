@@ -1256,6 +1256,24 @@ def api_get_all_members():
 	except Exception as e:
 		return jsonify({'error': str(e)}), 400
 
+@app.route('/api/get_all_members_for_bulk', methods=['GET'])
+@login_required
+def api_get_all_members_for_bulk():
+	try:
+		members = database.get_all_members()
+		# Convert Row objects to dictionaries and include ALL members for bulk operations
+		members_list = []
+		for member in members:
+			members_list.append({
+				'id': member['id'],
+				'badge_number': member['badge_number'],
+				'first_name': member['first_name'],
+				'last_name': member['last_name']
+			})
+		return jsonify(members_list)
+	except Exception as e:
+		return jsonify({'error': str(e)}), 400
+
 @app.route('/bulk_add_dues', methods=['POST'])
 @csrf.exempt
 @login_required

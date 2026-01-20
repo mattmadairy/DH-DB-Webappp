@@ -508,7 +508,7 @@
     var selectedWorkHoursMemberIds = [];
     
     function loadMembersForBulkWorkHours() {
-        fetch('/api/get_all_members')
+        fetch('/api/get_all_members_for_bulk')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to load members: ' + response.statusText);
@@ -748,7 +748,7 @@
     var selectedMeetingAttendanceMemberIds = [];
     
     function loadMembersForBulkMeetingAttendance() {
-        fetch('/api/get_all_members')
+        fetch('/api/get_all_members_for_bulk')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to load members: ' + response.statusText);
