@@ -89,10 +89,20 @@ class User(UserMixin):
         return self.role == 'BDFL'
     
     def is_admin(self):
-        return self.role == 'Administrator'
+        return self.role in ('Administrator', 'BDFL')
     
     def is_admin_or_bdfl(self):
         return self.role in ('BDFL', 'Administrator')
+    
+    def is_user(self):
+        return self.role in ('User', 'Administrator', 'BDFL')
+    
+    def has_access_level(self, required_level):
+        """Check if user has at least the required access level (hierarchical)"""
+        levels = {'User': 1, 'Administrator': 2, 'BDFL': 3}
+        user_level = levels.get(self.role, 0)
+        required_level_value = levels.get(required_level, 999)
+        return user_level >= required_level_value
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -160,6 +170,18 @@ def format_datetime(value):
 
 app.jinja_env.filters['format_datetime'] = format_datetime
 
+# Jinja filter to format datetime as mm/dd/yyyy hh:mm AM/PM (12-hour)
+def format_datetime_12hr(value):
+    if not value:
+        return ''
+    try:
+        dt = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        return dt.strftime('%m/%d/%Y %I:%M %p')
+    except Exception:
+        return value
+
+app.jinja_env.filters['format_datetime_12hr'] = format_datetime_12hr
+
 def get_member_stats():
 	"""Calculate member statistics for sidebar display"""
 	all_members = database.get_all_members()
@@ -182,6 +204,19 @@ def set_security_headers(response):
 	response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; connect-src 'self' https://api.stripe.com"
 	return response
+
+# Decorator for admin-only routes
+def admin_required(f):
+	from functools import wraps
+	@wraps(f)
+	def decorated_function(*args, **kwargs):
+		if not current_user.is_authenticated:
+			return redirect(url_for('login'))
+		if not current_user.is_admin_or_bdfl():
+			flash('Access denied. You do not have permission to view this page.', 'danger')
+			return redirect(url_for('member_dashboard'))
+		return f(*args, **kwargs)
+	return decorated_function
 
 # Authentication routes
 @app.route('/login', methods=['GET', 'POST'])
@@ -453,12 +488,8 @@ def change_password():
 
 @app.route('/admin/users/reset-password/<int:user_id>', methods=['POST'])
 @login_required
+@admin_required
 def reset_user_password(user_id):
-	# Only BDFL and Administrator can reset passwords
-	if not current_user.is_admin_or_bdfl():
-		flash('Access denied. Only administrators can reset passwords.', 'error')
-		return redirect(url_for('index'))
-	
 	# Get the target user to check their role
 	target_user = database.get_user_by_id(user_id)
 	if target_user and target_user['role'] == 'BDFL':
@@ -502,12 +533,8 @@ def reset_user_password(user_id):
 
 @app.route('/admin/users/toggle-status/<int:user_id>', methods=['POST'])
 @login_required
+@admin_required
 def toggle_user_status(user_id):
-	# Only BDFL and Administrator can toggle user status
-	if not current_user.is_admin_or_bdfl():
-		flash('Access denied. Only administrators can enable/disable users.', 'error')
-		return redirect(url_for('index'))
-	
 	user_data = database.get_user_by_id(user_id)
 	if not user_data:
 		flash('User not found.', 'error')
@@ -554,10 +581,8 @@ def toggle_user_status(user_id):
 
 @app.route('/admin/users/get/<int:user_id>', methods=['GET'])
 @login_required
+@admin_required
 def get_user(user_id):
-	# Only BDFL and Administrator can access this endpoint
-	if not current_user.is_admin_or_bdfl():
-		return {'error': 'Access denied'}, 403
 	
 	# Administrator cannot view BDFL user details
 	user_data = database.get_user_by_id(user_id)
@@ -577,11 +602,8 @@ def get_user(user_id):
 
 @app.route('/admin/users/edit', methods=['POST'])
 @login_required
+@admin_required
 def edit_user():
-	# Only BDFL and Administrator can edit users
-	if not current_user.is_admin_or_bdfl():
-		flash('Access denied. Only administrators can edit users.', 'error')
-		return redirect(url_for('index'))
 	
 	user_id = request.form.get('user_id')
 	
@@ -642,12 +664,8 @@ def edit_user():
 
 @app.route('/admin/users', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def admin_users():
-	# Only BDFL and Administrator can access this page
-	if not current_user.is_admin_or_bdfl():
-		flash('Access denied. Only administrators can access the admin panel.', 'error')
-		return redirect(url_for('index'))
-	
 	if request.method == 'POST':
 		username = request.form.get('username')
 		name = request.form.get('name')
@@ -719,6 +737,7 @@ def check_password_change_required():
 # Protected routes
 @app.route('/add_work_hours/<int:member_id>', methods=['POST'])
 @login_required
+@admin_required
 def add_work_hours(member_id):
 	date = request.form.get('date')
 	activity = request.form.get('activity')
@@ -732,6 +751,7 @@ def add_work_hours(member_id):
 
 @app.route('/dues_report')
 @login_required
+@admin_required
 def dues_report():
 	year = request.args.get('year')
 	years = database.get_dues_years()
@@ -753,6 +773,7 @@ def dues_report():
 
 @app.route('/dues_email_list')
 @login_required
+@admin_required
 def dues_email_list():
 	year = request.args.get('year')
 	if not year:
@@ -786,6 +807,7 @@ def dues_email_list():
 
 @app.route('/dues_unpaid_email_list')
 @login_required
+@admin_required
 def dues_unpaid_email_list():
 	year = request.args.get('year')
 	if not year:
@@ -823,6 +845,7 @@ def dues_unpaid_email_list():
 
 @app.route('/dues_export_csv')
 @login_required
+@admin_required
 def dues_export_csv():
 	year = request.args.get('year')
 	if not year:
@@ -863,6 +886,7 @@ def dues_export_csv():
 
 @app.route('/dues_unpaid_export_csv')
 @login_required
+@admin_required
 def dues_unpaid_export_csv():
 	year = request.args.get('year')
 	if not year:
@@ -917,6 +941,7 @@ def dues_unpaid_export_csv():
 
 @app.route('/work_hours_export_csv')
 @login_required
+@admin_required
 def work_hours_export_csv():
 	year = request.args.get('year')
 	if not year:
@@ -955,6 +980,7 @@ def work_hours_export_csv():
 
 @app.route('/meeting_attendance_export_csv')
 @login_required
+@admin_required
 def meeting_attendance_export_csv():
 	year = request.args.get('year')
 	month = request.args.get('month') or 'all'
@@ -1019,6 +1045,7 @@ def add_work_hours(member_id):
 # Work Hours Report route
 @app.route('/work_hours_report')
 @login_required
+@admin_required
 def work_hours_report():
 	year = request.args.get('year')
 	# Get all work hours for all members for the selected year
@@ -1038,6 +1065,7 @@ def work_hours_report():
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 @login_required
+@admin_required
 def add_meeting_attendance(member_id):
     date = request.form['date']
     status = request.form['status']
@@ -1050,6 +1078,54 @@ def add_meeting_attendance(member_id):
 @app.route('/', methods=['GET'])
 @login_required
 def index():
+	# Check if user has a member record
+	member = database.get_member_by_email(current_user.email)
+	
+	if member:
+		# User has a member record - show their member dashboard
+		return member_dashboard()
+	else:
+		# No member record - check user role
+		if current_user.is_admin_or_bdfl():
+			# Admin dashboard - show all members
+			search = request.args.get('search', '').strip()
+			member_type = request.args.get('member_type', 'All')
+			all_members = database.get_all_members()
+			# Filter by member type
+			if member_type and member_type != 'All':
+				members = [m for m in all_members if m['membership_type'] == member_type]
+			else:
+				members = all_members
+			# Filter by search (all columns)
+			if search:
+				search_lower = search.lower()
+				def member_matches(m):
+					return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
+				members = [m for m in members if member_matches(m)]
+			
+			# Calculate member counts for each type
+			member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+			member_counts = {}
+			for mt in member_types_list:
+				if mt == "All":
+					member_counts[mt] = len(all_members)
+				else:
+					member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
+			
+			member_stats = get_member_stats()
+			applications = database.get_all_applications(status='pending')
+			return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+		else:
+			# Regular user without member record - show message
+			return render_template('member_dashboard.html', member=None, active_page='dashboard')
+
+@app.route('/admin', methods=['GET'])
+@login_required
+def admin_dashboard():
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Admin privileges required.', 'error')
+		return redirect(url_for('index'))
+	
 	search = request.args.get('search', '').strip()
 	member_type = request.args.get('member_type', 'All')
 	all_members = database.get_all_members()
@@ -1064,7 +1140,7 @@ def index():
 		def member_matches(m):
 			return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
 		members = [m for m in members if member_matches(m)]
-    
+	
 	# Calculate member counts for each type
 	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
 	member_counts = {}
@@ -1073,16 +1149,86 @@ def index():
 			member_counts[mt] = len(all_members)
 		else:
 			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
-    
+	
 	member_stats = get_member_stats()
 	applications = database.get_all_applications(status='pending')
 	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+
+@app.route('/member-dashboard')
+@login_required
+def member_dashboard():
+	# For regular users, try to find their member record by email
+	member = database.get_member_by_email(current_user.email)
+	if not member:
+		# If no member found, show a message
+		return render_template('member_dashboard.html', member=None, active_page='dashboard')
+	
+	member = dict(member) if member else None
+	dues = database.get_dues_by_member(member['id']) if member else []
+	work_hours = database.get_work_hours_by_member(member['id']) if member else []
+	total_work_hours = sum(wh['hours'] for wh in work_hours) if work_hours else 0
+	attendance = database.get_meeting_attendance(member['id']) if member else []
+	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt']) if attendance else 0
+	
+	# Get committee memberships
+	committees = []
+	if member:
+		member_committees = database.get_member_committees_new(member['id'])
+		for committee in member_committees:
+			committee_dict = dict(committee)
+			committees.append({
+				'name': committee_dict.get('name', '').replace('_', ' ').title(),
+				'role': committee_dict.get('role', '').title()
+			})
+	
+	# Get executive positions from roles table
+	executive_position = None
+	executive_term = None
+	if member:
+		member_position = database.get_member_position(member['id'])
+		if member_position:
+			position = member_position['position']
+			if position:
+				executive_position = position
+				term_start = member_position['term_start']
+				term_end = member_position['term_end']
+				if term_start and term_end:
+					formatted_start = format_mmddyyyy(term_start)
+					formatted_end = format_mmddyyyy(term_end)
+					executive_term = f"({formatted_start} until {formatted_end})"
+	
+	# Get recent check-ins (last 30 days)
+	checkins = []
+	if member and member.get('badge_number'):
+		checkins = database.get_member_checkins_last_30_days(member['badge_number'])
+	
+	return render_template('member_dashboard.html', 
+							member=member, 
+							dues=dues, 
+							work_hours=work_hours, 
+							total_work_hours=total_work_hours,
+							attendance=attendance,
+							total_meetings=total_meetings,
+							committees=committees,
+							executive_position=executive_position,
+							executive_term=executive_term,
+							checkins=checkins,
+							active_page='dashboard',
+							is_admin=current_user.is_admin_or_bdfl())
 
 
 
 @app.route('/member/<int:member_id>')
 @login_required
 def member_details(member_id):
+	# Check if user can access this member's details
+	if not current_user.is_admin_or_bdfl():
+		# For regular users, only allow access to their own member record
+		user_member = database.get_member_by_email(current_user.email)
+		if not user_member or user_member['id'] != member_id:
+			flash('Access denied. You can only view your own member details.', 'danger')
+			return redirect(url_for('member_dashboard'))
+	
 	member = database.get_member_by_id(member_id)
 	if not member:
 		return "Member not found", 404
@@ -1183,6 +1329,7 @@ def member_report(member_id):
 # Soft delete member (move to recycle bin)
 @app.route('/delete_member/<int:member_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_member(member_id):
 	database.soft_delete_member_by_id(member_id)
 	return redirect(url_for('index'))
@@ -1190,6 +1337,7 @@ def delete_member(member_id):
 # Recycle bin page
 @app.route('/recycle_bin')
 @login_required
+@admin_required
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
 	member_stats = get_member_stats()
@@ -1211,6 +1359,7 @@ def recycle_bin_restore_all():
 # Permanently DELETE ALL members in recycle bin
 @app.route('/recycle_bin/delete_all', methods=['POST'])
 @login_required
+@admin_required
 def recycle_bin_delete_all():
 	deleted_members = database.get_deleted_members()
 	for m in deleted_members:
@@ -1229,6 +1378,7 @@ def restore_member(member_id):
 
 @app.route('/bulk_actions')
 @login_required
+@admin_required
 def bulk_actions():
 	member_stats = get_member_stats()
 	committee_names = [row['name'] for row in database.get_all_committees()]
@@ -1237,6 +1387,7 @@ def bulk_actions():
 
 @app.route('/api/get_all_members', methods=['GET'])
 @login_required
+@admin_required
 def api_get_all_members():
 	try:
 		members = database.get_all_members()
@@ -1258,6 +1409,7 @@ def api_get_all_members():
 
 @app.route('/api/get_all_members_for_bulk', methods=['GET'])
 @login_required
+@admin_required
 def api_get_all_members_for_bulk():
 	try:
 		members = database.get_all_members()
@@ -1277,6 +1429,7 @@ def api_get_all_members_for_bulk():
 @app.route('/bulk_add_dues', methods=['POST'])
 @csrf.exempt
 @login_required
+@admin_required
 def bulk_add_dues():
 	try:
 		data = request.get_json()
@@ -1329,6 +1482,7 @@ def bulk_add_dues():
 @app.route('/bulk_add_work_hours', methods=['POST'])
 @csrf.exempt
 @login_required
+@admin_required
 def bulk_add_work_hours():
 	try:
 		data = request.get_json()
@@ -1378,6 +1532,7 @@ def bulk_add_work_hours():
 @app.route('/bulk_add_meeting_attendance', methods=['POST'])
 @csrf.exempt
 @login_required
+@admin_required
 def bulk_add_meeting_attendance():
 	try:
 		data = request.get_json()
@@ -1428,6 +1583,7 @@ def bulk_add_meeting_attendance():
 # Edit Member route
 @app.route('/edit_member/<int:member_id>', methods=['GET', 'POST'])
 @login_required
+@admin_required
 def edit_member(member_id):
 	member = database.get_member_by_id(member_id)
 	if not member:
@@ -1463,6 +1619,7 @@ def edit_member(member_id):
 @app.route('/add_member', methods=['GET', 'POST'])
 @csrf.exempt
 @login_required
+@admin_required
 def add_member():
 	if request.method == 'POST':
 		try:
@@ -1636,12 +1793,14 @@ def edit_due(due_id):
 
 @app.route('/delete_due/<int:due_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_due(due_id):
     database.delete_due(due_id)
     return ('', 204)
 
 @app.route('/delete_member_permanently/<int:member_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_member_permanently(member_id):
     database.delete_member_permanently(member_id)
     return redirect(url_for('recycle_bin'))
@@ -1672,6 +1831,7 @@ def edit_work_hours(wh_id):
 
 @app.route('/delete_work_hours/<int:wh_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_work_hours(wh_id):
     database.delete_work_hours(wh_id)
     return ('', 204)
@@ -1698,12 +1858,14 @@ def edit_meeting_attendance(att_id):
 
 @app.route('/delete_meeting_attendance/<int:att_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_meeting_attendance(att_id):
     database.delete_meeting_attendance(att_id)
     return ('', 204)
 
 @app.route('/meeting_attendance_report', endpoint='meeting_attendance_report')
 @login_required
+@admin_required
 def meeting_attendance_report():
 	year = request.args.get('year')
 	month = request.args.get('month') or 'all'
@@ -1730,6 +1892,7 @@ def meeting_attendance_report():
 
 @app.route('/committees')
 @login_required
+@admin_required
 def committees():
 	# Use new normalized schema
 	committee_names = [row['name'] for row in database.get_all_committees()]
@@ -1971,6 +2134,7 @@ def kiosk_sign_out(checkin_id):
 
 @app.route('/kiosk/report')
 @login_required
+@admin_required
 def kiosk_report():
 	"""View kiosk check-in reports (requires login)"""
 	date_filter = request.args.get('date')
@@ -1997,6 +2161,7 @@ def kiosk_report():
 
 @app.route('/kiosk_export_csv')
 @login_required
+@admin_required
 def kiosk_export_csv():
 	date_filter = request.args.get('date')
 	start_date = request.args.get('start_date')
@@ -2102,6 +2267,7 @@ def membership_application():
 
 @app.route('/admin/application/<int:app_id>')
 @login_required
+@admin_required
 def view_application(app_id):
 	"""View application details"""
 	if not current_user.is_admin_or_bdfl():
@@ -2115,6 +2281,7 @@ def view_application(app_id):
 
 @app.route('/admin/application/<int:app_id>/approve', methods=['POST'])
 @login_required
+@admin_required
 def approve_application(app_id):
 	"""Approve an application and create member"""
 	if not current_user.is_admin_or_bdfl():
@@ -2135,6 +2302,7 @@ def approve_application(app_id):
 
 @app.route('/admin/application/<int:app_id>/reject', methods=['POST'])
 @login_required
+@admin_required
 def reject_application(app_id):
 	"""Reject an application"""
 	if not current_user.is_admin_or_bdfl():

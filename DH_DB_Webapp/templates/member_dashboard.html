@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Member Dashboard - Dug Hill Rod & Gun Club</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
+    <style>
+        body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
+        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+        .dashboard-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 1250px; margin: 0 auto; }
+        .dashboard-card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
+        .card-header { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
+        .card-title { margin: 0; color: #384839; font-size: 1.5em; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .info-item { background: #f8f8f8; padding: 10px; border-radius: 4px; }
+        .info-label { font-weight: bold; color: #666; font-size: 0.9em; }
+        .info-value { color: #333; margin-top: 2px; }
+        .status-good { color: #28a745; }
+        .status-warning { color: #ffc107; }
+        .status-danger { color: #dc3545; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f8f8; font-weight: bold; }
+    </style>
+</head>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+    <div style="display:flex; flex-direction:row;">
+        <!-- Static Side Menu -->
+        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Dashboard</a>
+            {% if is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+        </div>
+        
+        <!-- Main content area -->
+        <div class="main-content">
+            <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; margin-bottom:20px; width:100%;">
+                <div style="text-align:center; width:100%;">
+                    <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                    <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Member Dashboard</h1>
+                </div>
+            </div>
+            
+            {% if member %}
+            <div class="dashboard-container">
+                <!-- Personal Info Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">👤 Personal</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">First Name</div>
+                            <div class="info-value">{{ member.first_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Middle Name</div>
+                            <div class="info-value">{{ member.middle_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Last Name</div>
+                            <div class="info-value">{{ member.last_name }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Suffix</div>
+                            <div class="info-value">{{ member.suffix }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Nickname</div>
+                            <div class="info-value">{{ member.nickname }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Date of Birth</div>
+                            <div class="info-value">{{ member.dob | format_mmddyyyy if member.dob else '' }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Member Info Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">👤 Member Information</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Badge Number</div>
+                            <div class="info-value">{{ member.badge_number }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Membership Type</div>
+                            <div class="info-value">{{ member.membership_type }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Join Date</div>
+                            <div class="info-value">{{ member.join_date | format_mmddyyyy if member.join_date else '' }}</div>
+                        </div>
+                        {% if executive_position %}
+                        <div class="info-item">
+                            <div class="info-label">Executive Role</div>
+                            <div class="info-value">
+                                {{ executive_position }}
+                                {% if executive_term %}
+                                <br>{{ executive_term }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Contact Info Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">📞 Contact Information</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Primary Email</div>
+                            <div class="info-value">{{ member.email }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Secondary Email</div>
+                            <div class="info-value">{{ member.email2 }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Primary Phone</div>
+                            <div class="info-value">{{ member.phone }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Secondary Phone</div>
+                            <div class="info-value">{{ member.phone2 }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Address Info Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">🏠 Address Information</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Street Address</div>
+                            <div class="info-value">{{ member.address }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">City</div>
+                            <div class="info-value">{{ member.city }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">State</div>
+                            <div class="info-value">{{ member.state }}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">ZIP Code</div>
+                            <div class="info-value">{{ member.zip }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dues Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">💵 Dues History</h2>
+                    </div>
+                    {% if dues %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Amount</th>
+                                <th>Payment Date</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for due in dues %}
+                            <tr>
+                                <td>{{ due.year }}</td>
+                                <td>${{ "%.2f"|format(due.amount) }}</td>
+                                <td>{{ due.payment_date | format_mmddyyyy }}</td>
+                                <td>{{ due.method or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No dues payments found.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Work Hours Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">⏰ Work Hours ({{ "%.1f"|format(total_work_hours) }} total)</h2>
+                    </div>
+                    {% if work_hours %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Activity</th>
+                                <th>Hours</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wh in work_hours %}
+                            <tr>
+                                <td>{{ wh.date | format_mmddyyyy }}</td>
+                                <td>{{ wh.activity.replace('_', ' ').title() }}</td>
+                                <td>{{ "%.1f"|format(wh.hours) }}</td>
+                                <td>{{ wh.notes or '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No work hours recorded.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Meeting Attendance Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">📅 Meeting Attendance ({{ total_meetings }} attended)</h2>
+                    </div>
+                    {% if attendance %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for att in attendance %}
+                            <tr>
+                                <td>{{ att.meeting_date | format_mmddyyyy }}</td>
+                                <td>{{ att.status }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No meeting attendance recorded.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Committees Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">🏛️ Committees</h2>
+                    </div>
+                    {% if committees %}
+                    <div class="info-grid">
+                        {% for committee in committees %}
+                        <div class="info-item">
+                            <div class="info-label">{{ committee.name }}</div>
+                            <div class="info-value">{{ committee.role }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p>No committee memberships found.</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Visits Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h2 class="card-title">🏠 Recent Visits (Last 30 Days)</h2>
+                    </div>
+                    {% if checkins %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Activities</th>
+                                <th>Guests</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for checkin in checkins %}
+                            <tr>
+                                <td>{{ checkin.check_in_time | format_datetime_12hr }}</td>
+                                <td>
+                                    {% if checkin.activities %}
+                                        {{ checkin.activities }}
+                                        {% if checkin.other_activity %}
+                                            ({{ checkin.other_activity }})
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% set guests = [] %}
+                                    {% if checkin.guest1_name %}
+                                        {% set _ = guests.append(checkin.guest1_name) %}
+                                    {% endif %}
+                                    {% if checkin.guest2_name %}
+                                        {% set _ = guests.append(checkin.guest2_name) %}
+                                    {% endif %}
+                                    {% if guests %}
+                                        {{ guests | join(', ') }}
+                                    {% else %}
+                                        None
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p>No visits in the last 30 days.</p>
+                    {% endif %}
+                </div>
+            
+            {% else %}
+            <!-- No Member Record Found -->
+            <div class="dashboard-container">
+                <div class="dashboard-card" style="flex: 1; min-width: 400px; max-width: 600px;">
+                    <div class="card-header">
+                        <h2 class="card-title">👤 Member Information</h2>
+                    </div>
+                    <p style="text-align: center; color: #666; padding: 40px;">
+                        No member record found associated with your account email ({{ current_user.email }}).<br>
+                        Please contact an administrator to link your account to your membership record.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

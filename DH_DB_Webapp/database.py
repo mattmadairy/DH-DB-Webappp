@@ -456,6 +456,15 @@ def get_member_by_badge_number(badge_number):
 	conn.close()
 	return row
 
+def get_member_by_email(email):
+	"""Get member by email (primary or secondary)"""
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT * FROM members WHERE email=? OR email2=?", (email, email))
+	row = c.fetchone()
+	conn.close()
+	return row
+
 def get_dues_by_member(member_id):
 	conn = get_connection()
 	c = conn.cursor()
@@ -941,6 +950,22 @@ def get_checkins_by_date_range(start_date, end_date):
         WHERE DATE(c.check_in_time) BETWEEN ? AND ?
         ORDER BY c.check_in_time DESC
     """, (start_date, end_date))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_member_checkins_last_30_days(member_badge_number):
+    """Get the last 30 days of check-ins for a specific member"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT c.*, m.first_name, m.last_name 
+        FROM check_ins c
+        LEFT JOIN members m ON c.member_number = m.badge_number
+        WHERE c.member_number = ? 
+        AND DATE(c.check_in_time) >= DATE('now', '-30 days')
+        ORDER BY c.check_in_time DESC
+    """, (member_badge_number,))
     rows = c.fetchall()
     conn.close()
     return rows

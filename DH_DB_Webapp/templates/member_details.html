@@ -977,7 +977,7 @@ function submitCommittees() {
 					<option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
 					{% endfor %}
 				</select>
-				<label for="amount">Amount:</label><input type="text" id="amount" name="amount" pattern="^\d+(\.\d{1,2})?$" title="Enter a valid amount (e.g., 50 or 50.00)" required>
+				<label for="amount">Amount:</label><input type="text" id="amount" name="amount" value="150.00" pattern="^\d+(\.\d{1,2})?$" title="Enter a valid amount (e.g., 50 or 50.00)" required>
 				<label for="method">Method:</label><select id="method" name="method" required>
 					<option value="">Select Method</option>
 					<option value="Cash">Cash</option>
@@ -1006,7 +1006,12 @@ function submitCommittees() {
 				<label for="edit_payment_date">Payment Date:</label><input type="date" id="edit_payment_date" name="payment_date" value="">
 				<label for="edit_year">Year:</label><input type="text" id="edit_year" name="year" value="">
 				<label for="edit_amount">Amount:</label><input type="number" id="edit_amount" name="amount" step="0.01">
-				<label for="edit_method">Method:</label><input type="text" id="edit_method" name="method" value="">
+				<label for="edit_method">Method:</label><select id="edit_method" name="method" required>
+					<option value="">Select Method</option>
+					<option value="Cash">Cash</option>
+					<option value="Check">Check</option>
+					<option value="Stripe">Stripe</option>
+				</select>
 				<label for="edit_due_notes">Notes:</label><input type="text" id="edit_due_notes" name="notes" value="">
 			</div>
 			<div style="margin-top:18px; text-align:center;">
@@ -1077,6 +1082,11 @@ function deleteDue(dueId) {
 
 function openModal(id) {
 	document.getElementById(id).style.display = 'block';
+	if (id === 'duesModal') {
+		// Set today's date as default
+		var today = new Date().toISOString().split('T')[0];
+		document.getElementById('payment_date').value = today;
+	}
 }
 
 function closeModal(id) {
