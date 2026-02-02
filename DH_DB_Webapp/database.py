@@ -657,7 +657,7 @@ def delete_meeting_attendance(att_id):
 
 # ========== User Authentication Functions ==========
 
-def create_user(username, password_hash, email, name=None, role='User'):
+def create_user(username, password_hash, email, name=None, role='User', is_active=False):
     """Create a new user account"""
     from datetime import datetime
     conn = get_connection()
@@ -665,9 +665,9 @@ def create_user(username, password_hash, email, name=None, role='User'):
     try:
         # New users created by admin must change password on first login
         c.execute("""
-            INSERT INTO users (username, name, password_hash, email, created_at, role, must_change_password)
-            VALUES (?, ?, ?, ?, ?, ?, 1)
-        """, (username, name, password_hash, email, datetime.now().isoformat(), role))
+            INSERT INTO users (username, name, password_hash, email, created_at, role, must_change_password, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+        """, (username, name, password_hash, email, datetime.now().isoformat(), role, 1 if is_active else 0))
         conn.commit()
         user_id = c.lastrowid
         conn.close()
@@ -675,6 +675,14 @@ def create_user(username, password_hash, email, name=None, role='User'):
     except sqlite3.IntegrityError:
         conn.close()
         return None
+
+def update_user_active_status(user_id, is_active):
+    """Update user's active status"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET is_active = ? WHERE id = ?", (1 if is_active else 0, user_id))
+    conn.commit()
+    conn.close()
 
 def get_user_by_username(username):
     """Get user by username"""
@@ -1048,7 +1056,25 @@ def approve_application(app_id, user_id, badge_number):
 		'',  # card_internal
 		''   # card_external
 	)
-	add_member(member_data)
+	member_id = add_member(member_data)
+	
+	# Create or update user account
+	# Determine if user should be active based on membership type
+	active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
+	is_active = 'Prospective' in active_statuses  # False for Prospective
+	
+	# Check if user already exists
+	existing_user = get_user_by_email(app['email'])
+	if existing_user:
+		# Update existing user
+		update_user_active_status(existing_user['id'], is_active)
+	else:
+		# Create new user
+		from werkzeug.security import generate_password_hash
+		name = f"{app['first_name']} {app['last_name']}"
+		username = app['email']  # Use email as username
+		password_hash = generate_password_hash('password')  # Default password
+		create_user(username, password_hash, app['email'], name, 'User', is_active)
 	
 	# Update application status
 	c.execute("""

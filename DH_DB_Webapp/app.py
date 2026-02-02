@@ -182,8 +182,27 @@ def format_datetime_12hr(value):
 
 app.jinja_env.filters['format_datetime_12hr'] = format_datetime_12hr
 
+# Jinja filter to format name as "Last, First"
+def format_name_last_first(value):
+    if not value or value == '-':
+        return value or '-'
+    try:
+        # Split the name by spaces
+        parts = value.strip().split()
+        if len(parts) >= 2:
+            # Assume the last part is the last name, everything else is first/middle
+            last_name = parts[-1]
+            first_middle = ' '.join(parts[:-1])
+            return f"{last_name}, {first_middle}"
+        else:
+            # If only one part, return as is
+            return value
+    except Exception:
+        return value
+
+app.jinja_env.filters['format_name_last_first'] = format_name_last_first
+
 def get_member_stats():
-	"""Calculate member statistics for sidebar display"""
 	all_members = database.get_all_members()
 	life_count = len([m for m in all_members if m['membership_type'] == 'Life'])
 	voting_count = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active']])
@@ -579,6 +598,50 @@ def toggle_user_status(user_id):
 	
 	return redirect(url_for('admin_users'))
 
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+	user_data = database.get_user_by_id(user_id)
+	if not user_data:
+		flash('User not found.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Cannot delete BDFL users or self
+	try:
+		user_role = user_data['role']
+	except (KeyError, TypeError):
+		user_role = None
+	
+	if user_role == 'BDFL':
+		flash('Cannot delete BDFL users.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	if user_id == current_user.id:
+		flash('Cannot delete your own account.', 'error')
+		return redirect(url_for('admin_users'))
+	
+	# Delete the user
+	import sqlite3
+	conn = sqlite3.connect(database.DB_NAME)
+	conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+	conn.commit()
+	conn.close()
+	
+	database.log_audit(
+		user_id=current_user.id,
+		username=current_user.username,
+		action='user_delete',
+		target_user=user_data['username'],
+		ip_address=request.remote_addr,
+		user_agent=request.headers.get('User-Agent'),
+		success=True,
+		details='User permanently deleted'
+	)
+	flash(f'User "{user_data["username"]}" has been permanently deleted.', 'info')
+	
+	return redirect(url_for('admin_users'))
+
 @app.route('/admin/users/get/<int:user_id>', methods=['GET'])
 @login_required
 @admin_required
@@ -714,7 +777,13 @@ def admin_users():
 				flash('An error occurred during user creation.', 'error')
 	
 	# Get all users
-	all_users = database.get_all_users()
+	all_users = [dict(user) for user in database.get_all_users()]
+	
+	# Add member_id to each user if they have a member record
+	for user in all_users:
+		member = database.get_member_by_email(user['email'])
+		user['member_id'] = member['id'] if member else None
+	
 	member_stats = get_member_stats()
 	
 	# Get pending applications
@@ -1078,43 +1147,42 @@ def add_meeting_attendance(member_id):
 @app.route('/', methods=['GET'])
 @login_required
 def index():
-	# Check if user has a member record
-	member = database.get_member_by_email(current_user.email)
-	
-	if member:
-		# User has a member record - show their member dashboard
-		return member_dashboard()
-	else:
-		# No member record - check user role
-		if current_user.is_admin_or_bdfl():
-			# Admin dashboard - show all members
-			search = request.args.get('search', '').strip()
-			member_type = request.args.get('member_type', 'All')
-			all_members = database.get_all_members()
-			# Filter by member type
-			if member_type and member_type != 'All':
-				members = [m for m in all_members if m['membership_type'] == member_type]
+	# Check if user is admin first
+	if current_user.is_admin_or_bdfl():
+		# Admin dashboard - show all members
+		search = request.args.get('search', '').strip()
+		member_type = request.args.get('member_type', 'All')
+		all_members = database.get_all_members()
+		# Filter by member type
+		if member_type and member_type != 'All':
+			members = [m for m in all_members if m['membership_type'] == member_type]
+		else:
+			members = all_members
+		# Filter by search (all columns)
+		if search:
+			search_lower = search.lower()
+			def member_matches(m):
+				return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
+			members = [m for m in members if member_matches(m)]
+		
+		# Calculate member counts for each type
+		member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+		member_counts = {}
+		for mt in member_types_list:
+			if mt == "All":
+				member_counts[mt] = len(all_members)
 			else:
-				members = all_members
-			# Filter by search (all columns)
-			if search:
-				search_lower = search.lower()
-				def member_matches(m):
-					return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
-				members = [m for m in members if member_matches(m)]
-			
-			# Calculate member counts for each type
-			member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
-			member_counts = {}
-			for mt in member_types_list:
-				if mt == "All":
-					member_counts[mt] = len(all_members)
-				else:
-					member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
-			
-			member_stats = get_member_stats()
-			applications = database.get_all_applications(status='pending')
-			return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+				member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
+		
+		member_stats = get_member_stats()
+		applications = database.get_all_applications(status='pending')
+		return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+	else:
+		# Regular user - check if they have a member record
+		member = database.get_member_by_email(current_user.email)
+		if member:
+			# User has a member record - show their member dashboard
+			return member_dashboard()
 		else:
 			# Regular user without member record - show message
 			return render_template('member_dashboard.html', member=None, active_page='dashboard')
@@ -1332,6 +1400,12 @@ def member_report(member_id):
 @admin_required
 def delete_member(member_id):
 	database.soft_delete_member_by_id(member_id)
+	# Disable user account
+	member = database.get_member_by_id(member_id)
+	if member:
+		user = database.get_user_by_email(member['email'])
+		if user:
+			database.update_user_active_status(user['id'], False)
 	return redirect(url_for('index'))
 
 # Recycle bin page
@@ -1351,6 +1425,12 @@ def recycle_bin_restore_all():
 	for m in deleted_members:
 		try:
 			database.restore_member_by_id(m['id'])
+			# Re-enable user account based on membership type
+			active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
+			is_active = m['membership_type'] in active_statuses
+			user = database.get_user_by_email(m['email'])
+			if user:
+				database.update_user_active_status(user['id'], is_active)
 		except Exception:
 			# Continue restoring others even if one fails
 			continue
@@ -1374,6 +1454,14 @@ def recycle_bin_delete_all():
 @login_required
 def restore_member(member_id):
 	database.restore_member_by_id(member_id)
+	# Re-enable user account based on membership type
+	member = database.get_member_by_id(member_id)
+	if member:
+		active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
+		is_active = member['membership_type'] in active_statuses
+		user = database.get_user_by_email(member['email'])
+		if user:
+			database.update_user_active_status(user['id'], is_active)
 	return redirect(url_for('recycle_bin'))
 
 @app.route('/bulk_actions')
@@ -1646,6 +1734,21 @@ def add_member():
 				request.form.get('card_external', ''),
 			)
 			member_id = database.add_member(data)
+			
+			# Create user account
+			membership_type = request.form.get('membership_type', '')
+			active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
+			is_active = membership_type in active_statuses
+			email = request.form.get('email', '')
+			if email:
+				existing_user = database.get_user_by_email(email)
+				if not existing_user:
+					from werkzeug.security import generate_password_hash
+					name = f"{request.form.get('first_name', '')} {request.form.get('last_name', '')}".strip()
+					username = email
+					password_hash = generate_password_hash('password')
+					database.create_user(username, password_hash, email, name, 'User', is_active)
+			
 			database.log_audit(
 				user_id=current_user.id,
 				username=current_user.username,
@@ -1694,9 +1797,11 @@ def edit_section(member_id):
 					'dob': request.form['dob'],
 				})
 			elif section == 'membership':
+				old_membership_type = member['membership_type']
+				new_membership_type = request.form['membership_type']
 				database.update_member_section(member_id, {
 					'badge_number': request.form['badge_number'],
-					'membership_type': request.form['membership_type'],
+					'membership_type': new_membership_type,
 					'join_date': request.form['join_date'] or None,
 					'application_submitted': request.form.get('application_submitted') or None,
 					'introduced_date': request.form.get('introduced_date') or None,
@@ -1707,6 +1812,13 @@ def edit_section(member_id):
 					'card_external': request.form['card_external'],
 					'member_notes': request.form['member_notes'],
 				})
+				# Update user active status if membership type changed
+				if old_membership_type != new_membership_type:
+					active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
+					is_active = new_membership_type in active_statuses
+					user = database.get_user_by_email(member['email'])
+					if user:
+						database.update_user_active_status(user['id'], is_active)
 				# Update position in roles table
 				database.update_member_position(
 					member_id,

@@ -42,6 +42,33 @@
         padding: 12px;
         text-align: left;
         font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    .user-table th:not(.not-sortable) {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+    .user-table th:not(.not-sortable):hover {
+        background-color: #4a5a4a;
+        opacity: 0.9;
+    }
+    .user-table th.not-sortable {
+        cursor: default;
+    }
+    .user-table th.not-sortable:hover {
+        background-color: #384839;
+    }
+    .user-table th.sort-asc::after {
+        content: ' ▲';
+        font-size: 0.8em;
+        margin-left: 5px;
+    }
+    .user-table th.sort-desc::after {
+        content: ' ▼';
+        font-size: 0.8em;
+        margin-left: 5px;
     }
     .user-table td {
         padding: 10px 12px;
@@ -170,16 +197,22 @@
         background-color: #ec971f;
     }
     .btn-disable {
-        background-color: #d9534f;
+        background-color: #6f42c1;
     }
     .btn-disable:hover {
-        background-color: #c9302c;
+        background-color: #5a359a;
     }
     .btn-enable {
         background-color: #5cb85c;
     }
     .btn-enable:hover {
         background-color: #449d44;
+    }
+    .btn-delete {
+        background-color: #dc3545;
+    }
+    .btn-delete:hover {
+        background-color: #c82333;
     }
     .btn-action:disabled {
         background-color: #cccccc;
@@ -275,13 +308,17 @@
                             <th>Status</th>
                             <th>Created</th>
                             <th>Last Login</th>
-                            <th>Actions</th>
+                            <th class="not-sortable">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
+                        {% if user.member_id %}
+                        <tr onclick="window.location.href='{{ url_for('member_details', member_id=user.member_id) }}'" style="cursor: pointer;">
+                        {% else %}
                         <tr>
-                            <td><strong>{{ user.name if user.name else '-' }}</strong></td>
+                        {% endif %}
+                            <td><strong>{{ user.name | format_name_last_first if user.name else '-' }}</strong></td>
                             <td>{{ user.username }}</td>
                             <td>{{ user.email }}</td>
                             <td>
@@ -292,14 +329,17 @@
                             </td>
                             <td>{{ user.created_at[5:7] }}-{{ user.created_at[8:10] }}-{{ user.created_at[:4] }}&nbsp;&nbsp;&nbsp;{{ user.created_at[11:16] }}</td>
                             <td>{% if user.last_login %}{{ user.last_login[5:7] }}-{{ user.last_login[8:10] }}-{{ user.last_login[:4] }}&nbsp;&nbsp;&nbsp;{{ user.last_login[11:16] }}{% else %}<span style="color:#999;">Never</span>{% endif %}</td>
-                            <td>
-                                <button onclick="editUser({{ user.id }})" class="btn-action btn-edit" {% if user.role == 'BDFL' and not current_user.is_bdfl() %}disabled{% endif %}>Edit</button>
-                                <button onclick="resetPassword({{ user.id }}, '{{ user.username }}')" class="btn-action btn-reset" {% if user.role == 'BDFL' and user.id != current_user.id %}disabled{% endif %}>Reset Password</button>
-                                {% if user.is_active %}
-                                <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', false)" class="btn-action btn-disable" {% if user.role == 'BDFL' %}disabled{% endif %}>Disable</button>
-                                {% else %}
-                                <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', true)" class="btn-action btn-enable" {% if user.role == 'BDFL' %}disabled{% endif %}>Enable</button>
-                                {% endif %}
+                            <td onclick="event.stopPropagation()" style="white-space: nowrap;">
+                                <div style="display: flex; flex-direction: column; gap: 2px;">
+                                    <button onclick="editUser({{ user.id }})" class="btn-action btn-edit" {% if user.role == 'BDFL' and not current_user.is_bdfl() %}disabled{% endif %}>Edit</button>
+                                    <button onclick="resetPassword({{ user.id }}, '{{ user.username }}')" class="btn-action btn-reset" {% if user.role == 'BDFL' and user.id != current_user.id %}disabled{% endif %}>Reset Password</button>
+                                    {% if user.is_active %}
+                                    <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', false)" class="btn-action btn-disable" {% if user.role == 'BDFL' %}disabled{% endif %}>Disable</button>
+                                    {% else %}
+                                    <button onclick="toggleUserStatus({{ user.id }}, '{{ user.username }}', true)" class="btn-action btn-enable" {% if user.role == 'BDFL' %}disabled{% endif %}>Enable</button>
+                                    {% endif %}
+                                    <button onclick="deleteUser({{ user.id }}, '{{ user.username }}')" class="btn-action btn-delete" {% if user.role == 'BDFL' or user.id == current_user.id %}disabled{% endif %}>Delete</button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -321,13 +361,13 @@
                             <th>Phone</th>
                             <th>City, State</th>
                             <th>Submitted</th>
-                            <th>Actions</th>
+                            <th class="not-sortable">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for app in applications %}
                         <tr>
-                            <td><strong>{{ app.first_name }} {{ app.middle_name }} {{ app.last_name }} {{ app.suffix }}</strong></td>
+                            <td><strong>{{ app.last_name }}{% if app.suffix %}, {{ app.suffix }}{% endif %}, {{ app.first_name }}{% if app.middle_name %} {{ app.middle_name }}{% endif %}</strong></td>
                             <td>{{ app.email }}</td>
                             <td>{{ app.phone }}</td>
                             <td>{{ app.city }}, {{ app.state }}</td>
@@ -461,6 +501,131 @@
             arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
         }
         
+        function sortTable(tableElement, columnIndex, tableId) {
+            const tbody = tableElement.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Remove previous sort indicators from this table
+            tableElement.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+            
+            // Get current sort state for this table
+            const currentSortKey = tableId + '-sort';
+            const currentDirectionKey = tableId + '-direction';
+            
+            const storedSortColumn = localStorage.getItem(currentSortKey);
+            let currentSortColumn = storedSortColumn !== null ? parseInt(storedSortColumn) : -1;
+            let currentSortDirection = localStorage.getItem(currentDirectionKey) || 'asc';
+            
+            // Determine sort direction
+            if (currentSortColumn === columnIndex) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortDirection = 'asc';
+                currentSortColumn = columnIndex;
+            }
+            
+            // Store sort state
+            localStorage.setItem(currentSortKey, currentSortColumn);
+            localStorage.setItem(currentDirectionKey, currentSortDirection);
+            
+            // Add sort indicator to header
+            const header = tableElement.querySelectorAll('th')[columnIndex];
+            header.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                const aValue = getCellValue(a, columnIndex, tableId);
+                const bValue = getCellValue(b, columnIndex, tableId);
+                
+                // Handle different data types
+                let result = 0;
+                
+                // Try numeric comparison first
+                const aNum = parseFloat(aValue);
+                const bNum = parseFloat(bValue);
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    result = aNum - bNum;
+                } else {
+                    // String comparison (case-insensitive)
+                    const aStr = String(aValue).toLowerCase();
+                    const bStr = String(bValue).toLowerCase();
+                    if (aStr < bStr) result = -1;
+                    if (aStr > bStr) result = 1;
+                }
+                
+                return currentSortDirection === 'asc' ? result : -result;
+            });
+            
+            // Reorder rows in table
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        function getCellValue(row, columnIndex, tableId) {
+            const cell = row.querySelectorAll('td')[columnIndex];
+            if (!cell) return '';
+            
+            // Handle different column types based on table
+            if (tableId === 'applicants-table') {
+                // Applicants table columns
+                if (columnIndex === 4) { // Submitted date column
+                    const text = cell.textContent.trim();
+                    // Convert MM-DD-YYYY to YYYY-MM-DD for proper sorting
+                    const parts = text.split('-');
+                    if (parts.length === 3) {
+                        return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    }
+                    return text;
+                } else {
+                    return cell.textContent.trim().toLowerCase();
+                }
+            } else {
+                // Users table columns
+                if (columnIndex === 3) { // Role column
+                    const badge = cell.querySelector('.role-badge');
+                    return badge ? badge.textContent.trim() : '';
+                } else if (columnIndex === 4) { // Status column
+                    const badge = cell.querySelector('.status-badge');
+                    return badge ? badge.textContent.trim() : '';
+                } else if (columnIndex === 5 || columnIndex === 6) { // Date columns
+                    // Extract date for sorting (MM-DD-YYYY format)
+                    const text = cell.textContent.trim();
+                    if (text === 'Never') return '9999-99-99'; // Sort "Never" last
+                    // Convert MM-DD-YYYY to YYYY-MM-DD for proper sorting
+                    const parts = text.split('-');
+                    if (parts.length === 3) {
+                        return `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    }
+                    return text;
+                } else {
+                    // For text columns, get the text content
+                    return cell.textContent.trim().toLowerCase();
+                }
+            }
+        }
+        
+        // Initialize sortable headers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up all user tables
+            const userTables = document.querySelectorAll('.user-table');
+            userTables.forEach((tableContainer, tableIndex) => {
+                const table = tableContainer.querySelector('table');
+                if (table) {
+                    const tableId = tableIndex === 0 ? 'users-table' : 'applicants-table';
+                    tableContainer.id = tableId;
+                    
+                    const headers = table.querySelectorAll('th');
+                    headers.forEach((header, index) => {
+                        if (!header.classList.contains('not-sortable')) {
+                            header.addEventListener('click', () => sortTable(table, index, tableId));
+                            header.title = 'Click to sort'; // Add tooltip
+                        }
+                    });
+                }
+            });
+        });
+        
         function openAddUserModal() {
             document.getElementById('addUserModal').style.display = 'flex';
         }
@@ -548,6 +713,21 @@
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/admin/users/toggle-status/' + userId;
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = '{{ csrf_token() }}';
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+        
+        function deleteUser(userId, username) {
+            if (confirm('Are you sure you want to permanently delete user "' + username + '"? This action cannot be undone.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/users/delete/' + userId;
                 const csrfInput = document.createElement('input');
                 csrfInput.type = 'hidden';
                 csrfInput.name = 'csrf_token';
