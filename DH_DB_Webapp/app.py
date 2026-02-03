@@ -309,6 +309,14 @@ def get_member_stats():
 		'total_members': total_count
 	}
 
+def get_pending_application_count():
+	"""Get the count of pending membership applications"""
+	try:
+		applications = database.get_all_applications(status='pending')
+		return len(applications)
+	except:
+		return 0
+
 # Security headers middleware
 @app.after_request
 def set_security_headers(response):
@@ -881,8 +889,9 @@ def admin_users():
 		user['member_id'] = member['id'] if member else None
 	
 	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
 	
-	return render_template('admin_users.html', users=all_users, active_page='admin_users', member_stats=member_stats)
+	return render_template('admin_users.html', users=all_users, active_page='admin_users', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/admin/applications', methods=['GET'])
 @login_required
@@ -892,8 +901,9 @@ def admin_applications():
 	applications = database.get_all_applications(status='pending')
 	
 	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
 	
-	return render_template('admin_applications.html', applications=applications, active_page='admin_applications', member_stats=member_stats)
+	return render_template('admin_applications.html', applications=applications, active_page='admin_applications', member_stats=member_stats, pending_applications=pending_applications)
 
 # Before request handler to check for password change requirement
 @app.before_request
@@ -941,8 +951,9 @@ def dues_report():
 	dues = database.get_all_dues_by_year(year)
 	now = datetime.datetime.now()
 	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
 	total_dues_revenue = sum(float(due['amount'] or 0) for due in dues)
-	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats, total_dues_revenue=total_dues_revenue)
+	return render_template('dues_report.html', dues=dues, years=years, selected_year=year, now=now, active_page='dues_report', member_stats=member_stats, total_dues_revenue=total_dues_revenue, pending_applications=pending_applications)
 
 @app.route('/dues_email_list')
 @login_required
@@ -1234,7 +1245,8 @@ def work_hours_report():
 	years = database.get_dues_years()  # reuse dues years for dropdown
 	now = datetime.datetime.now()
 	member_stats = get_member_stats()
-	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats)
+	pending_applications = get_pending_application_count()
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 @login_required
@@ -1280,7 +1292,8 @@ def index():
 		
 		member_stats = get_member_stats()
 		applications = database.get_all_applications(status='pending')
-		return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+		pending_applications = get_pending_application_count()
+		return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications, pending_applications=pending_applications)
 	else:
 		# Regular user - check if they have a member record
 		member = database.get_member_by_email(current_user.email)
@@ -1324,7 +1337,8 @@ def admin_dashboard():
 	
 	member_stats = get_member_stats()
 	applications = database.get_all_applications(status='pending')
-	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications)
+	pending_applications = get_pending_application_count()
+	return render_template('index.html', members=members, search=search, member_type=member_type, member_types=member_types_list, member_counts=member_counts, active_page='home', member_stats=member_stats, applications=applications, pending_applications=pending_applications)
 
 @app.route('/member-dashboard')
 @login_required
@@ -1465,7 +1479,8 @@ def member_documents():
 							document_order=document_order,
 							meeting_minutes=meeting_minutes,
 							available_years=available_years,
-							selected_year=selected_year)
+							selected_year=selected_year,
+							pending_applications=get_pending_application_count())
 
 
 @app.route('/upload_document/<filename>', methods=['POST'])
@@ -1846,6 +1861,7 @@ def member_details(member_id):
 	import datetime
 	current_year = datetime.datetime.now().year
 	dues_years = list(range(current_year + 1, current_year - 10, -1))
+	pending_applications = get_pending_application_count()
 	return render_template(
 		'member_details.html',
 		member=member,
@@ -1862,7 +1878,8 @@ def member_details(member_id):
 		committee_display_names=committee_display_names,
 		total_meetings=total_meetings,
 		work_activity_display_names=activity_display_names,
-		current_year=current_year
+		current_year=current_year,
+		pending_applications=pending_applications
 	)
 @app.route('/member_report/<int:member_id>')
 @login_required
@@ -1925,7 +1942,8 @@ def delete_member(member_id):
 def recycle_bin():
 	deleted_members = database.get_deleted_members()
 	member_stats = get_member_stats()
-	return render_template('recycle_bin.html', deleted_members=deleted_members, active_page='recycle_bin', member_stats=member_stats)
+	pending_applications = get_pending_application_count()
+	return render_template('recycle_bin.html', deleted_members=deleted_members, active_page='recycle_bin', member_stats=member_stats, pending_applications=pending_applications)
 
 # Restore ALL members from recycle bin
 @app.route('/recycle_bin/restore_all', methods=['POST'])
@@ -1981,7 +1999,8 @@ def bulk_actions():
 	member_stats = get_member_stats()
 	committee_names = [row['name'] for row in database.get_all_committees()]
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
-	return render_template('bulk_actions.html', active_page='bulk_actions', member_stats=member_stats, committee_names=committee_names, committee_display_names=committee_display_names)
+	pending_applications = get_pending_application_count()
+	return render_template('bulk_actions.html', active_page='bulk_actions', member_stats=member_stats, committee_names=committee_names, committee_display_names=committee_display_names, pending_applications=pending_applications)
 
 @app.route('/api/get_all_members', methods=['GET'])
 @login_required
@@ -2510,7 +2529,8 @@ def meeting_attendance_report():
 	attendance = database.get_meeting_attendance_report(year=year, month=month)
 	now = datetime.datetime.now()
 	member_stats = get_member_stats()
-	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report', member_stats=member_stats)
+	pending_applications = get_pending_application_count()
+	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/committees')
 @login_required
@@ -2569,7 +2589,8 @@ def committees():
 	now = datetime.datetime.now()
 	selected_committee = request.args.get('committee')
 	member_stats = get_member_stats()
-	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees', member_stats=member_stats)
+	pending_applications = get_pending_application_count()
+	return render_template('committees.html', committee_names=committee_names, committee_display_names=committee_display_names, committee_members=committee_members, selected_committee=selected_committee, now=now, active_page='committees', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/committee_email_list')
 @login_required
@@ -2773,13 +2794,15 @@ def kiosk_report():
 		checkins = database.get_all_checkins(date=today)
 	
 	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
 	return render_template('kiosk_report.html', 
 						   checkins=checkins, 
 						   member_stats=member_stats,
 						   date_filter=date_filter,
 						   start_date=start_date,
 						   end_date=end_date,
-						   active_page='kiosk_report')
+						   active_page='kiosk_report',
+						   pending_applications=pending_applications)
 
 @app.route('/kiosk_export_csv')
 @login_required
@@ -2904,40 +2927,59 @@ def view_application(app_id):
 @app.route('/admin/application/<int:app_id>/approve', methods=['POST'])
 @login_required
 @admin_required
+@csrf.exempt
 def approve_application(app_id):
 	"""Approve an application and create member"""
 	if not current_user.is_admin_or_bdfl():
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': False, 'message': 'Access denied. Only administrators can approve applications.'}), 403
 		flash('Access denied. Only administrators can approve applications.', 'error')
-		return redirect(url_for('admin_users'))
+		return redirect(url_for('admin_applications'))
 	
 	badge_number = request.form.get('badge_number')
 	if not badge_number:
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': False, 'message': 'Badge number is required to approve application.'}), 400
 		flash('Badge number is required to approve application.', 'error')
-		return redirect(url_for('admin_users'))
+		return redirect(url_for('admin_applications'))
 	
 	success = database.approve_application(app_id, current_user.id, badge_number)
 	if success:
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': True, 'message': f'Application approved! Member created with badge number {badge_number}.'})
 		flash(f'Application approved! Member created with badge number {badge_number}.', 'info')
 	else:
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': False, 'message': 'Failed to approve application.'}), 500
 		flash('Failed to approve application.', 'error')
-	return redirect(url_for('admin_users'))
+	return redirect(url_for('admin_applications'))
 
 @app.route('/admin/application/<int:app_id>/reject', methods=['POST'])
 @login_required
 @admin_required
+@csrf.exempt
 def reject_application(app_id):
 	"""Reject an application"""
 	if not current_user.is_admin_or_bdfl():
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': False, 'message': 'Access denied. Only administrators can reject applications.'}), 403
 		flash('Access denied. Only administrators can reject applications.', 'error')
-		return redirect(url_for('admin_users'))
+		return redirect(url_for('admin_applications'))
 	
 	notes = request.form.get('notes', '')
 	success = database.reject_application(app_id, current_user.id, notes)
 	if success:
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': True, 'message': 'Application rejected.'})
 		flash('Application rejected.', 'info')
 	else:
+		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+			return jsonify({'success': False, 'message': 'Failed to reject application.'}), 500
 		flash('Failed to reject application.', 'error')
-	return redirect(url_for('admin_users'))
+	return redirect(url_for('admin_applications'))
+
+# Initialize database on startup
+database.init_database()
 
 if __name__ == "__main__":
     import sys

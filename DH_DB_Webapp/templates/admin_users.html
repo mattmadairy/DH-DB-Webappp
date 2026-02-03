@@ -245,7 +245,7 @@
             <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
             <a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
             {% if current_user.is_admin_or_bdfl() %}
-            <a href="{{ url_for('admin_applications') }}" class="{{ 'active-menu' if active_page == 'admin_applications' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'admin_applications' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📋 Applications</a>
+            <a href="{{ url_for('admin_applications') }}" class="{{ 'active-menu' if active_page == 'admin_applications' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'admin_applications' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">📋 Applications{% if pending_applications > 0 %}<span style="position:absolute; top:-5px; right:-5px; background-color:#dc3545; color:white; border-radius:50%; padding:2px 6px; font-size:0.75em; font-weight:bold; min-width:18px; text-align:center;">{{ pending_applications }}</span>{% endif %}</a>
             {% endif %}
             <a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
             <a href="{{ url_for('bulk_actions') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">⚡ Bulk Actions</a>
@@ -346,11 +346,6 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-            
-            <!-- Quick Links Section -->
-            <div style="text-align:center; margin-top:30px;">
-                <a href="{{ url_for('membership_application') }}" target="_blank" style="display:inline-block; padding:12px 24px; background-color:#5a7a5c; color:white; text-decoration:none; border-radius:6px; font-size:1em; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:background-color 0.3s;">📝 Membership Application</a>
             </div>
         </div>
     </div>

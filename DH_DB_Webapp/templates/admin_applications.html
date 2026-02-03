@@ -192,6 +192,7 @@
 </style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+	<input type="hidden" id="csrf_token" value="{{ csrf_token() }}"/>
 	<div style="display:flex; flex-direction:row;">
 		<!-- Static Side Menu -->
 		<div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
@@ -304,10 +305,17 @@
 			<div id="applicationDetails" style="margin-top:20px;">
 				<!-- Application details will be loaded here -->
 			</div>
+			<div style="text-align:center; margin-top:30px; padding-top:20px; border-top:1px solid #ddd;">
+				<button onclick="approveFromModal()" class="btn-action btn-enable" style="margin:0 10px;">Approve</button>
+				<button onclick="rejectFromModal()" class="btn-action btn-disable" style="margin:0 10px;">Reject</button>
+				<button onclick="closeViewApplicationModal()" class="btn-action" style="margin:0 10px; background-color:#6c757d;">Cancel</button>
+			</div>
 		</div>
 	</div>
 
 	<script>
+		let currentApplicationId = null;
+
 		function toggleSubmenu() {
 			const submenu = document.getElementById('reports-submenu');
 			const arrow = document.getElementById('submenu-arrow');
@@ -431,35 +439,55 @@
 			document.getElementById('viewApplicationModal').style.display = 'none';
 		}
 
+		function approveFromModal() {
+			if (currentApplicationId) {
+				approveApplication(currentApplicationId);
+			}
+		}
+
+		function rejectFromModal() {
+			if (currentApplicationId) {
+				rejectApplication(currentApplicationId);
+			}
+		}
+
 		function viewApplication(appId) {
+			currentApplicationId = appId;
 			fetch('/admin/application/' + appId)
 				.then(response => response.json())
 				.then(app => {
 					let html = `
 						<div style="display:grid; grid-template-columns:150px 1fr; gap:10px; margin-bottom:20px;">
 							<strong>Name:</strong> <span>${app.first_name} ${app.middle_name || ''} ${app.last_name}${app.suffix ? ', ' + app.suffix : ''}</span>
-							<strong>Email:</strong> <span>${app.email}</span>
-							<strong>Phone:</strong> <span>${app.phone}</span>
+							<strong>Nickname:</strong> <span>${app.nickname || 'None'}</span>
+							<strong>Sex:</strong> <span>${app.sex === 'M' ? 'Male' : app.sex === 'F' ? 'Female' : 'Not specified'}</span>
+							<strong>Date of Birth:</strong> <span>${app.dob || 'Not provided'}</span>
+							<strong>Email (Primary):</strong> <span>${app.email}</span>
+							<strong>Email (Secondary):</strong> <span>${app.email2 || 'None'}</span>
+							<strong>Phone (Primary):</strong> <span>${app.phone}</span>
+							<strong>Phone (Secondary):</strong> <span>${app.phone2 || 'None'}</span>
 							<strong>Address:</strong> <span>${app.address}</span>
 							<strong>City:</strong> <span>${app.city}</span>
 							<strong>State:</strong> <span>${app.state}</span>
 							<strong>ZIP:</strong> <span>${app.zip}</span>
-							<strong>Date of Birth:</strong> <span>${app.dob_month}/${app.dob_day}/${app.dob_year}</span>
-							<strong>Occupation:</strong> <span>${app.occupation}</span>
-							<strong>Emergency Contact:</strong> <span>${app.emergency_name} (${app.emergency_phone})</span>
+							<strong>Sponsor:</strong> <span>${app.sponsor || 'None'}</span>
+							<strong>Maryland Resident:</strong> <span>${app.hql || 'Not specified'}</span>
+							<strong>Carry Permit:</strong> <span>${app.carry_permit || 'Not specified'}</span>
+							<strong>Hunter's Education:</strong> <span>${app.hunters_education || 'Not specified'}</span>
+							<strong>Felony Conviction:</strong> <span>${app.felony_conviction || 'Not specified'}</span>
+							${app.felony_details ? `<strong>Felony Details:</strong> <span>${app.felony_details}</span>` : ''}
+							<strong>Inactive Docket:</strong> <span>${app.inactive_docket || 'Not specified'}</span>
+							${app.inactive_docket_details ? `<strong>Inactive Docket Details:</strong> <span>${app.inactive_docket_details}</span>` : ''}
+							<strong>Restraining Order:</strong> <span>${app.restraining_order || 'Not specified'}</span>
+							${app.restraining_order_details ? `<strong>Restraining Order Details:</strong> <span>${app.restraining_order_details}</span>` : ''}
+							<strong>Firearm Legal:</strong> <span>${app.firearm_legal || 'Not specified'}</span>
+							${app.firearm_legal_details ? `<strong>Firearm Legal Details:</strong> <span>${app.firearm_legal_details}</span>` : ''}
+							<strong>Payment Confirmed:</strong> <span>${app.payment_confirmed === 'Yes' ? 'Yes' : 'No'}</span>
+							<strong>Waiver Agreed:</strong> <span>${app.waiver_agreed === 'Yes' ? 'Yes' : 'No'}</span>
+							<strong>Status:</strong> <span>${app.status || 'pending'}</span>
 							<strong>Submitted:</strong> <span>${app.submitted_at}</span>
-						</div>
-						<div style="margin-top:20px;">
-							<strong>Why do you want to join DH R&G Club?</strong>
-							<p style="margin-top:5px; white-space:pre-wrap;">${app.why_join}</p>
-						</div>
-						<div style="margin-top:20px;">
-							<strong>Previous Experience:</strong>
-							<p style="margin-top:5px; white-space:pre-wrap;">${app.experience}</p>
-						</div>
-						<div style="margin-top:20px;">
-							<strong>Additional Comments:</strong>
-							<p style="margin-top:5px; white-space:pre-wrap;">${app.comments || 'None'}</p>
+							${app.reviewed_at ? `<strong>Reviewed:</strong> <span>${app.reviewed_at}</span>` : ''}
+							${app.notes ? `<strong>Review Notes:</strong> <span>${app.notes}</span>` : ''}
 						</div>
 					`;
 					document.getElementById('applicationDetails').innerHTML = html;
@@ -472,51 +500,72 @@
 		}
 
 		function approveApplication(appId) {
-			if (confirm('Are you sure you want to approve this application?')) {
-				fetch('/admin/application/approve/' + appId, {
+			const badgeNumber = prompt('Please enter a badge number for this member:');
+			if (badgeNumber && badgeNumber.trim()) {
+				const formData = new FormData();
+				formData.append('badge_number', badgeNumber.trim());
+				
+				fetch('/admin/application/' + appId + '/approve', {
 					method: 'POST',
 					headers: {
-						'Content-Type': 'application/json',
+						'X-Requested-With': 'XMLHttpRequest'
 					},
-					body: JSON.stringify({}),
+					body: formData,
 				})
-				.then(response => response.json())
+				.then(response => {
+					if (response.ok) {
+						return response.json();
+					} else {
+						return response.text().then(text => {
+							throw new Error(`HTTP ${response.status}: ${text}`);
+						});
+					}
+				})
 				.then(data => {
 					if (data.success) {
-						alert('Application approved successfully!');
-						location.reload();
+						location.reload(); // Reload to show updated list
 					} else {
-						alert('Error approving application: ' + data.message);
+						alert('Error: ' + data.message);
 					}
 				})
 				.catch(error => {
 					console.error('Error:', error);
-					alert('Error approving application.');
+					alert('Error approving application: ' + error.message);
 				});
 			}
 		}
 
 		function rejectApplication(appId) {
 			const reason = prompt('Please provide a reason for rejection (optional):');
-			fetch('/admin/application/reject/' + appId, {
+			const formData = new FormData();
+			formData.append('notes', reason || '');
+			
+			fetch('/admin/application/' + appId + '/reject', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'X-Requested-With': 'XMLHttpRequest'
 				},
-				body: JSON.stringify({ reason: reason }),
+				body: formData,
 			})
-			.then(response => response.json())
+			.then(response => {
+				if (response.ok) {
+					return response.json();
+				} else {
+					return response.text().then(text => {
+						throw new Error(`HTTP ${response.status}: ${text}`);
+					});
+				}
+			})
 			.then(data => {
 				if (data.success) {
-					alert('Application rejected.');
-					location.reload();
+					location.reload(); // Reload to show updated list
 				} else {
-					alert('Error rejecting application: ' + data.message);
+					alert('Error: ' + data.message);
 				}
 			})
 			.catch(error => {
 				console.error('Error:', error);
-				alert('Error rejecting application.');
+				alert('Error rejecting application: ' + error.message);
 			});
 		}
 	</script>
