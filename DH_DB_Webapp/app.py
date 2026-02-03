@@ -266,13 +266,13 @@ def format_datetime(value):
 
 app.jinja_env.filters['format_datetime'] = format_datetime
 
-# Jinja filter to format datetime as mm/dd/yyyy hh:mm AM/PM (12-hour)
+# Jinja filter to format datetime as mm-dd-yyyy hh:mm AM/PM (12-hour)
 def format_datetime_12hr(value):
     if not value:
         return ''
     try:
         dt = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
-        return dt.strftime('%m/%d/%Y %I:%M %p')
+        return dt.strftime('%m-%d-%Y %I:%M %p')
     except Exception:
         return value
 
@@ -1343,6 +1343,10 @@ def admin_dashboard():
 @app.route('/member-dashboard')
 @login_required
 def member_dashboard():
+	# Get year parameters for filtering
+	selected_work_year = request.args.get('work_year')
+	selected_meeting_year = request.args.get('meeting_year')
+	
 	# For regular users, try to find their member record by email
 	member = database.get_member_by_email(current_user.email)
 	if not member:
@@ -1351,9 +1355,9 @@ def member_dashboard():
 	
 	member = dict(member) if member else None
 	dues = database.get_dues_by_member(member['id']) if member else []
-	work_hours = database.get_work_hours_by_member(member['id']) if member else []
+	work_hours = database.get_work_hours_by_member_and_year(member['id'], selected_work_year) if member else []
 	total_work_hours = sum(wh['hours'] for wh in work_hours) if work_hours else 0
-	attendance = database.get_meeting_attendance(member['id']) if member else []
+	attendance = database.get_meeting_attendance_by_member_and_year(member['id'], selected_meeting_year) if member else []
 	total_meetings = sum(1 for att in attendance if att['status'] in ['Attended', 'Exempt']) if attendance else 0
 	
 	# Get committee memberships
@@ -1388,13 +1392,21 @@ def member_dashboard():
 	if member and member.get('badge_number'):
 		checkins = database.get_member_checkins_last_30_days(member['badge_number'])
 	
+	# Get work hours and meeting attendance years for dropdowns
+	work_hours_years = database.get_work_hours_years() if member else []
+	meeting_attendance_years = database.get_meeting_attendance_years() if member else []
+	
 	return render_template('member_dashboard.html', 
 							member=member, 
 							dues=dues, 
 							work_hours=work_hours, 
 							total_work_hours=total_work_hours,
+							work_hours_years=work_hours_years,
+							selected_work_year=selected_work_year,
 							attendance=attendance,
 							total_meetings=total_meetings,
+							meeting_attendance_years=meeting_attendance_years,
+							selected_meeting_year=selected_meeting_year,
 							committees=committees,
 							executive_position=executive_position,
 							executive_term=executive_term,

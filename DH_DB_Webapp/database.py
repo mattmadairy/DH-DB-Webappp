@@ -495,10 +495,56 @@ def get_work_hours_by_member(member_id):
 	conn.close()
 	return rows
 
+def get_work_hours_years():
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT DISTINCT strftime('%Y', date) as year FROM work_hours ORDER BY year DESC")
+	years = [row['year'] for row in c.fetchall() if row['year']]
+	conn.close()
+	# Always include current year if not already in the list
+	current_year = str(datetime.now().date().year)
+	if current_year not in years:
+		years.insert(0, current_year)
+	return years
+
+def get_work_hours_by_member_and_year(member_id, year=None):
+	conn = get_connection()
+	c = conn.cursor()
+	if year:
+		c.execute("SELECT * FROM work_hours WHERE member_id=? AND strftime('%Y', date)=? ORDER BY date ASC", (member_id, year))
+	else:
+		c.execute("SELECT * FROM work_hours WHERE member_id=? ORDER BY date ASC", (member_id,))
+	rows = c.fetchall()
+	conn.close()
+	return rows
+
 def get_meeting_attendance(member_id):
 	conn = get_connection()
 	c = conn.cursor()
 	c.execute("SELECT * FROM meeting_attendance WHERE member_id=? ORDER BY meeting_date ASC", (member_id,))
+	rows = c.fetchall()
+	conn.close()
+	return rows
+
+def get_meeting_attendance_years():
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT DISTINCT strftime('%Y', meeting_date) as year FROM meeting_attendance ORDER BY year DESC")
+	years = [row['year'] for row in c.fetchall() if row['year']]
+	conn.close()
+	# Always include current year if not already in the list
+	current_year = str(datetime.now().date().year)
+	if current_year not in years:
+		years.insert(0, current_year)
+	return years
+
+def get_meeting_attendance_by_member_and_year(member_id, year=None):
+	conn = get_connection()
+	c = conn.cursor()
+	if year:
+		c.execute("SELECT * FROM meeting_attendance WHERE member_id=? AND strftime('%Y', meeting_date)=? ORDER BY meeting_date ASC", (member_id, year))
+	else:
+		c.execute("SELECT * FROM meeting_attendance WHERE member_id=? ORDER BY meeting_date ASC", (member_id,))
 	rows = c.fetchall()
 	conn.close()
 	return rows
@@ -916,8 +962,7 @@ def get_today_checkins():
     conn = get_connection()
     c = conn.cursor()
     # Get today's date in YYYY-MM-DD format from Python to ensure consistency
-    import datetime
-    today = datetime.date.today().strftime('%Y-%m-%d')
+    today = datetime.now().date().strftime('%Y-%m-%d')
     c.execute("""
         SELECT * FROM check_ins 
         WHERE DATE(check_in_time) = ?
