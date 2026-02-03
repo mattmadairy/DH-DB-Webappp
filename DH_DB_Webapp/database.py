@@ -257,6 +257,20 @@ def init_database():
 		)
 	""")
 	
+	# Create meeting_minutes table
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS meeting_minutes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			title TEXT NOT NULL,
+			meeting_date TEXT NOT NULL,
+			description TEXT,
+			content TEXT NOT NULL,
+			pdf_filename TEXT,
+			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+			updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+		)
+	""")
+	
 	# Create roles table
 	c.execute("""
 		CREATE TABLE IF NOT EXISTS roles (
@@ -1161,6 +1175,76 @@ def update_member_committee_role(member_id, committee_id, role):
     c.execute("UPDATE committee_memberships SET role=? WHERE member_id=? AND committee_id=?", (role, member_id, committee_id))
     conn.commit()
     conn.close()
+
+# Meeting Minutes Functions
+def get_all_meeting_minutes():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM meeting_minutes ORDER BY meeting_date DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_meeting_minutes_by_year(year):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM meeting_minutes WHERE strftime('%Y', meeting_date) = ? ORDER BY meeting_date DESC", (year,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_available_years():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT DISTINCT strftime('%Y', meeting_date) as year FROM meeting_minutes ORDER BY year DESC")
+    rows = c.fetchall()
+    conn.close()
+    return [row['year'] for row in rows]
+
+def get_meeting_minutes_by_id(minutes_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM meeting_minutes WHERE id=?", (minutes_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def add_meeting_minutes(title, meeting_date, description, content, pdf_filename=None):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO meeting_minutes (title, meeting_date, description, content, pdf_filename)
+        VALUES (?, ?, ?, ?, ?)
+    """, (title, meeting_date, description, content, pdf_filename))
+    minutes_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return minutes_id
+
+def update_meeting_minutes(minutes_id, title, meeting_date, description, content, pdf_filename=None):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE meeting_minutes
+        SET title=?, meeting_date=?, description=?, content=?, pdf_filename=?, updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+    """, (title, meeting_date, description, content, pdf_filename, minutes_id))
+    conn.commit()
+    conn.close()
+
+def delete_meeting_minutes(minutes_id):
+    conn = get_connection()
+    c = conn.cursor()
+    # Get the PDF filename before deleting
+    c.execute("SELECT pdf_filename FROM meeting_minutes WHERE id=?", (minutes_id,))
+    row = c.fetchone()
+    pdf_filename = row['pdf_filename'] if row else None
+    
+    # Delete the record
+    c.execute("DELETE FROM meeting_minutes WHERE id=?", (minutes_id,))
+    conn.commit()
+    conn.close()
+    return pdf_filename
 
 # Deprecated: get_member_committees (old per-member columns)
 # Deprecated: update_member_committees (old per-member columns)

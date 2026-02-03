@@ -1,0 +1,13 @@
+{
+  "descriptions": {
+    "test": "test",
+    "range rules": "Current Range Rules, Effective 03/2024",
+    "2026 range rules draft": "Draft Range Rules reflecting changes to rapid fire."
+  },
+  "order": [
+    "articles of incorporation",
+    "range rules",
+    "constitution",
+    "2026 range rules draft"
+  ]
+}

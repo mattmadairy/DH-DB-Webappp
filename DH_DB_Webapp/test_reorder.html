@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Document Reorder Test</title>
+    <style>
+        .document-item { background: #f8f8f8; padding: 15px; margin: 5px; border: 1px solid #ddd; }
+        .reorder-btn { background: #6c757d; color: white; border: none; border-radius: 3px; cursor: pointer; margin: 2px; }
+    </style>
+</head>
+<body>
+    <h1>Document Reorder Test</h1>
+
+    <form id="reorderForm" method="post" action="/test" onsubmit="return updateOrderBeforeSubmit()">
+        <input type="hidden" name="csrf_token" value="test">
+
+        <div id="documentContainer">
+            <div class="document-item" id="doc-0" data-doc-key="articles of incorporation">
+                <div style="display: flex; align-items: center;">
+                    <div style="margin-right: 10px;">
+                        <button type="button" onclick="moveDocumentUp(0)" class="reorder-btn">↑</button>
+                        <button type="button" onclick="moveDocumentDown(0)" class="reorder-btn">↓</button>
+                    </div>
+                    <div>
+                        <div>Articles of Incorporation</div>
+                        <input type="hidden" name="document_order[]" value="articles of incorporation">
+                    </div>
+                </div>
+            </div>
+
+            <div class="document-item" id="doc-1" data-doc-key="constitution">
+                <div style="display: flex; align-items: center;">
+                    <div style="margin-right: 10px;">
+                        <button type="button" onclick="moveDocumentUp(1)" class="reorder-btn">↑</button>
+                        <button type="button" onclick="moveDocumentDown(1)" class="reorder-btn">↓</button>
+                    </div>
+                    <div>
+                        <div>Constitution</div>
+                        <input type="hidden" name="document_order[]" value="constitution">
+                    </div>
+                </div>
+            </div>
+
+            <div class="document-item" id="doc-2" data-doc-key="range rules">
+                <div style="display: flex; align-items: center;">
+                    <div style="margin-right: 10px;">
+                        <button type="button" onclick="moveDocumentUp(2)" class="reorder-btn">↑</button>
+                        <button type="button" onclick="moveDocumentDown(2)" class="reorder-btn">↓</button>
+                    </div>
+                    <div>
+                        <div>Range Rules</div>
+                        <input type="hidden" name="document_order[]" value="range rules">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" style="margin-top: 20px; padding: 10px;">Save Order</button>
+    </form>
+
+    <script>
+        function moveDocumentUp(index) {
+            console.log('Moving document up:', index);
+            const currentItem = document.getElementById('doc-' + index);
+            const prevItem = document.getElementById('doc-' + (index - 1));
+
+            console.log('Current item:', currentItem);
+            console.log('Previous item:', prevItem);
+
+            if (prevItem && currentItem) {
+                console.log('Both items found, attempting insertBefore');
+                try {
+                    currentItem.parentNode.insertBefore(currentItem, prevItem);
+                    console.log('Insert successful');
+                    updateAllInputValues();
+                    updateButtonStates();
+                } catch (error) {
+                    console.error('Insert failed:', error);
+                }
+            } else {
+                console.log('Missing items - current:', !!currentItem, 'prev:', !!prevItem);
+            }
+        }
+
+        function moveDocumentDown(index) {
+            console.log('Moving document down:', index);
+            const currentItem = document.getElementById('doc-' + index);
+            const nextItem = document.getElementById('doc-' + (index + 1));
+
+            console.log('Current item:', currentItem);
+            console.log('Next item:', nextItem);
+
+            if (nextItem && currentItem) {
+                console.log('Both items found, attempting insertBefore');
+                try {
+                    currentItem.parentNode.insertBefore(nextItem, currentItem);
+                    console.log('Insert successful');
+                    updateAllInputValues();
+                    updateButtonStates();
+                } catch (error) {
+                    console.error('Insert failed:', error);
+                }
+            } else {
+                console.log('Missing items - current:', !!currentItem, 'next:', !!nextItem);
+            }
+        }
+
+        function updateAllInputValues() {
+            const documentItems = document.querySelectorAll('.document-item[data-doc-key]');
+            const orderInputs = document.querySelectorAll('input[name="document_order[]"]');
+
+            console.log('Updating input values. Found', documentItems.length, 'items and', orderInputs.length, 'inputs');
+            documentItems.forEach((item, index) => {
+                const docKey = item.getAttribute('data-doc-key');
+                if (orderInputs[index]) {
+                    orderInputs[index].value = docKey;
+                    console.log(`Set input ${index} to: ${docKey}`);
+                } else {
+                    console.log(`No input found for index ${index}`);
+                }
+            });
+        }
+
+        function updateButtonStates() {
+            const documentItems = document.querySelectorAll('.document-item[data-doc-key]');
+            documentItems.forEach((item, index) => {
+                const upBtn = item.querySelector('button[onclick*="moveDocumentUp"]');
+                const downBtn = item.querySelector('button[onclick*="moveDocumentDown"]');
+
+                if (upBtn) upBtn.disabled = (index === 0);
+                if (downBtn) downBtn.disabled = (index === documentItems.length - 1);
+            });
+        }
+
+        function updateOrderBeforeSubmit() {
+            console.log('=== FORM SUBMISSION STARTED ===');
+            console.log('Form submitting, updating order...');
+            updateAllInputValues();
+
+            // Log all input values
+            const orderInputs = document.querySelectorAll('input[name="document_order[]"]');
+            console.log('Final input values before submission:');
+            orderInputs.forEach((input, index) => {
+                console.log(`Input ${index}: ${input.value}`);
+            });
+
+            console.log('=== FORM SUBMISSION END ===');
+            return true;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateButtonStates();
+        });
+    </script>
+</body>
+</html>

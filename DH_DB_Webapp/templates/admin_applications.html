@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin - Applications</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
+<style>
+    .active-menu {
+        background-color: rgb(255,255,0) !important;
+        color: #000000 !important;
+    }
+    .submenu {
+        display: none;
+        flex-direction: column;
+        margin-left: 10px;
+    }
+    .submenu.active {
+        display: flex;
+    }
+    .submenu a {
+        width: 160px !important;
+        font-size: 0.9em !important;
+        padding: 8px 0 !important;
+        margin-bottom: 6px !important;
+    }
+    .menu-toggle {
+        cursor: pointer;
+        user-select: none;
+    }
+    .user-table {
+        background-color: #f5f5f5;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .user-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .user-table th {
+        background-color: #384839;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+    }
+    .user-table th:not(.not-sortable) {
+        cursor: pointer;
+    }
+    .user-table th:not(.not-sortable)::after {
+        content: ' ⇅';
+        font-size: 0.8em;
+        margin-left: 5px;
+    }
+    .user-table th.sort-asc::after {
+        content: ' ↑';
+    }
+    .user-table th.sort-desc::after {
+        content: ' ↓';
+    }
+    .user-table td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+    }
+    .user-table tr:hover {
+        background-color: #f1f1f1;
+    }
+    .role-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        color: white;
+    }
+    .role-Administrator {
+        background-color: #d9534f;
+    }
+    .role-User {
+        background-color: #5bc0de;
+    }
+    .role-BDFL {
+        background-color: #f0ad4e;
+    }
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        color: white;
+    }
+    .status-active {
+        background-color: #5cb85c;
+    }
+    .status-inactive {
+        background-color: #d9534f;
+    }
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    .alert-success {
+        color: #3c763d;
+        background-color: #dff0d8;
+        border-color: #d6e9c6;
+    }
+    .alert-error {
+        color: #a94442;
+        background-color: #f2dede;
+        border-color: #ebccd1;
+    }
+    .alert-info {
+        color: #31708f;
+        background-color: #d9edf7;
+        border-color: #bce8f1;
+    }
+    .btn-add {
+        padding: 10px 20px;
+        background-color: #5bc0de;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .btn-add:hover {
+        background-color: #46b8da;
+    }
+    .btn-cancel {
+        padding: 10px 20px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+    .btn-cancel:hover {
+        background-color: #5a6268;
+    }
+    .button-group {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    .btn-action {
+        padding: 5px 12px;
+        margin: 0 3px;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: bold;
+        cursor: pointer;
+        color: white;
+    }
+    .btn-edit {
+        background-color: #5bc0de;
+    }
+    .btn-edit:hover {
+        background-color: #46b8da;
+    }
+    .btn-reset {
+        background-color: #f0ad4e;
+    }
+    .btn-reset:hover {
+        background-color: #ec971f;
+    }
+    .btn-disable {
+        background-color: #6f42c1;
+    }
+    .btn-disable:hover {
+        background-color: #5a359a;
+    }
+    .btn-enable {
+        background-color: #5cb85c;
+    }
+    .btn-enable:hover {
+        background-color: #449d44;
+    }
+    .btn-delete {
+        background-color: #dc3545;
+    }
+    .btn-delete:hover {
+        background-color: #c82333;
+    }
+</style>
+</head>
+<body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
+	<div style="display:flex; flex-direction:row;">
+		<!-- Static Side Menu -->
+		<div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
+			<img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+			<a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
+			<a href="javascript:void(0);" onclick="openModal('addMemberModal')" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">➕ Add Member</a>
+			{% if current_user.is_admin_or_bdfl() %}
+			<a href="{{ url_for('admin_applications') }}" class="{{ 'active-menu' if active_page == 'admin_applications' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'admin_applications' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📋 Applications</a>
+			{% endif %}
+			<a href="{{ url_for('recycle_bin') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+			<a href="{{ url_for('bulk_actions') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">⚡ Bulk Actions</a>
+
+			<div class="menu-toggle" onclick="toggleSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+				📊 Reports <span id="submenu-arrow">▼</span>
+			</div>
+			<div id="reports-submenu" class="submenu">
+				<a href="{{ url_for('dues_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues</a>
+				<a href="{{ url_for('work_hours_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+					<img src="{{ url_for('static', filename='icon_work_hours.svg') }}" alt="Work Hours" style="height:1em; vertical-align:middle; margin-right:6px;"> Work Hours
+				</a>
+				<a href="{{ url_for('meeting_attendance_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">
+					<img src="{{ url_for('static', filename='icon_attendance.svg') }}" alt="Attendance" style="height:1em; vertical-align:middle; margin-right:6px;"> Meeting Attendance
+				</a>
+				<a href="{{ url_for('kiosk_report') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🟩 Check-ins</a>
+			</div>
+
+			<a href="{{ url_for('committees') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+			<a href="{{ url_for('kiosk') }}" target="_blank" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk</a>
+			{% if current_user.is_admin_or_bdfl() %}
+			<a href="{{ url_for('admin_users') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#5bc0de; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 User Management</a>
+			{% endif %}
+			<a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Members Area</a>
+			<a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+			{% if member_stats %}
+			<div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+				<div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
+					<div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
+					<div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
+					<div style="border-top:1px solid #555; padding-top:8px;"><strong>Total:</strong> {{ member_stats.total_members }}</div>
+				</div>
+			</div>
+			{% endif %}
+		</div>
+
+		<!-- Main content area -->
+		<div style="flex:1; margin-left:210px; padding:40px;">
+			<h1 style="color:#f5f5f5; text-align:center; margin-bottom:30px;">👤 Admin - Applications</h1>
+
+			{% with messages = get_flashed_messages(with_categories=true) %}
+				{% if messages %}
+					{% for category, message in messages %}
+						<div class="alert alert-{{ category }}">{{ message }}</div>
+					{% endfor %}
+				{% endif %}
+			{% endwith %}
+
+			<!-- Applicants Section -->
+			<div class="user-table">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+					<h2 style="color:#384839; margin:0;">📋 Applicants ({{ applications|length }})</h2>
+				</div>
+				{% if applications %}
+				<table>
+					<thead>
+						<tr>
+							<th>Name</th>
+							<th>Email</th>
+							<th>Phone</th>
+							<th>City, State</th>
+							<th>Submitted</th>
+							<th class="not-sortable">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for app in applications %}
+						<tr>
+							<td><strong>{{ app.last_name }}{% if app.suffix %}, {{ app.suffix }}{% endif %}, {{ app.first_name }}{% if app.middle_name %} {{ app.middle_name }}{% endif %}</strong></td>
+							<td>{{ app.email }}</td>
+							<td>{{ app.phone }}</td>
+							<td>{{ app.city }}, {{ app.state }}</td>
+							<td>{{ app.submitted_at[5:7] }}-{{ app.submitted_at[8:10] }}-{{ app.submitted_at[:4] }}</td>
+							<td>
+								<button onclick="viewApplication({{ app.id }})" class="btn-action btn-edit">View</button>
+								<button onclick="approveApplication({{ app.id }})" class="btn-action btn-enable">Approve</button>
+								<button onclick="rejectApplication({{ app.id }})" class="btn-action btn-disable">Reject</button>
+							</td>
+						</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+				{% else %}
+				<div style="padding:20px; text-align:center; color:#666;">
+					<p>No pending applications at this time.</p>
+				</div>
+				{% endif %}
+			</div>
+
+			<!-- Quick Links Section -->
+			<div style="text-align:center; margin-top:30px;">
+				<a href="{{ url_for('membership_application') }}" target="_blank" style="display:inline-block; padding:12px 24px; background-color:#5a7a5c; color:white; text-decoration:none; border-radius:6px; font-size:1em; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2); transition:background-color 0.3s;">📝 Membership Application</a>
+			</div>
+		</div>
+	</div>
+
+	<!-- Application View Modal -->
+	<div id="viewApplicationModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+		<div style="background-color:#f5f5f5; border-radius:10px; padding:30px; width:600px; max-height:80vh; overflow-y:auto; box-shadow:0 4px 6px rgba(0,0,0,0.3);">
+			<button onclick="closeViewApplicationModal()" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+			<h3 style="margin-top:0; text-align:center;">Application Details</h3>
+			<div id="applicationDetails" style="margin-top:20px;">
+				<!-- Application details will be loaded here -->
+			</div>
+		</div>
+	</div>
+
+	<script>
+		function toggleSubmenu() {
+			const submenu = document.getElementById('reports-submenu');
+			const arrow = document.getElementById('submenu-arrow');
+			if (submenu.classList.contains('active')) {
+				submenu.classList.remove('active');
+				arrow.textContent = '▼';
+			} else {
+				submenu.classList.add('active');
+				arrow.textContent = '▲';
+			}
+		}
+
+		function sortTable(tableElement, columnIndex, tableId) {
+			const tbody = tableElement.querySelector('tbody');
+			const rows = Array.from(tbody.querySelectorAll('tr'));
+
+			// Remove previous sort indicators from this table
+			tableElement.querySelectorAll('th').forEach(th => {
+				th.classList.remove('sort-asc', 'sort-desc');
+			});
+
+			// Get current sort state for this table
+			const currentSortKey = tableId + '-sort';
+			const currentDirectionKey = tableId + '-direction';
+
+			const storedSortColumn = localStorage.getItem(currentSortKey);
+			let currentSortColumn = storedSortColumn !== null ? parseInt(storedSortColumn) : -1;
+			let currentSortDirection = localStorage.getItem(currentDirectionKey) || 'asc';
+
+			// Determine sort direction
+			if (currentSortColumn === columnIndex) {
+				currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+			} else {
+				currentSortDirection = 'asc';
+				currentSortColumn = columnIndex;
+			}
+
+			// Store sort state
+			localStorage.setItem(currentSortKey, currentSortColumn);
+			localStorage.setItem(currentDirectionKey, currentSortDirection);
+
+			// Add sort indicator to header
+			const header = tableElement.querySelectorAll('th')[columnIndex];
+			header.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+
+			// Sort rows
+			rows.sort((a, b) => {
+				const aValue = getCellValue(a, columnIndex, tableId);
+				const bValue = getCellValue(b, columnIndex, tableId);
+
+				// Handle different data types
+				let result = 0;
+
+				// Try numeric comparison first
+				const aNum = parseFloat(aValue);
+				const bNum = parseFloat(bValue);
+				if (!isNaN(aNum) && !isNaN(bNum)) {
+					result = aNum - bNum;
+				} else {
+					// String comparison
+					result = aValue.localeCompare(bValue);
+				}
+
+				return currentSortDirection === 'asc' ? result : -result;
+			});
+
+			// Re-append sorted rows
+			rows.forEach(row => tbody.appendChild(row));
+		}
+
+		function getCellValue(row, columnIndex, tableId) {
+			const cells = row.querySelectorAll('td');
+			if (columnIndex >= cells.length) return '';
+
+			const cell = cells[columnIndex];
+			const text = cell.textContent.trim();
+
+			// Handle special cases
+			if (tableId === 'users-table') {
+				if (columnIndex === 0) { // Name column
+					// Extract text content, ignoring HTML tags
+					return cell.querySelector('strong') ? cell.querySelector('strong').textContent.trim() : text;
+				} else if (columnIndex === 3) { // Role column
+					const badge = cell.querySelector('.role-badge');
+					return badge ? badge.textContent.trim() : text;
+				} else if (columnIndex === 4) { // Status column
+					const badge = cell.querySelector('.status-badge');
+					return badge ? badge.textContent.trim() : text;
+				}
+			} else if (tableId === 'applicants-table') {
+				if (columnIndex === 0) { // Name column
+					return cell.querySelector('strong') ? cell.querySelector('strong').textContent.trim() : text;
+				}
+			}
+
+			return text;
+		}
+
+		// Initialize sortable headers
+		document.addEventListener('DOMContentLoaded', function() {
+			// Set up all user tables
+			const userTables = document.querySelectorAll('.user-table');
+			userTables.forEach((tableContainer, tableIndex) => {
+				const table = tableContainer.querySelector('table');
+				if (table) {
+					const tableId = tableIndex === 0 ? 'applicants-table' : 'other-table';
+					tableContainer.id = tableId;
+
+					const headers = table.querySelectorAll('th');
+					headers.forEach((header, index) => {
+						if (!header.classList.contains('not-sortable')) {
+							header.addEventListener('click', () => sortTable(table, index, tableId));
+							header.title = 'Click to sort'; // Add tooltip
+						}
+					});
+				}
+			});
+		});
+
+		function closeViewApplicationModal() {
+			document.getElementById('viewApplicationModal').style.display = 'none';
+		}
+
+		function viewApplication(appId) {
+			fetch('/admin/application/' + appId)
+				.then(response => response.json())
+				.then(app => {
+					let html = `
+						<div style="display:grid; grid-template-columns:150px 1fr; gap:10px; margin-bottom:20px;">
+							<strong>Name:</strong> <span>${app.first_name} ${app.middle_name || ''} ${app.last_name}${app.suffix ? ', ' + app.suffix : ''}</span>
+							<strong>Email:</strong> <span>${app.email}</span>
+							<strong>Phone:</strong> <span>${app.phone}</span>
+							<strong>Address:</strong> <span>${app.address}</span>
+							<strong>City:</strong> <span>${app.city}</span>
+							<strong>State:</strong> <span>${app.state}</span>
+							<strong>ZIP:</strong> <span>${app.zip}</span>
+							<strong>Date of Birth:</strong> <span>${app.dob_month}/${app.dob_day}/${app.dob_year}</span>
+							<strong>Occupation:</strong> <span>${app.occupation}</span>
+							<strong>Emergency Contact:</strong> <span>${app.emergency_name} (${app.emergency_phone})</span>
+							<strong>Submitted:</strong> <span>${app.submitted_at}</span>
+						</div>
+						<div style="margin-top:20px;">
+							<strong>Why do you want to join DH R&G Club?</strong>
+							<p style="margin-top:5px; white-space:pre-wrap;">${app.why_join}</p>
+						</div>
+						<div style="margin-top:20px;">
+							<strong>Previous Experience:</strong>
+							<p style="margin-top:5px; white-space:pre-wrap;">${app.experience}</p>
+						</div>
+						<div style="margin-top:20px;">
+							<strong>Additional Comments:</strong>
+							<p style="margin-top:5px; white-space:pre-wrap;">${app.comments || 'None'}</p>
+						</div>
+					`;
+					document.getElementById('applicationDetails').innerHTML = html;
+					document.getElementById('viewApplicationModal').style.display = 'flex';
+				})
+				.catch(error => {
+					console.error('Error loading application:', error);
+					alert('Error loading application details.');
+				});
+		}
+
+		function approveApplication(appId) {
+			if (confirm('Are you sure you want to approve this application?')) {
+				fetch('/admin/application/approve/' + appId, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({}),
+				})
+				.then(response => response.json())
+				.then(data => {
+					if (data.success) {
+						alert('Application approved successfully!');
+						location.reload();
+					} else {
+						alert('Error approving application: ' + data.message);
+					}
+				})
+				.catch(error => {
+					console.error('Error:', error);
+					alert('Error approving application.');
+				});
+			}
+		}
+
+		function rejectApplication(appId) {
+			const reason = prompt('Please provide a reason for rejection (optional):');
+			fetch('/admin/application/reject/' + appId, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ reason: reason }),
+			})
+			.then(response => response.json())
+			.then(data => {
+				if (data.success) {
+					alert('Application rejected.');
+					location.reload();
+				} else {
+					alert('Error rejecting application: ' + data.message);
+				}
+			})
+			.catch(error => {
+				console.error('Error:', error);
+				alert('Error rejecting application.');
+			});
+		}
+	</script>
+</body>
+</html>

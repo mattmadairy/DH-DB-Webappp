@@ -1,6 +1,7 @@
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import json
 
 # Place this after 'app = Flask(__name__)' and all app config
 
@@ -44,6 +45,101 @@ TIMEZONE = pytz.timezone('America/New_York')
 env = os.environ.get('FLASK_ENV', 'development')
 from config import config
 app.config.from_object(config[env])
+
+# Document descriptions management
+DESCRIPTIONS_FILE = os.path.join(app.root_path, 'document_descriptions.json')
+
+def load_document_config():
+	"""Load document configuration including descriptions and order"""
+	try:
+		if os.path.exists(DESCRIPTIONS_FILE):
+			with open(DESCRIPTIONS_FILE, 'r') as f:
+				return json.load(f)
+	except:
+		pass
+	return {"descriptions": {}, "order": []}
+
+def save_document_config(config):
+	"""Save document configuration including descriptions and order"""
+	try:
+		with open(DESCRIPTIONS_FILE, 'w') as f:
+			json.dump(config, f, indent=2)
+	except Exception as e:
+		print(f"Error saving config: {e}")
+
+def load_document_descriptions():
+	"""Load custom document descriptions from JSON file"""
+	config = load_document_config()
+	return config.get("descriptions", {})
+
+def save_document_descriptions(descriptions):
+	"""Save custom document descriptions to JSON file"""
+	config = load_document_config()
+	config["descriptions"] = descriptions
+	save_document_config(config)
+
+def load_document_order():
+	"""Load document display order"""
+	config = load_document_config()
+	return config.get("order", [])
+
+def save_document_order(order):
+	"""Save document display order"""
+	config = load_document_config()
+	config["order"] = order
+	save_document_config(config)
+
+def get_document_title(doc_key):
+	"""Get display title for a document based on its key"""
+	titles = {
+		'articles of incorporation': 'Articles of Incorporation',
+		'constitution': 'Bylaws',
+		'range rules': 'Range Rules',
+		'range rules draft': 'Range rules draft',
+		'membership handbook': 'Membership Handbook',
+		'event calendar': 'Event Calendar',
+		'committees': 'Committee Guidelines',
+		'dues fees': 'Dues & Fees Information',
+		'range safety': 'Range Safety Guidelines'
+	}
+	return titles.get(doc_key, doc_key.replace('_', ' ').replace('-', ' ').title())
+
+def get_document_icon(doc_key):
+	"""Get icon for a document based on its key"""
+	icons = {
+		'articles of incorporation': '📄',
+		'constitution': '📋',
+		'range rules': '🎯',
+		'range rules draft': '📝',
+		'membership handbook': '📖',
+		'event calendar': '📅',
+		'committees': '👥',
+		'dues fees': '💰',
+		'range safety': '⚠️'
+	}
+	return icons.get(doc_key, '📄')
+
+def get_document_description(filename):
+	"""Get description for a document, falling back to defaults"""
+	doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+	descriptions = load_document_descriptions()
+	
+	# Return custom description if it exists
+	if doc_key in descriptions:
+		return descriptions[doc_key]
+	
+	# Return default descriptions
+	defaults = {
+		'constitution': 'The Bylaws of the Dug Hill Rod & Gun Club, including organizational structure, rules, procedures, and governing principles.',
+		'articles of incorporation': 'The legal Articles of Incorporation for the Dug Hill Rod & Gun Club, establishing the organization as a legal entity.',
+		'membership handbook': 'Complete guide for members including club policies, benefits, responsibilities, and important contact information.',
+		'range safety': 'Essential safety guidelines and procedures for all shooting activities at the club ranges.',
+		'event calendar': 'Upcoming club events, meetings, shoots, and activities schedule.',
+		'dues fees': 'Current membership dues, range fees, and payment information for all club services.',
+		'committees': 'Information about club committees, roles, responsibilities, and how to get involved.'
+	}
+	
+	return defaults.get(doc_key, 'Club document available for download.')
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -786,10 +882,18 @@ def admin_users():
 	
 	member_stats = get_member_stats()
 	
+	return render_template('admin_users.html', users=all_users, active_page='admin_users', member_stats=member_stats)
+
+@app.route('/admin/applications', methods=['GET'])
+@login_required
+@admin_required
+def admin_applications():
 	# Get pending applications
 	applications = database.get_all_applications(status='pending')
 	
-	return render_template('admin_users.html', users=all_users, applications=applications, active_page='admin_users', member_stats=member_stats)
+	member_stats = get_member_stats()
+	
+	return render_template('admin_applications.html', applications=applications, active_page='admin_applications', member_stats=member_stats)
 
 # Before request handler to check for password change requirement
 @app.before_request
@@ -1284,6 +1388,412 @@ def member_dashboard():
 							active_page='dashboard',
 							is_admin=current_user.is_admin_or_bdfl())
 
+
+
+@app.route('/member-documents')
+@login_required
+def member_documents():
+	# For regular users, try to find their member record by email
+	member = database.get_member_by_email(current_user.email)
+	if not member:
+		# If no member found, show a message
+		return render_template('member_documents.html', member=None, active_page='documents')
+	
+	member = dict(member) if member else None
+	
+	# Get list of PDF files in static directory
+	static_dir = app.static_folder
+	pdf_files = []
+	if os.path.exists(static_dir):
+		for filename in os.listdir(static_dir):
+			if filename.lower().endswith('.pdf'):
+				pdf_files.append(filename)
+	
+	# Filter out meeting minutes PDFs from regular documents
+	all_meeting_minutes = database.get_all_meeting_minutes()
+	meeting_minutes_filenames = {minutes['pdf_filename'] for minutes in all_meeting_minutes}
+	regular_pdf_files = [f for f in pdf_files if f not in meeting_minutes_filenames]
+	
+	# Load document order and descriptions
+	document_order = load_document_order()
+	file_descriptions = load_document_descriptions()
+	
+	# Create ordered list of documents
+	ordered_files = []
+	# First add documents that are in the saved order
+	for doc_key in document_order:
+		for filename in regular_pdf_files:
+			file_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+			if file_key == doc_key:
+				ordered_files.append(filename)
+				break
+	
+	# Create title and icon dictionaries for template
+	document_titles = {}
+	document_icons = {}
+	file_descriptions_dict = {}
+	for filename in ordered_files:
+		doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+		document_titles[filename] = get_document_title(doc_key)
+		document_icons[filename] = get_document_icon(doc_key)
+		file_descriptions_dict[filename] = file_descriptions.get(doc_key, get_document_description(filename))
+	
+	# Get meeting minutes
+	selected_year = request.args.get('year')
+	available_years = database.get_available_years()
+	
+	# Default to current year if no year selected, but only if current year has data
+	if not selected_year:
+		if '2026' in available_years:
+			selected_year = '2026'
+		else:
+			selected_year = 'all'
+	
+	if selected_year and selected_year != 'all':
+		meeting_minutes = database.get_meeting_minutes_by_year(selected_year)
+	else:
+		meeting_minutes = database.get_all_meeting_minutes()
+	
+	return render_template('member_documents.html', 
+							member=member, 
+							active_page='documents',
+							is_admin=current_user.is_admin_or_bdfl(),
+							pdf_files=ordered_files,
+							file_descriptions=file_descriptions_dict,
+							document_titles=document_titles,
+							document_icons=document_icons,
+							document_order=document_order,
+							meeting_minutes=meeting_minutes,
+							available_years=available_years,
+							selected_year=selected_year)
+
+
+@app.route('/upload_document/<filename>', methods=['POST'])
+@login_required
+def upload_document(filename):
+	# Only allow admin and BDFL users to upload documents
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can upload documents.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	if 'file' not in request.files:
+		flash('No file selected.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	file = request.files['file']
+	if file.filename == '':
+		flash('No file selected.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Validate file type
+	if not file.filename.lower().endswith('.pdf'):
+		flash('Only PDF files are allowed.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Ensure filename ends with .pdf and is safe
+	if not filename.endswith('.pdf'):
+		filename = filename + '.pdf'
+	
+	# Basic security check - prevent path traversal
+	if '..' in filename or '/' in filename or '\\' in filename:
+		flash('Invalid filename.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	try:
+		# Save file to static directory
+		file_path = os.path.join(app.static_folder, filename)
+		file.save(file_path)
+		flash(f'Document "{filename}" uploaded successfully!', 'success')
+	except Exception as e:
+		flash(f'Error uploading file: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/upload_new_document', methods=['POST'])
+@login_required
+def upload_new_document():
+	# Only allow admin and BDFL users to upload documents
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can upload documents.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	if 'file' not in request.files:
+		flash('No file selected.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	file = request.files['file']
+	title = request.form.get('title', '').strip()
+	description = request.form.get('description', '').strip()
+	
+	if file.filename == '' or not title or not description:
+		flash('All fields are required.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Validate file type
+	if not file.filename.lower().endswith('.pdf'):
+		flash('Only PDF files are allowed.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Generate filename from title (convert to lowercase, replace spaces with underscores, remove special chars)
+	filename = ''.join(c for c in title.lower().replace(' ', '_') if c.isalnum() or c == '_')
+	if not filename:
+		flash('Invalid title. Please use only letters, numbers, and spaces.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	filename = filename + '.pdf'
+	
+	# Check if file already exists
+	file_path = os.path.join(app.static_folder, filename)
+	if os.path.exists(file_path):
+		flash(f'Document "{filename}" already exists. Use the replace button to update it.', 'warning')
+		return redirect(url_for('member_documents'))
+	
+	try:
+		# Save file to static directory
+		file.save(file_path)
+		
+		# Save the custom description
+		doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+		descriptions = load_document_descriptions()
+		descriptions[doc_key] = description
+		save_document_descriptions(descriptions)
+		
+		# Add the new document to the end of the order list
+		document_order = load_document_order()
+		if doc_key not in document_order:
+			document_order.append(doc_key)
+			save_document_order(document_order)
+		
+		flash(f'Document "{title}" uploaded successfully!', 'success')
+	except Exception as e:
+		flash(f'Error uploading file: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/delete_document/<filename>', methods=['POST'])
+@login_required
+def delete_document(filename):
+	# Only allow admin and BDFL users to delete documents
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can delete documents.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Ensure filename ends with .pdf and is safe
+	if not filename.endswith('.pdf'):
+		filename = filename + '.pdf'
+	
+	# Basic security check - prevent path traversal
+	if '..' in filename or '/' in filename or '\\' in filename:
+		flash('Invalid filename.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Check if this file is associated with meeting minutes
+	all_meeting_minutes = database.get_all_meeting_minutes()
+	for minutes in all_meeting_minutes:
+		if minutes['pdf_filename'] == filename:
+			flash('This document is associated with meeting minutes and cannot be deleted from here. Delete the meeting minutes entry instead.', 'warning')
+			return redirect(url_for('member_documents'))
+	
+	file_path = os.path.join(app.static_folder, filename)
+	
+	# Check if file exists
+	if not os.path.exists(file_path):
+		flash(f'Document "{filename}" not found.', 'warning')
+		return redirect(url_for('member_documents'))
+	
+	try:
+		# Delete the file
+		os.remove(file_path)
+		
+		# Remove from document descriptions and order
+		doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+		descriptions = load_document_descriptions()
+		if doc_key in descriptions:
+			del descriptions[doc_key]
+			save_document_descriptions(descriptions)
+		
+		document_order = load_document_order()
+		if doc_key in document_order:
+			document_order.remove(doc_key)
+			save_document_order(document_order)
+		
+		flash(f'Document "{filename}" deleted successfully!', 'success')
+	except Exception as e:
+		flash(f'Error deleting file: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/update_description/<filename>', methods=['POST'])
+@login_required
+def update_description(filename):
+	# Only allow admin and BDFL users to update documents
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can update documents.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	new_title = request.form.get('title', '').strip()
+	new_description = request.form.get('description', '').strip()
+	doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
+	
+	if not new_description:
+		flash('Description cannot be empty.', 'warning')
+		return redirect(url_for('member_documents'))
+	
+	# Handle file upload if provided
+	file = request.files.get('file')
+	if file and file.filename:
+		# Validate file type
+		if not file.filename.lower().endswith('.pdf'):
+			flash('Only PDF files are allowed.', 'danger')
+			return redirect(url_for('member_documents'))
+		
+		# Save the new file
+		file_path = os.path.join(app.static_folder, filename)
+		file.save(file_path)
+		flash(f'File "{filename}" replaced successfully!', 'success')
+	
+	# Load current descriptions, update, and save
+	descriptions = load_document_descriptions()
+	descriptions[doc_key] = new_description
+	save_document_descriptions(descriptions)
+	
+	# For now, we'll keep titles as they are in the template
+	# Title editing could be implemented later if needed
+	
+	flash(f'Document "{filename}" updated successfully!', 'success')
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/reorder_documents', methods=['POST'])
+@login_required
+def reorder_documents():
+	# Only allow admin and BDFL users to reorder documents
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can reorder documents.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Get the new order from the form
+	new_order = request.form.getlist('document_order[]')
+	
+	if not new_order:
+		flash('No order provided.', 'warning')
+		return redirect(url_for('member_documents'))
+	
+	# Save the new order
+	save_document_order(new_order)
+	
+	flash('Document order updated successfully!', 'success')
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/add_meeting_minutes', methods=['POST'])
+@login_required
+def add_meeting_minutes():
+	# Only allow admin and BDFL users to add meeting minutes
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can add meeting minutes.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	title = request.form.get('title', '').strip()
+	meeting_date = request.form.get('meeting_date', '').strip()
+	description = ''  # No longer collected from form
+	content = ''  # No longer collected from form
+	
+	if not title or not meeting_date:
+		flash('Title and meeting date are required.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Handle optional PDF file upload
+	pdf_filename = None
+	if 'pdf_file' in request.files and request.files['pdf_file'].filename:
+		file = request.files['pdf_file']
+		if file.filename.lower().endswith('.pdf'):
+			# Generate unique filename
+			import uuid
+			filename = f"meeting_minutes_{uuid.uuid4().hex}.pdf"
+			file_path = os.path.join(app.static_folder, filename)
+			file.save(file_path)
+			pdf_filename = filename
+		else:
+			flash('Only PDF files are allowed for attachments.', 'danger')
+			return redirect(url_for('member_documents'))
+	
+	try:
+		database.add_meeting_minutes(title, meeting_date, description, content, pdf_filename)
+		flash('Meeting minutes added successfully!', 'success')
+	except Exception as e:
+		flash(f'Error adding meeting minutes: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/edit_meeting_minutes/<int:minutes_id>', methods=['POST'])
+@login_required
+def edit_meeting_minutes(minutes_id):
+	# Only allow admin and BDFL users to edit meeting minutes
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can edit meeting minutes.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	title = request.form.get('title', '').strip()
+	meeting_date = request.form.get('meeting_date', '').strip()
+	description = ''  # No longer collected from form
+	content = ''  # No longer collected from form
+	
+	if not title or not meeting_date:
+		flash('Title and meeting date are required.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	# Handle optional PDF file upload
+	pdf_filename = None
+	if 'pdf_file' in request.files and request.files['pdf_file'].filename:
+		file = request.files['pdf_file']
+		if file.filename.lower().endswith('.pdf'):
+			# Generate unique filename
+			import uuid
+			filename = f"meeting_minutes_{uuid.uuid4().hex}.pdf"
+			file_path = os.path.join(app.static_folder, filename)
+			file.save(file_path)
+			pdf_filename = filename
+		else:
+			flash('Only PDF files are allowed for attachments.', 'danger')
+			return redirect(url_for('member_documents'))
+	
+	try:
+		database.update_meeting_minutes(minutes_id, title, meeting_date, description, content, pdf_filename)
+		flash('Meeting minutes updated successfully!', 'success')
+	except Exception as e:
+		flash(f'Error updating meeting minutes: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
+
+
+@app.route('/delete_meeting_minutes/<int:minutes_id>', methods=['POST'])
+@login_required
+def delete_meeting_minutes(minutes_id):
+	# Only allow admin and BDFL users to delete meeting minutes
+	if not current_user.is_admin_or_bdfl():
+		flash('Access denied. Only administrators can delete meeting minutes.', 'danger')
+		return redirect(url_for('member_documents'))
+	
+	try:
+		# Delete the record and get the PDF filename
+		pdf_filename = database.delete_meeting_minutes(minutes_id)
+		
+		# Delete the associated PDF file if it exists
+		if pdf_filename:
+			file_path = os.path.join(app.static_folder, pdf_filename)
+			if os.path.exists(file_path):
+				os.remove(file_path)
+		
+		flash('Meeting minutes deleted successfully!', 'success')
+	except Exception as e:
+		flash(f'Error deleting meeting minutes: {str(e)}', 'danger')
+	
+	return redirect(url_for('member_documents'))
 
 
 @app.route('/member/<int:member_id>')
