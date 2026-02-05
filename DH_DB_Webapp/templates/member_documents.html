@@ -34,6 +34,7 @@
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
             <a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'dashboard' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Dashboard</a>
             <a href="{{ url_for('member_documents') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'documents' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📄 Documents</a>
+            <a href="{{ url_for('member_meeting_minutes') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'meeting-minutes' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📝 Meeting Minutes</a>
             {% if is_admin %}
             <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
             {% endif %}
@@ -114,60 +115,6 @@
                                 <p>As an administrator, you can upload documents using the upload functionality.</p>
                                 {% endif %}
                             </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Meeting Minutes Section -->
-                <div class="documents-card">
-                    <div class="card-header">
-                        <h2 class="card-title">📝 Meeting Minutes</h2>
-                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
-                            <form method="get" style="display: flex; align-items: center; gap: 10px;">
-                                <label for="year_filter" style="font-weight: bold; color: #384839;">Filter by Year:</label>
-                                <select name="year" id="year_filter" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; background: white;">
-                                    <option value="all" {% if selected_year == 'all' %}selected{% endif %}>All Years</option>
-                                    {% for year in available_years %}
-                                    <option value="{{ year }}" {% if selected_year == year %}selected{% endif %}>{{ year }}</option>
-                                    {% endfor %}
-                                    {% if '2026' not in available_years %}
-                                    <option value="2026" {% if selected_year == '2026' %}selected{% endif %}>2026</option>
-                                    {% endif %}
-                                </select>
-                            </form>
-                            {% if is_admin %}
-                            <button onclick="event.preventDefault(); event.stopPropagation(); openAddMinutesModal()" class="upload-btn" style="background: #28a745;">➕ Add Meeting Minutes</button>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="document-list">
-                        {% if meeting_minutes %}
-                        {% for minutes in meeting_minutes %}
-                        <div class="document-item">
-                            <div class="document-title">📅 {{ minutes.title }}</div>
-                            <div class="document-description">
-                                Meeting minutes from {{ minutes.meeting_date }}
-                            </div>
-                            <div class="document-actions">
-                                {% if is_admin %}
-                                <button onclick="event.preventDefault(); event.stopPropagation(); editMinutes({{ minutes.id }}, '{{ minutes.title }}', '{{ minutes.meeting_date }}', '', '')" class="upload-btn" style="background: #17a2b8; padding: 6px 16px;">✏️ Edit</button>
-                                <form method="post" action="{{ url_for('delete_meeting_minutes', minutes_id=minutes.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete these meeting minutes?')">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="upload-btn" style="background: #dc3545;">🗑️ Delete</button>
-                                </form>
-                                {% endif %}
-                                {% if minutes.pdf_filename %}
-                                <a href="{{ url_for('static', filename=minutes.pdf_filename) }}" class="document-link" target="_blank">📎 View PDF</a>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        {% else %}
-                        <div class="document-item">
-                            <div class="document-title">No meeting minutes available</div>
-                            <div class="document-description">Meeting minutes will appear here once they are added by an administrator.</div>
-                        </div>
                         {% endif %}
                     </div>
                 </div>

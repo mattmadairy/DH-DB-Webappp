@@ -8,12 +8,33 @@
         .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
         .dashboard-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 1250px; margin: 0 auto; }
         .dashboard-card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
+        .dashboard-card.collapsed .card-content { height: 0; overflow: hidden; padding: 0; margin: 0; }
+        .dashboard-card.collapsed .card-header { border-bottom: none; margin-bottom: 0; }
         .card-header { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
         .card-title { margin: 0; color: #384839; font-size: 1.5em; }
+        .collapse-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; padding: 0; color: #666; transition: color 0.2s; }
+        .collapse-btn:hover { color: #333; }
         .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        .info-item { background: #f8f8f8; padding: 10px; border-radius: 4px; }
+        .info-row { position: relative; margin-bottom: 15px; }
+        .info-row.collapsed .info-grid { display: none; }
+        .info-row .row-collapse-btn { position: absolute; top: 5px; right: 5px; z-index: 10; }
+        .info-item { background: #f8f8f8; padding: 10px; border-radius: 4px; position: relative; }
+        .info-item.collapsed .info-value { display: none; }
+        .info-item.collapsed .info-label { margin-bottom: 0; }
         .info-label { font-weight: bold; color: #666; font-size: 0.9em; }
         .info-value { color: #333; margin-top: 2px; font-weight: bold; font-size: 1.1em; }
+        .row-collapse-btn { font-size: 0.8em; padding: 2px 6px; }
+        .small-group-collapse { display: flex; justify-content: flex-start; margin-bottom: 10px; margin-left: 0; align-self: flex-start; }
+        .small-group-collapse .small-group-btn { width:120px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; cursor:pointer; }
+        .small-group-collapse .small-group-btn:hover { background-color:#f0f0f0; }
+        .small-group-collapse .group-label { font-size: 1em; color: #2c5282; font-weight: bold; }
+        .status-good { color: #28a745; }
+        .status-warning { color: #ffc107; }
+        .status-danger { color: #dc3545; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f8f8; font-weight: bold; }
+        tr.collapsed td:not(:first-child) { display: none; }
         .status-good { color: #28a745; }
         .status-warning { color: #ffc107; }
         .status-danger { color: #dc3545; }
@@ -29,6 +50,7 @@
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
             <a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'dashboard' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Dashboard</a>
             <a href="{{ url_for('member_documents') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'documents' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📄 Documents</a>
+            <a href="{{ url_for('member_meeting_minutes') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'meeting-minutes' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📝 Meeting Minutes</a>
             {% if is_admin %}
             <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
             {% endif %}
@@ -45,128 +67,146 @@
             </div>
             
             {% if member %}
+            <!-- Small Group Collapse Button above Personal Info -->
+            <div class="small-group-collapse">
+                <button class="collapse-btn small-group-btn" onclick="const cards = ['personal-card', 'member-info-card', 'contact-card', 'address-card', 'dues-card', 'work-hours-card', 'meeting-attendance-card', 'committees-card', 'visits-card']; cards.forEach(id => { const card = document.getElementById(id); if(card) card.classList.toggle('collapsed'); }); this.textContent = this.textContent === 'Expand' ? 'Collapse' : 'Expand';">Expand</button>
+            </div>
+            
             <div class="dashboard-container">
+                
                 <!-- Personal Info Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="personal-card">
                     <div class="card-header">
-                        <h2 class="card-title">👤 Personal</h2>
+                        <h2 class="card-title">👤 Personal Information</h2>
                     </div>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">First Name</div>
-                            <div class="info-value">{{ member.first_name }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Middle Name</div>
-                            <div class="info-value">{{ member.middle_name }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Last Name</div>
-                            <div class="info-value">{{ member.last_name }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Suffix</div>
-                            <div class="info-value">{{ member.suffix }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Nickname</div>
-                            <div class="info-value">{{ member.nickname }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Date of Birth</div>
-                            <div class="info-value">{{ member.dob | format_mmddyyyy if member.dob else '' }}</div>
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">First Name</div>
+                                <div class="info-value">{{ member.first_name }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Middle Name</div>
+                                <div class="info-value">{{ member.middle_name }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Last Name</div>
+                                <div class="info-value">{{ member.last_name }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Suffix</div>
+                                <div class="info-value">{{ member.suffix }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Nickname</div>
+                                <div class="info-value">{{ member.nickname }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Date of Birth</div>
+                                <div class="info-value">{{ member.dob | format_mmddyyyy if member.dob else '' }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Member Info Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="member-info-card">
                     <div class="card-header">
                         <h2 class="card-title">👤 Member Information</h2>
                     </div>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Badge Number</div>
-                            <div class="info-value">{{ member.badge_number }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Membership Type</div>
-                            <div class="info-value">{{ member.membership_type }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Join Date</div>
-                            <div class="info-value">{{ member.join_date | format_mmddyyyy if member.join_date else '' }}</div>
-                        </div>
-                        {% if executive_position %}
-                        <div class="info-item">
-                            <div class="info-label">Executive Role</div>
-                            <div class="info-value">
-                                {{ executive_position }}
-                                {% if executive_term %}
-                                <br>{{ executive_term }}
-                                {% endif %}
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Badge Number</div>
+                                <div class="info-value">{{ member.badge_number }}</div>
                             </div>
+                            <div class="info-item">
+                                <div class="info-label">Membership Type</div>
+                                <div class="info-value">{{ member.membership_type }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Join Date</div>
+                                <div class="info-value">{{ member.join_date | format_mmddyyyy if member.join_date else '' }}</div>
+                            </div>
+                            {% if executive_position %}
+                            <div class="info-item">
+                                <div class="info-label">Executive Role</div>
+                                <div class="info-value">
+                                    {{ executive_position }}
+                                    {% if executive_term %}
+                                    <br>{{ executive_term }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </div>
                 </div>
                 
                 <!-- Contact Info Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="contact-card">
                     <div class="card-header">
                         <h2 class="card-title">📞 Contact Information</h2>
                     </div>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Primary Email</div>
-                            <div class="info-value">{{ member.email }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Secondary Email</div>
-                            <div class="info-value">{{ member.email2 }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Primary Phone</div>
-                            <div class="info-value">{{ member.phone }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">Secondary Phone</div>
-                            <div class="info-value">{{ member.phone2 }}</div>
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Primary Email</div>
+                                <div class="info-value">{{ member.email }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Secondary Email</div>
+                                <div class="info-value">{{ member.email2 }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Primary Phone</div>
+                                <div class="info-value">{{ member.phone }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Secondary Phone</div>
+                                <div class="info-value">{{ member.phone2 }}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Address Info Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="address-card">
                     <div class="card-header">
                         <h2 class="card-title">🏠 Address Information</h2>
                     </div>
-                    <div class="info-grid">
-                        <div class="info-item" style="grid-column: 1 / -1;">
-                            <div class="info-label">Street Address</div>
-                            <div class="info-value">{{ member.address }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">City</div>
-                            <div class="info-value">{{ member.city }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">State</div>
-                            <div class="info-value">{{ member.state }}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="info-label">ZIP Code</div>
-                            <div class="info-value">{{ member.zip }}</div>
+                    <div class="card-content">
+                        <div class="info-row">
+                            <button class="collapse-btn row-collapse-btn" onclick="toggleRow(this)">−</button>
+                            <div class="info-grid">
+                                <div class="info-item" style="grid-column: 1 / -1;">
+                                    <div class="info-label">Street Address</div>
+                                    <div class="info-value">{{ member.address }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">City</div>
+                                    <div class="info-value">{{ member.city }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">State</div>
+                                    <div class="info-value">{{ member.state }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">ZIP Code</div>
+                                    <div class="info-value">{{ member.zip }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Dues Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="dues-card">
                     <div class="card-header">
                         <h2 class="card-title">💵 Dues History</h2>
                     </div>
-                    {% if dues %}
+                    <div class="card-content">
+                        {% if dues %}
                     <table>
                         <thead>
                             <tr>
@@ -190,15 +230,18 @@
                     {% else %}
                     <p>No dues payments found.</p>
                     {% endif %}
+                    </div>
                 </div>
                 
                 <!-- Work Hours Card -->
-                <div id="work-hours-card" class="dashboard-card">
+                <div id="work-hours-card" class="dashboard-card collapsed" data-card-id="work-hours-card">
                     <div class="card-header">
                         <h2 class="card-title">⏰ Work Hours</h2>
                         <p style="margin: 5px 0 0 0; color: #666; font-size: 1.1em; font-weight: bold;">{{ "%.1f"|format(total_work_hours) }} total</p>
+                    </div>
+                    <div class="card-content">
                         {% if work_hours_years %}
-                        <div style="margin: 10px 0 0 0;">
+                        <div style="margin: 0 0 10px 0;">
                             <label for="work_year_select" style="font-size: 0.9em; color: #666; margin-right: 8px;">Filter by Year:</label>
                             <select id="work_year_select" onchange="filterWorkHoursByYear()" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white;">
                                 <option value="">All Years</option>
@@ -208,8 +251,7 @@
                             </select>
                         </div>
                         {% endif %}
-                    </div>
-                    {% if work_hours %}
+                        {% if work_hours %}
                     <table>
                         <thead>
                             <tr>
@@ -233,15 +275,18 @@
                     {% else %}
                     <p>No work hours recorded.</p>
                     {% endif %}
+                    </div>
                 </div>
                 
                 <!-- Meeting Attendance Card -->
-                <div id="meeting-attendance-card" class="dashboard-card">
+                <div id="meeting-attendance-card" class="dashboard-card collapsed" data-card-id="meeting-attendance-card">
                     <div class="card-header">
                         <h2 class="card-title">📅 Meeting Attendance</h2>
                         <p style="margin: 5px 0 0 0; color: #666; font-size: 1.1em; font-weight: bold;">{{ total_meetings }} attended</p>
+                    </div>
+                    <div class="card-content">
                         {% if meeting_attendance_years %}
-                        <div style="margin: 10px 0 0 0;">
+                        <div style="margin: 0 0 10px 0;">
                             <label for="meeting_year_select" style="font-size: 0.9em; color: #666; margin-right: 8px;">Filter by Year:</label>
                             <select id="meeting_year_select" onchange="filterMeetingAttendanceByYear()" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white;">
                                 <option value="">All Years</option>
@@ -251,8 +296,7 @@
                             </select>
                         </div>
                         {% endif %}
-                    </div>
-                    {% if attendance %}
+                        {% if attendance %}
                     <table>
                         <thead>
                             <tr>
@@ -272,34 +316,55 @@
                     {% else %}
                     <p>No meeting attendance recorded.</p>
                     {% endif %}
+                    </div>
                 </div>
                 
                 <!-- Committees Card -->
-                <div class="dashboard-card">
+                <div class="dashboard-card collapsed" id="committees-card">
                     <div class="card-header">
                         <h2 class="card-title">🏛️ Committees</h2>
                     </div>
-                    {% if committees %}
-                    <div class="info-grid">
-                        {% for committee in committees %}
-                        <div class="info-item">
-                            <div class="info-label">{{ committee.name }}</div>
-                            <div class="info-value">{{ committee.role }}</div>
+                    <div class="card-content">
+                        {% if committees %}
+                        <div class="info-row">
+                            <button class="collapse-btn row-collapse-btn" onclick="toggleRow(this)">−</button>
+                            <div class="info-grid">
+                                {% for committee in committees %}
+                                <div class="info-item">
+                                    <div class="info-label">{{ committee.name }}</div>
+                                    <div class="info-value">{{ committee.role }}</div>
+                                </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                        {% endfor %}
+                        {% else %}
+                        <p>No committee memberships found.</p>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <p>No committee memberships found.</p>
-                    {% endif %}
                 </div>
                 
                 <!-- Visits Card -->
-                <div class="dashboard-card">
+                <div id="visits-card" class="dashboard-card collapsed" data-card-id="visits-card">
                     <div class="card-header">
                         <h2 class="card-title">🏠 Recent Visits</h2>
-                        <p style="margin: 5px 0 0 0; color: #666; font-size: 1.1em; font-weight: bold;">Last 30 Days</p>
                     </div>
-                    {% if checkins %}
+                    <div class="card-content">
+                        <div style="margin: 0 0 10px 0;">
+                            <label for="visits_filter_select" style="font-size: 0.9em; color: #666; margin-right: 8px;">Filter by:</label>
+                            <select id="visits_filter_select" onchange="filterVisits()" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                                <option value="last_30_days" {% if selected_visits_filter == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+                                <option value="by_year" {% if selected_visits_filter == 'by_year' %}selected{% endif %}>By Year</option>
+                                <option value="all_years" {% if selected_visits_filter == 'all_years' %}selected{% endif %}>All Years</option>
+                            </select>
+                            {% if selected_visits_filter == 'by_year' and checkin_years %}
+                            <select id="visits_year_select" onchange="filterVisitsByYear()" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; background: white; margin-left: 8px;">
+                                {% for year in checkin_years %}
+                                <option value="{{ year }}" {% if selected_visits_year == year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                        </div>
+                        {% if checkins %}
                     <table>
                         <thead>
                             <tr>
@@ -343,6 +408,7 @@
                     {% else %}
                     <p>No visits in the last 30 days.</p>
                     {% endif %}
+                    </div>
                 </div>
             
             {% else %}
@@ -363,6 +429,33 @@
     </div>
     
     <script>
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            const button = card.querySelector('.collapse-btn');
+            
+            card.classList.toggle('collapsed');
+            
+            if (card.classList.contains('collapsed')) {
+                button.textContent = '+';
+            } else {
+                button.textContent = '−';
+            }
+        }
+        
+        function toggleRow(button) {
+            const row = button.closest('.info-row');
+            row.classList.toggle('collapsed');
+            
+            if (row.classList.contains('collapsed')) {
+                button.textContent = '+';
+            } else {
+                button.textContent = '−';
+            }
+        }
+        
+        function filterWorkHoursByYear() {
+        }
+        
         function filterWorkHoursByYear() {
             const select = document.getElementById('work_year_select');
             const selectedYear = select.value;
@@ -396,6 +489,46 @@
             
             // Add hash to scroll to meeting attendance section
             url.hash = 'meeting-attendance-card';
+            
+            // Reload page with new parameters
+            window.location.href = url.toString();
+        }
+        
+        function filterVisits() {
+            const select = document.getElementById('visits_filter_select');
+            const selectedFilter = select.value;
+            
+            // Build URL with filter parameter
+            const url = new URL(window.location);
+            url.searchParams.set('visits_filter', selectedFilter);
+            
+            // Remove year parameter if not using by_year filter
+            if (selectedFilter !== 'by_year') {
+                url.searchParams.delete('visits_year');
+            }
+            
+            // Add hash to scroll to visits section
+            url.hash = 'visits-card';
+            
+            // Reload page with new parameters
+            window.location.href = url.toString();
+        }
+        
+        function filterVisitsByYear() {
+            const select = document.getElementById('visits_year_select');
+            const selectedYear = select.value;
+            
+            // Build URL with year parameter
+            const url = new URL(window.location);
+            url.searchParams.set('visits_filter', 'by_year');
+            if (selectedYear) {
+                url.searchParams.set('visits_year', selectedYear);
+            } else {
+                url.searchParams.delete('visits_year');
+            }
+            
+            // Add hash to scroll to visits section
+            url.hash = 'visits-card';
             
             // Reload page with new parameters
             window.location.href = url.toString();

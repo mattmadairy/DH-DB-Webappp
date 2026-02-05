@@ -301,6 +301,14 @@
                     <h2 style="color:#384839; margin:0;">All Users ({{ users|length }})</h2>
                     <button onclick="openAddUserModal()" style="padding:10px 20px; background-color:#5bc0de; color:white; border:none; border-radius:4px; font-size:1em; font-weight:bold; cursor:pointer;">➕ Add New User</button>
                 </div>
+                
+                <!-- Search Bar -->
+                <div style="margin-bottom:20px; display:flex; align-items:center; gap:10px;">
+                    <input type="text" id="userSearch" placeholder="Search users by name, username, email, or role..." 
+                           style="flex:1; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:1em;">
+                    <button onclick="clearSearch()" style="padding:10px 15px; background-color:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">Clear</button>
+                </div>
+                
                 <table>
                     <thead>
                         <tr>
@@ -316,9 +324,9 @@
                     <tbody>
                         {% for user in users %}
                         {% if user.member_id %}
-                        <tr onclick="window.location.href='{{ url_for('member_details', member_id=user.member_id) }}'" style="cursor: pointer;">
+                        <tr class="user-row" onclick="window.location.href='{{ url_for('member_details', member_id=user.member_id) }}'" style="cursor: pointer;">
                         {% else %}
-                        <tr>
+                        <tr class="user-row">
                         {% endif %}
                             <td><strong>{{ user.name | format_name_last_first if user.name else '-' }}</strong></td>
                             <td>{{ user.username }}</td>
@@ -682,6 +690,43 @@
                 document.body.appendChild(form);
                 form.submit();
             }
+        }
+        
+        // Dynamic search functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('userSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterUsers);
+            }
+        });
+        
+        function filterUsers() {
+            const query = document.getElementById('userSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('table tr.user-row');
+            let visibleCount = 0;
+            
+            rows.forEach(function(row) {
+                const text = row.textContent.toLowerCase();
+                const isVisible = text.includes(query);
+                row.style.display = isVisible ? '' : 'none';
+                if (isVisible) visibleCount++;
+            });
+            
+            // Update the user count display
+            const countDisplay = document.querySelector('h2');
+            if (countDisplay) {
+                const totalUsers = rows.length;
+                countDisplay.textContent = query ? 
+                    `Users (${visibleCount} of ${totalUsers})` : 
+                    `All Users (${totalUsers})`;
+            }
+        }
+        
+        function clearSearch() {
+            const searchInput = document.getElementById('userSearch');
+            searchInput.value = '';
+            filterUsers();
+            searchInput.focus();
         }
         
     </script>

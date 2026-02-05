@@ -258,6 +258,8 @@ def format_datetime(value):
         return ''
     try:
         dt = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        # Ensure the datetime is treated as UTC-5 (America/New_York)
+        dt = TIMEZONE.localize(dt)
         date_part = dt.strftime('%m-%d-%Y')
         time_part = dt.strftime('%H:%M')
         return date_part + '   ' + time_part
@@ -272,6 +274,8 @@ def format_datetime_12hr(value):
         return ''
     try:
         dt = datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+        # Ensure the datetime is treated as UTC-5 (America/New_York)
+        dt = TIMEZONE.localize(dt)
         return dt.strftime('%m-%d-%Y %I:%M %p')
     except Exception:
         return value
@@ -358,7 +362,7 @@ def login():
 		if user_data:
 			is_locked, locked_until = database.is_account_locked(username)
 			if is_locked:
-				remaining = (locked_until - datetime.datetime.now()).total_seconds() / 60
+				remaining = (locked_until - datetime.datetime.now(TIMEZONE)).total_seconds() / 60
 				flash(f'Account is locked due to too many failed login attempts. Try again in {int(remaining)} minutes.', 'error')
 				database.log_audit(
 					user_id=user_data['id'],
@@ -833,6 +837,7 @@ def edit_user():
 @login_required
 @admin_required
 def admin_users():
+	
 	if request.method == 'POST':
 		username = request.form.get('username')
 		name = request.form.get('name')
@@ -940,7 +945,7 @@ def dues_report():
 	years = database.get_dues_years()
 	if not year:
 		# Default to current year if available, else first year in list
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		current_year = str(now.year)
 		if current_year in years:
 			year = current_year
@@ -949,7 +954,7 @@ def dues_report():
 		else:
 			year = None
 	dues = database.get_all_dues_by_year(year)
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(TIMEZONE)
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
 	total_dues_revenue = sum(float(due['amount'] or 0) for due in dues)
@@ -962,7 +967,7 @@ def dues_email_list():
 	year = request.args.get('year')
 	if not year:
 		# Default to current year
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	# Get all dues for the selected year
@@ -996,7 +1001,7 @@ def dues_unpaid_email_list():
 	year = request.args.get('year')
 	if not year:
 		# Default to current year
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	# Get all dues for the selected year
@@ -1033,7 +1038,7 @@ def dues_unpaid_email_list():
 def dues_export_csv():
 	year = request.args.get('year')
 	if not year:
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	dues = database.get_all_dues_by_year(year)
@@ -1074,7 +1079,7 @@ def dues_export_csv():
 def dues_unpaid_export_csv():
 	year = request.args.get('year')
 	if not year:
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	# Get all dues for the selected year
@@ -1129,7 +1134,7 @@ def dues_unpaid_export_csv():
 def work_hours_export_csv():
 	year = request.args.get('year')
 	if not year:
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	start_date = f"{year}-01-01"
@@ -1237,13 +1242,13 @@ def work_hours_report():
 		start_date = f"{year}-01-01"
 		end_date = f"{year}-12-31"
 	else:
-		now = datetime.datetime.now()
+		now = datetime.datetime.now(TIMEZONE)
 		year = now.year
 		start_date = f"{year}-01-01"
 		end_date = f"{year}-12-31"
 	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
 	years = database.get_dues_years()  # reuse dues years for dropdown
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(TIMEZONE)
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
 	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
@@ -1282,7 +1287,7 @@ def index():
 			members = [m for m in members if member_matches(m)]
 		
 		# Calculate member counts for each type
-		member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+		member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
 		member_counts = {}
 		for mt in member_types_list:
 			if mt == "All":
@@ -1327,7 +1332,7 @@ def admin_dashboard():
 		members = [m for m in members if member_matches(m)]
 	
 	# Calculate member counts for each type
-	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"]
+	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
 	member_counts = {}
 	for mt in member_types_list:
 		if mt == "All":
@@ -1346,6 +1351,8 @@ def member_dashboard():
 	# Get year parameters for filtering
 	selected_work_year = request.args.get('work_year')
 	selected_meeting_year = request.args.get('meeting_year')
+	selected_visits_filter = request.args.get('visits_filter', 'last_30_days')
+	selected_visits_year = request.args.get('visits_year')
 	
 	# For regular users, try to find their member record by email
 	member = database.get_member_by_email(current_user.email)
@@ -1387,10 +1394,36 @@ def member_dashboard():
 					formatted_end = format_mmddyyyy(term_end)
 					executive_term = f"({formatted_start} until {formatted_end})"
 	
-	# Get recent check-ins (last 30 days)
+	# Get check-in years for visits dropdown
+	checkin_years = []
+	if member and member.get('badge_number'):
+		conn = database.get_connection()
+		c = conn.cursor()
+		c.execute("""
+			SELECT DISTINCT strftime('%Y', check_in_time) as year
+			FROM check_ins 
+			WHERE member_number = ?
+			ORDER BY year DESC
+		""", (member['badge_number'],))
+		years = c.fetchall()
+		conn.close()
+		checkin_years = [year['year'] for year in years]
+	
+	# Get check-ins based on filter
 	checkins = []
 	if member and member.get('badge_number'):
-		checkins = database.get_member_checkins_last_30_days(member['badge_number'])
+		if selected_visits_filter == 'last_30_days':
+			checkins = database.get_member_checkins_last_30_days(member['badge_number'])
+		elif selected_visits_filter == 'by_year':
+			# If no year selected for by_year filter, default to current year
+			if not selected_visits_year and checkin_years:
+				selected_visits_year = str(datetime.datetime.now().year)
+				# If current year not in available years, use the most recent
+				if selected_visits_year not in checkin_years:
+					selected_visits_year = checkin_years[0] if checkin_years else None
+			checkins = database.get_member_checkins_by_year(member['badge_number'], selected_visits_year)
+		else:  # all_years
+			checkins = database.get_member_checkins_by_year(member['badge_number'])
 	
 	# Get work hours and meeting attendance years for dropdowns
 	work_hours_years = database.get_work_hours_years() if member else []
@@ -1411,6 +1444,9 @@ def member_dashboard():
 							executive_position=executive_position,
 							executive_term=executive_term,
 							checkins=checkins,
+							checkin_years=checkin_years,
+							selected_visits_filter=selected_visits_filter,
+							selected_visits_year=selected_visits_year,
 							active_page='dashboard',
 							is_admin=current_user.is_admin_or_bdfl())
 
@@ -1464,22 +1500,6 @@ def member_documents():
 		document_icons[filename] = get_document_icon(doc_key)
 		file_descriptions_dict[filename] = file_descriptions.get(doc_key, get_document_description(filename))
 	
-	# Get meeting minutes
-	selected_year = request.args.get('year')
-	available_years = database.get_available_years()
-	
-	# Default to current year if no year selected, but only if current year has data
-	if not selected_year:
-		if '2026' in available_years:
-			selected_year = '2026'
-		else:
-			selected_year = 'all'
-	
-	if selected_year and selected_year != 'all':
-		meeting_minutes = database.get_meeting_minutes_by_year(selected_year)
-	else:
-		meeting_minutes = database.get_all_meeting_minutes()
-	
 	return render_template('member_documents.html', 
 							member=member, 
 							active_page='documents',
@@ -1489,9 +1509,6 @@ def member_documents():
 							document_titles=document_titles,
 							document_icons=document_icons,
 							document_order=document_order,
-							meeting_minutes=meeting_minutes,
-							available_years=available_years,
-							selected_year=selected_year,
 							pending_applications=get_pending_application_count())
 
 
@@ -1597,6 +1614,40 @@ def upload_new_document():
 		flash(f'Error uploading file: {str(e)}', 'danger')
 	
 	return redirect(url_for('member_documents'))
+
+
+@app.route('/member/meeting-minutes')
+@login_required
+def member_meeting_minutes():
+	member = database.get_member_by_id(current_user.id)
+	if not member:
+		flash('Member not found.', 'danger')
+		return redirect(url_for('login'))
+	
+	# Get meeting minutes
+	selected_year = request.args.get('year')
+	available_years = database.get_available_years()
+	
+	# Default to current year if no year selected, but only if current year has data
+	if not selected_year:
+		if '2026' in available_years:
+			selected_year = '2026'
+		else:
+			selected_year = 'all'
+	
+	if selected_year and selected_year != 'all':
+		meeting_minutes = database.get_meeting_minutes_by_year(selected_year)
+	else:
+		meeting_minutes = database.get_all_meeting_minutes()
+	
+	return render_template('member_meeting_minutes.html', 
+							member=member, 
+							active_page='meeting-minutes',
+							is_admin=current_user.is_admin_or_bdfl(),
+							meeting_minutes=meeting_minutes,
+							available_years=available_years,
+							selected_year=selected_year,
+							pending_applications=get_pending_application_count())
 
 
 @app.route('/delete_document/<filename>', methods=['POST'])
@@ -1722,7 +1773,7 @@ def add_meeting_minutes():
 	# Only allow admin and BDFL users to add meeting minutes
 	if not current_user.is_admin_or_bdfl():
 		flash('Access denied. Only administrators can add meeting minutes.', 'danger')
-		return redirect(url_for('member_documents'))
+		return redirect(url_for('member_meeting_minutes'))
 	
 	title = request.form.get('title', '').strip()
 	meeting_date = request.form.get('meeting_date', '').strip()
@@ -1731,7 +1782,7 @@ def add_meeting_minutes():
 	
 	if not title or not meeting_date:
 		flash('Title and meeting date are required.', 'danger')
-		return redirect(url_for('member_documents'))
+		return redirect(url_for('member_meeting_minutes'))
 	
 	# Handle optional PDF file upload
 	pdf_filename = None
@@ -1754,7 +1805,7 @@ def add_meeting_minutes():
 	except Exception as e:
 		flash(f'Error adding meeting minutes: {str(e)}', 'danger')
 	
-	return redirect(url_for('member_documents'))
+	return redirect(url_for('member_meeting_minutes'))
 
 
 @app.route('/edit_meeting_minutes/<int:minutes_id>', methods=['POST'])
@@ -1763,7 +1814,7 @@ def edit_meeting_minutes(minutes_id):
 	# Only allow admin and BDFL users to edit meeting minutes
 	if not current_user.is_admin_or_bdfl():
 		flash('Access denied. Only administrators can edit meeting minutes.', 'danger')
-		return redirect(url_for('member_documents'))
+		return redirect(url_for('member_meeting_minutes'))
 	
 	title = request.form.get('title', '').strip()
 	meeting_date = request.form.get('meeting_date', '').strip()
@@ -1772,7 +1823,7 @@ def edit_meeting_minutes(minutes_id):
 	
 	if not title or not meeting_date:
 		flash('Title and meeting date are required.', 'danger')
-		return redirect(url_for('member_documents'))
+		return redirect(url_for('member_meeting_minutes'))
 	
 	# Handle optional PDF file upload
 	pdf_filename = None
@@ -1787,7 +1838,7 @@ def edit_meeting_minutes(minutes_id):
 			pdf_filename = filename
 		else:
 			flash('Only PDF files are allowed for attachments.', 'danger')
-			return redirect(url_for('member_documents'))
+			return redirect(url_for('member_meeting_minutes'))
 	
 	try:
 		database.update_meeting_minutes(minutes_id, title, meeting_date, description, content, pdf_filename)
@@ -1795,7 +1846,7 @@ def edit_meeting_minutes(minutes_id):
 	except Exception as e:
 		flash(f'Error updating meeting minutes: {str(e)}', 'danger')
 	
-	return redirect(url_for('member_documents'))
+	return redirect(url_for('member_meeting_minutes'))
 
 
 @app.route('/delete_meeting_minutes/<int:minutes_id>', methods=['POST'])
@@ -1804,7 +1855,7 @@ def delete_meeting_minutes(minutes_id):
 	# Only allow admin and BDFL users to delete meeting minutes
 	if not current_user.is_admin_or_bdfl():
 		flash('Access denied. Only administrators can delete meeting minutes.', 'danger')
-		return redirect(url_for('member_documents'))
+		return redirect(url_for('member_meeting_minutes'))
 	
 	try:
 		# Delete the record and get the PDF filename
@@ -1820,7 +1871,7 @@ def delete_meeting_minutes(minutes_id):
 	except Exception as e:
 		flash(f'Error deleting meeting minutes: {str(e)}', 'danger')
 	
-	return redirect(url_for('member_documents'))
+	return redirect(url_for('member_meeting_minutes'))
 
 
 @app.route('/member/<int:member_id>')
@@ -1871,7 +1922,7 @@ def member_details(member_id):
 		'other': 'Other'
 	}
 	import datetime
-	current_year = datetime.datetime.now().year
+	current_year = datetime.datetime.now(TIMEZONE).year
 	dues_years = list(range(current_year + 1, current_year - 10, -1))
 	pending_applications = get_pending_application_count()
 	return render_template(
@@ -1905,7 +1956,7 @@ def member_report(member_id):
 	position = database.get_member_position(member_id)
 	committees = database.get_member_committees(member_id)
 	import datetime
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(TIMEZONE)
 	exclude_keys = {'member id', 'committee id', 'member_id', 'committee_id', 'notes'}
 	committee_names = [k for k in committees.keys() if k.lower().replace('_', ' ') not in exclude_keys] if committees else []
 	committee_display_names = {k: ' '.join(word.capitalize() for word in k.replace('_', ' ').split()) for k in committee_names}
@@ -2539,7 +2590,7 @@ def meeting_attendance_report():
 		{'value': '12', 'name': 'December'}
 	]
 	attendance = database.get_meeting_attendance_report(year=year, month=month)
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(TIMEZONE)
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
 	return render_template('meeting_attendance_report.html', attendance=attendance, years=years, selected_year=year, months=months, selected_month=month, now=now, active_page='meeting_attendance_report', member_stats=member_stats, pending_applications=pending_applications)
@@ -2598,7 +2649,7 @@ def committees():
 				chair_members.append(member_copy)
 	committee_members['committee_chairs'] = chair_members
 	import datetime
-	now = datetime.datetime.now()
+	now = datetime.datetime.now(TIMEZONE)
 	selected_committee = request.args.get('committee')
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()

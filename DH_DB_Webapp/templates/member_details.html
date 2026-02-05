@@ -867,6 +867,7 @@ function submitCommittees() {
 					<option value="Honorary" {% if member['membership_type'] == 'Honorary' %}selected{% endif %}>Honorary</option>
 					<option value="Prospective" {% if member['membership_type'] == 'Prospective' %}selected{% endif %}>Prospective</option>
 					<option value="Wait List" {% if member['membership_type'] == 'Wait List' %}selected{% endif %}>Wait List</option>
+					<option value="Suspended" {% if member['membership_type'] == 'Suspended' %}selected{% endif %}>Suspended</option>
 					<option value="Former" {% if member['membership_type'] == 'Former' %}selected{% endif %}>Former</option>
 				</select>
 				<label for="application_submitted">Application Submitted:</label><input type="date" id="application_submitted" name="application_submitted" value="{{ member['application_submitted'] if member.get('application_submitted') else '' }}">

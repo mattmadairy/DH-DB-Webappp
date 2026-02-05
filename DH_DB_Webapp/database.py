@@ -1037,6 +1037,35 @@ def get_member_checkins_last_30_days(member_badge_number):
     conn.close()
     return rows
 
+def get_member_checkins_by_year(member_badge_number, year=None):
+    """Get check-ins for a specific member, optionally filtered by year"""
+    conn = get_connection()
+    c = conn.cursor()
+    
+    if year:
+        # Filter by specific year
+        c.execute("""
+            SELECT c.*, m.first_name, m.last_name 
+            FROM check_ins c
+            LEFT JOIN members m ON c.member_number = m.badge_number
+            WHERE c.member_number = ? 
+            AND strftime('%Y', c.check_in_time) = ?
+            ORDER BY c.check_in_time DESC
+        """, (member_badge_number, str(year)))
+    else:
+        # Get all check-ins for the member
+        c.execute("""
+            SELECT c.*, m.first_name, m.last_name 
+            FROM check_ins c
+            LEFT JOIN members m ON c.member_number = m.badge_number
+            WHERE c.member_number = ?
+            ORDER BY c.check_in_time DESC
+        """, (member_badge_number,))
+    
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 def add_application(data):
 	"""Add a new membership application"""
 	from datetime import datetime
