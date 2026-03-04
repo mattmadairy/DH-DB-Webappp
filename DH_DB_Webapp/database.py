@@ -360,6 +360,38 @@ def init_database():
 		)
 	""")
 	
+	# Create events table for event management
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS events (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			event_date DATE NOT NULL,
+			coordinator_id INTEGER,
+			status TEXT NOT NULL DEFAULT 'open',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			closed_at TIMESTAMP,
+			FOREIGN KEY (coordinator_id) REFERENCES users(id)
+		)
+	""")
+	
+	# Create event_signins table for public event sign-ins
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS event_signins (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			event_id TEXT NOT NULL,
+			name TEXT NOT NULL,
+			email TEXT NOT NULL,
+			member_number TEXT,
+			signin_type TEXT NOT NULL DEFAULT 'attendee',
+			skills TEXT,
+			waiver_agreed INTEGER DEFAULT 0,
+			is_shooter INTEGER DEFAULT 0,
+			is_guest INTEGER DEFAULT 0,
+			signed_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			signed_out_at TIMESTAMP
+		)
+	""")
+	
 	# Create applications table for membership applications
 	c.execute("""
 		CREATE TABLE IF NOT EXISTS applications (
@@ -1066,6 +1098,29 @@ def get_member_checkins_by_year(member_badge_number, year=None):
     conn.close()
     return rows
 
+def add_event_signin(name, email, event_type, signin_type='attendee', skills=None, member_number=None):
+	"""Add a new event sign-in record"""
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("""
+		INSERT INTO event_signins (name, email, member_number, event_type, signin_type, skills)
+		VALUES (?, ?, ?, ?, ?, ?)
+	""", (name, email, member_number, event_type, signin_type, skills))
+	conn.commit()
+	conn.close()
+
+def get_all_event_signins():
+    """Get all event sign-ins"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM event_signins
+        ORDER BY signed_in_at DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 def add_application(data):
 	"""Add a new membership application"""
 	from datetime import datetime
@@ -1322,3 +1377,277 @@ def delete_meeting_minutes(minutes_id):
 
 # Deprecated: get_member_committees (old per-member columns)
 # Deprecated: update_member_committees (old per-member columns)
+
+# ========== Event Sign-in Functions ==========
+
+def add_event_signin(name, email, event_type=None, signin_type='attendee', skills=None, member_number=None, waiver_agreed=0, is_shooter=0, is_guest=0):
+    """Add a new event sign-in"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO event_signins (name, email, event_type, signin_type, skills, member_number, waiver_agreed, is_shooter, is_guest)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (name, email, event_type, signin_type, skills, member_number, 1 if waiver_agreed else 0, 1 if is_shooter else 0, 1 if is_guest else 0))
+    conn.commit()
+    signin_id = c.lastrowid
+    conn.close()
+    return signin_id
+
+def get_all_event_signins():
+    """Get all event sign-ins"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM event_signins ORDER BY signed_in_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_current_volunteers():
+    """Get all volunteers for today's event (both signed in and signed out)"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM event_signins 
+        WHERE signin_type = 'volunteer' 
+        AND DATE(signed_in_at) = DATE('now')
+        ORDER BY signed_in_at ASC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def sign_out_volunteer(signin_id):
+    """Sign out a volunteer by setting signed_out_at timestamp"""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    # Use UTC time to match the signed_in_at timestamps
+    signed_out_at = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    c.execute("""
+        UPDATE event_signins 
+        SET signed_out_at = ? 
+        WHERE id = ? AND signed_out_at IS NULL
+    """, (signed_out_at, signin_id))
+    success = c.rowcount > 0
+    conn.commit()
+    conn.close()
+    return success
+
+def get_current_attendees():
+    """Get all patrons for today's event (both signed in and signed out)"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM event_signins 
+        WHERE signin_type = 'attendee' 
+        AND DATE(signed_in_at) = DATE('now')
+        ORDER BY signed_in_at ASC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def clear_all_volunteers():
+    """Clear all volunteer sign-in records"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM event_signins WHERE signin_type = 'volunteer'")
+    deleted_count = c.rowcount
+    conn.commit()
+    conn.close()
+    return deleted_count
+
+def clear_all_attendees():
+    """Clear all patron sign-in records"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM event_signins WHERE signin_type = 'attendee'")
+    deleted_count = c.rowcount
+    conn.commit()
+    conn.close()
+    return deleted_count
+
+def clear_all_event_signins():
+    """Clear all event sign-in records (both patrons and volunteers)"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM event_signins")
+    deleted_count = c.rowcount
+    conn.commit()
+    conn.close()
+    return deleted_count
+
+# ========== Event Management Functions ==========
+
+def create_event(name, event_date, coordinator_id):
+    """Create a new event"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO events (name, event_date, coordinator_id, status)
+        VALUES (?, ?, ?, 'open')
+    """, (name, event_date, coordinator_id))
+    event_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return event_id
+
+def get_all_events():
+    """Get all events with coordinator information"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT e.*, u.name as coordinator_name
+        FROM events e
+        LEFT JOIN users u ON e.coordinator_id = u.id
+        ORDER BY e.event_date DESC, e.created_at DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_event_by_id(event_id):
+    """Get a specific event by ID"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT e.*, u.name as coordinator_name
+        FROM events e
+        LEFT JOIN users u ON e.coordinator_id = u.id
+        WHERE e.id = ?
+    """, (event_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def get_open_events():
+    """Get all open events"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT e.*, u.name as coordinator_name
+        FROM events e
+        LEFT JOIN users u ON e.coordinator_id = u.id
+        WHERE e.status = 'open'
+        ORDER BY e.event_date ASC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def close_event(event_id):
+    """Close an event"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE events
+        SET status = 'closed', closed_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (event_id,))
+    conn.commit()
+    conn.close()
+
+def get_event_volunteers(event_id):
+    """Get all volunteers for a specific event"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM event_signins 
+        WHERE signin_type = 'volunteer' AND event_id = ?
+        ORDER BY signed_in_at ASC
+    """, (event_id,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_event_attendees(event_id):
+    """Get all attendees for a specific event"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT * FROM event_signins 
+        WHERE signin_type = 'attendee' AND event_id = ?
+        ORDER BY signed_in_at ASC
+    """, (event_id,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def update_event_signins(event_id):
+    """Update existing event signins to use the new event_id (for migration)"""
+    conn = get_connection()
+    c = conn.cursor()
+    # This is for migrating existing signins to the first event
+    c.execute("UPDATE event_signins SET event_id = ? WHERE event_id IS NULL OR event_id = 0", (event_id,))
+    conn.commit()
+    conn.close()
+
+def get_current_attendees(event_id=None):
+    """Get all patrons for an event (both signed in and signed out)"""
+    conn = get_connection()
+    c = conn.cursor()
+    
+    if event_id:
+        c.execute("""
+            SELECT * FROM event_signins 
+            WHERE signin_type = 'attendee' AND event_id = ?
+            ORDER BY signed_in_at ASC
+        """, (event_id,))
+    else:
+        # For backward compatibility, get today's signins if no event specified
+        c.execute("""
+            SELECT * FROM event_signins 
+            WHERE signin_type = 'attendee' 
+            AND DATE(signed_in_at) = DATE('now')
+            ORDER BY signed_in_at ASC
+        """)
+    
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def add_event_signin(name, email, event_id, signin_type='attendee', skills=None, member_number=None, waiver_agreed=0, is_shooter=0, is_guest=0):
+    """Add a new event sign-in"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO event_signins (event_id, name, email, member_number, signin_type, skills, waiver_agreed, is_shooter, is_guest, signed_in_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    """, (event_id, name, email, member_number, signin_type, skills, 1 if waiver_agreed else 0, 1 if is_shooter else 0, 1 if is_guest else 0))
+    signin_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return signin_id
+
+def get_event_signin(signin_id):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('SELECT * FROM event_signins WHERE id = ?', (signin_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        columns = [desc[0] for desc in c.description]
+        return dict(zip(columns, row))
+    return None
+
+def get_event_statistics():
+    """Get statistics for all events grouped by event_id"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT 
+            event_id,
+            COUNT(*) as total_signins,
+            COUNT(CASE WHEN signin_type = 'volunteer' THEN 1 END) as volunteer_count,
+            COUNT(CASE WHEN signin_type = 'attendee' THEN 1 END) as attendee_count,
+            COUNT(CASE WHEN signed_out_at IS NOT NULL THEN 1 END) as completed_signins,
+            MIN(signed_in_at) as first_signin,
+            MAX(signed_in_at) as last_signin,
+            COUNT(DISTINCT member_number) as unique_members
+        FROM event_signins
+        GROUP BY event_id
+        ORDER BY first_signin DESC
+    """)
+    rows = c.fetchall()
+    conn.close()
+    return rows

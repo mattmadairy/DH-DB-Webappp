@@ -26,6 +26,7 @@ class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
     TESTING = False
+    # SERVER_NAME = 'localhost:5000'  # Commented out to allow access from different IPs
     
 class ProductionConfig(Config):
     """Production configuration"""

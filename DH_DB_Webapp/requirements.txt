@@ -23,3 +23,14 @@ gunicorn>=21.2.0; sys_platform != 'win32'
 
 # Additional utilities
 python-dateutil>=2.8.2
+
+# HTTP requests and iCal parsing
+requests>=2.31.0
+icalendar>=5.0.0
+recurring-ical-events>=3.0.0
+
+# Google Calendar API
+google-api-python-client>=2.100.0
+google-auth>=2.23.0
+google-auth-oauthlib>=1.1.0
+google-auth-httplib2>=0.1.0

@@ -1,7 +1,8 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import json
+import logging
 
 # Place this after 'app = Flask(__name__)' and all app config
 
@@ -22,6 +23,7 @@ def register_context_processors(app):
 
 # After all imports and before any route definitions:
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 register_context_processors(app)
 
 from flask_limiter import Limiter
@@ -33,6 +35,36 @@ import datetime
 import socket
 import os
 import pytz
+import requests
+from icalendar import Calendar
+
+# Before request handler to exempt CSRF for event signin
+@app.before_request
+def exempt_csrf_for_event_signin():
+    if request.endpoint == 'event_signin_submit':
+        g.csrf_validated = True
+
+# Initialize CSRF protection
+# csrf = CSRFProtect(app)
+
+# Google Calendar API imports
+try:
+    import sys
+    # Add system Python path to find Google packages
+    sys.path.insert(0, r'C:\Users\Matt\AppData\Local\Programs\Python\Python311\Lib\site-packages')
+    from googleapiclient.discovery import build
+    from google_auth_oauthlib.flow import InstalledAppFlow, Flow
+    from google.auth.transport.requests import Request
+    import pickle
+    import os.path
+    import webbrowser
+    GOOGLE_CALENDAR_AVAILABLE = True
+except ImportError as e:
+    print(f"Google Calendar API not available: {e}")
+    GOOGLE_CALENDAR_AVAILABLE = False
+
+# Google Calendar API scopes
+SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
 # Disable template caching in development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -1252,6 +1284,87 @@ def work_hours_report():
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
 	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
+
+@app.route('/events_report')
+@login_required
+@admin_required
+def events_report():
+	"""Display events report with statistics"""
+	# Get calendar events instead of database events
+	calendar_events, error = fetch_calendar_events()
+	
+	# Transform calendar events and add sign-in counts
+	events = []
+	for i, event in enumerate(calendar_events):
+		# Create the same event_id format used in sign-ins
+		event_id = f"cal_{i}_{int(event['start'].timestamp())}"
+		
+		# Get sign-in counts for this event
+		volunteers = database.get_event_volunteers(event_id)
+		attendees = database.get_event_attendees(event_id)
+		total_signins = len(volunteers) + len(attendees)
+		
+		# Only include events that have sign-ins
+		if total_signins > 0:
+			events.append({
+				'id': event_id,
+				'name': event['summary'],
+				'event_date': event['start'].strftime('%Y-%m-%d'),
+				'volunteer_count': len(volunteers),
+				'attendee_count': len(attendees),
+				'total_signins': total_signins
+			})
+	
+	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
+	return render_template('events_report.html', 
+						 events=events, 
+						 active_page='events_report',
+						 member_stats=member_stats,
+						 pending_applications=pending_applications)
+
+@app.route('/event_details/<event_id>')
+@login_required
+@admin_required
+def event_details(event_id):
+	"""Display detailed information for a specific calendar event"""
+	# Get calendar events to find the matching event
+	calendar_events, error = fetch_calendar_events()
+	
+	# Find the event that matches the event_id
+	event = None
+	for i, cal_event in enumerate(calendar_events):
+		# Recreate the event_id format used in the events report
+		cal_event_id = f"cal_{i}_{int(cal_event['start'].timestamp())}"
+		if cal_event_id == event_id:
+			event = {
+				'id': cal_event_id,
+				'name': cal_event['summary'],
+				'event_date': cal_event['start'].strftime('%Y-%m-%d'),
+				'location': cal_event.get('location', 'TBD'),
+				'description': cal_event.get('description', ''),
+				'start': cal_event['start'],
+				'end': cal_event['end'],
+				'all_day': cal_event['all_day']
+			}
+			break
+	
+	if not event:
+		flash('Event not found.', 'error')
+		return redirect(url_for('events_report'))
+	
+	volunteers = database.get_event_volunteers(event_id)
+	attendees = database.get_event_attendees(event_id)
+	
+	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
+	return render_template('event_details.html',
+						 event=event,
+						 volunteers=volunteers,
+						 attendees=attendees,
+						 active_page='events_report',
+						 member_stats=member_stats,
+						 pending_applications=pending_applications)
 
 @app.route('/add_meeting_attendance/<int:member_id>', methods=['POST'])
 @login_required
@@ -2737,7 +2850,28 @@ def favicon():
 @app.route('/kiosk')
 def kiosk():
 	"""Serve the kiosk check-in page (no login required)"""
-	return render_template('kiosk.html')
+	# Get upcoming events for the next 30 days
+	calendar_events, error = fetch_calendar_events()
+	
+	# Filter events to only show upcoming ones within 30 days
+	now = datetime.datetime.now(pytz.UTC)
+	thirty_days_later = now + datetime.timedelta(days=30)
+	
+	upcoming_events = []
+	for event in calendar_events:
+		if event['start'] >= now and event['start'] <= thirty_days_later:
+			upcoming_events.append({
+				'name': event['summary'],
+				'date': event['start'].strftime('%m-%d-%Y'),
+				'day': event['start'].strftime('%A'),
+				'time': event['start'].strftime('%I:%M %p') if not event['all_day'] else 'All Day',
+				'location': event.get('location', 'TBD')
+			})
+	
+	# Limit to first 10 upcoming events to avoid cluttering the kiosk
+	upcoming_events = upcoming_events[:10]
+	
+	return render_template('kiosk.html', upcoming_events=upcoming_events)
 
 @app.route('/kiosk/submit', methods=['POST'])
 @csrf.exempt  # Exempt CSRF for kiosk since it's a public terminal
@@ -2926,6 +3060,410 @@ def kiosk_export_csv():
 	response.headers['Content-Disposition'] = f'attachment; filename={filename}'
 	return response
 
+@app.route('/event_signin')
+def event_signin():
+	"""Serve the event sign-in page (no login required)"""
+	# Get events from calendar instead of database
+	calendar_events, error = fetch_calendar_events()
+
+	# Get today's date (in UTC to match event timestamps)
+	today = datetime.datetime.now(pytz.UTC).date()
+
+	# Filter events to only show those happening today
+	today_events = []
+	for event in calendar_events:
+		event_date = event['start'].date()
+		if event_date == today:
+			today_events.append(event)
+
+	# Transform calendar events to match the expected format for the template
+	open_events = []
+	for i, event in enumerate(today_events):
+		# Create a unique ID for each event (using index + timestamp for uniqueness)
+		event_id = f"cal_{i}_{int(event['start'].timestamp())}"
+
+		# Get sign-in counts for this event
+		volunteers = database.get_event_volunteers(event_id)
+		attendees = database.get_event_attendees(event_id)
+		total_signins = len(volunteers) + len(attendees)
+
+		# Only include events that have sign-ins
+		if total_signins > 0:
+			# Format the event date for display
+			if event['all_day']:
+				event_date_display = event['start'].strftime('%B %d, %Y (All Day)')
+			else:
+				event_date_display = event['start'].strftime('%B %d, %Y %I:%M %p')
+
+			open_events.append({
+				'id': event_id,
+				'name': event['summary'],
+				'event_date': event_date_display,
+				'location': event['location'],
+				'description': event['description'],
+				'start': event['start'],
+				'end': event['end'],
+				'all_day': event['all_day']
+			})
+
+	return render_template('event_signin.html', open_events=open_events)
+
+@app.route('/event_signin/submit', methods=['POST'])
+@csrf.exempt  # Exempt CSRF for public sign-in
+def event_signin_submit():
+	"""Handle event sign-in form submission"""
+	try:
+		# Get form data
+		event_id = request.form.get('event_id')
+		signin_type = request.form.get('signin_type', 'attendee')
+		
+		if not event_id:
+			return jsonify({'success': False, 'message': 'Please select an event'}), 400
+		
+		if signin_type == 'volunteer':
+			# For volunteers, use member number to look up info
+			member_number = request.form.get('member_number')
+			if not member_number:
+				return jsonify({'success': False, 'message': 'Member number is required'}), 400
+			
+			# Look up member information
+			member = database.get_member_by_badge_number(member_number)
+			if not member:
+				return jsonify({'success': False, 'message': 'Member not found. Please check your member number.'}), 400
+			
+			name = f"{member['first_name']} {member['last_name']}"
+			email = member['email']
+			
+			# Save to database with member number
+			database.add_event_signin(name, email, event_id, signin_type, None, member_number)
+		else:
+			# For patrons, use provided name and email (email is now optional)
+			name = request.form.get('name')
+			email = request.form.get('email') or 'patron@example.com'  # Default email if not provided
+			
+			if not name:
+				return jsonify({'success': False, 'message': 'Name is required'}), 400
+			
+			# Check waiver agreement for patrons
+			if not request.form.get('waiver_agreed'):
+				return jsonify({'success': False, 'message': 'You must agree to the waiver to sign in as a patron'}), 400
+			
+			# Get checkbox values
+			is_shooter = request.form.get('is_shooter') == '1'
+			is_guest = request.form.get('is_guest') == '1'
+			
+			# Save to database
+			database.add_event_signin(name, email, event_id, signin_type, None, None, True, is_shooter, is_guest)
+		
+		signin_label = "Patron" if signin_type == "attendee" else "Volunteer"
+		return jsonify({'success': True, 'message': f'Successfully signed in as {signin_label}!'})
+		
+	except Exception as e:
+		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
+
+def get_google_calendar_service():
+    """Get authenticated Google Calendar service"""
+    creds = None
+    token_path = os.path.join(app.root_path, 'token.pickle')
+    credentials_path = os.path.join(app.root_path, 'credentials.json')
+
+    # Load saved credentials
+    if os.path.exists(token_path):
+        with open(token_path, 'rb') as token:
+            creds = pickle.load(token)
+
+    # If credentials are invalid or don't exist, return auth URL
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            if not os.path.exists(credentials_path):
+                return None, "credentials.json file not found"
+
+            # For web apps, we need to redirect to OAuth flow
+            flow = Flow.from_client_secrets_file(
+                credentials_path,
+                scopes=SCOPES
+            )
+            flow.redirect_uri = url_for('oauth2callback', _external=True)
+
+            authorization_url, state = flow.authorization_url(
+                access_type='offline',
+                include_granted_scopes='true'
+            )
+
+            # Store the flow in session for later use
+            session['oauth_state'] = state
+            session['oauth_flow'] = pickle.dumps(flow).decode('latin1')
+
+            return None, f"OAUTH_REDIRECT:{authorization_url}"
+
+        # Save credentials for future use
+        with open(token_path, 'wb') as token:
+            pickle.dump(creds, token)
+
+    try:
+        service = build('calendar', 'v3', credentials=creds)
+        return service, None
+    except Exception as e:
+        return None, f"Failed to build calendar service: {str(e)}"
+
+def sync_google_calendar_events():
+    """Sync events from Google Calendar"""
+    if not GOOGLE_CALENDAR_AVAILABLE:
+        return False, "Google Calendar API not available. Please install required packages."
+    
+    try:
+        # Google Calendar ID from the provided URL
+        calendar_id = 'c_ca2e41cc4854724b0399d8e956d58e33a525336b60a3bcbe38732cbc04527109@group.calendar.google.com'
+        
+        # Get authenticated service
+        service, auth_error = get_google_calendar_service()
+        if auth_error:
+            return False, auth_error
+        
+        # Get events from the next 6 months
+        now = datetime.datetime.utcnow()
+        time_min = now.isoformat() + 'Z'
+        time_max = (now + datetime.timedelta(days=180)).isoformat() + 'Z'
+        
+        # Fetch events from Google Calendar
+        events_result = service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        
+        events_data = events_result.get('items', [])
+        events_created = 0
+        
+        # Get all users to assign as coordinators (use first admin as default)
+        users = database.get_all_users()
+        default_coordinator = None
+        for user in users:
+            if user.get('is_admin', False) or user.get('is_bdfl', False):
+                default_coordinator = user['id']
+                break
+        if not default_coordinator and users:
+            default_coordinator = users[0]['id']
+        
+        for event in events_data:
+            event_name = event.get('summary', 'Unnamed Event')
+            start_time = event.get('start', {}).get('dateTime') or event.get('start', {}).get('date')
+            
+            if start_time:
+                try:
+                    # Parse the datetime
+                    if 'T' in start_time:
+                        event_date = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00')).date()
+                    else:
+                        event_date = datetime.datetime.strptime(start_time, '%Y-%m-%d').date()
+                    
+                    # Check if event already exists
+                    existing_events = database.get_all_events()
+                    event_exists = any(e['name'] == event_name and str(e['event_date']) == str(event_date) for e in existing_events)
+                    
+                    if not event_exists and default_coordinator:
+                        database.create_event(event_name, event_date, default_coordinator)
+                        events_created += 1
+                        
+                except Exception as e:
+                    continue  # Skip events with invalid dates
+        
+        return True, f"Successfully synced {events_created} events from Google Calendar"
+        
+    except Exception as e:
+        return False, f"Error syncing calendar: {str(e)}"
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    """Handle OAuth2 callback from Google"""
+    if 'oauth_flow' not in session or 'oauth_state' not in session:
+        flash('OAuth session expired. Please try again.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    # Get the authorization code from the request
+    authorization_code = request.args.get('code')
+    state = request.args.get('state')
+
+    if not authorization_code:
+        flash('Authorization failed - no code received.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    if state != session['oauth_state']:
+        flash('Authorization failed - state mismatch.', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    try:
+        # Reconstruct the flow
+        flow = pickle.loads(session['oauth_flow'].encode('latin1'))
+
+        # Exchange authorization code for credentials
+        flow.fetch_token(code=authorization_code)
+
+        creds = flow.credentials
+
+        # Save credentials for future use
+        token_path = os.path.join(app.root_path, 'token.pickle')
+        with open(token_path, 'wb') as token:
+            pickle.dump(creds, token)
+
+        # Clear session
+        session.pop('oauth_flow', None)
+        session.pop('oauth_state', None)
+
+        flash('Google Calendar authentication successful! You can now sync events.', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    except Exception as e:
+        flash(f'OAuth authentication failed: {str(e)}', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/test_oauth')
+@login_required
+@admin_required
+def test_oauth():
+    """Test OAuth flow directly"""
+    service, error = get_google_calendar_service()
+    if error:
+        if error.startswith('OAUTH_REDIRECT:'):
+            auth_url = error.replace('OAUTH_REDIRECT:', '')
+            return f'<a href="{auth_url}">Click here to authenticate</a>'
+        else:
+            return f'Error: {error}'
+    else:
+        return 'OAuth successful! Service created.'
+@app.route('/event_signin/current_volunteers', methods=['GET'])
+@csrf.exempt
+def get_current_volunteers():
+	"""Get currently signed-in volunteers"""
+	try:
+		volunteers = database.get_current_volunteers()
+		# Convert to list of dicts
+		volunteers_list = []
+		for v in volunteers:
+			volunteers_list.append({
+				'id': v['id'],
+				'name': v['name'],
+				'member_number': v['member_number'],
+				'signed_in_at': v['signed_in_at'],
+				'signed_out_at': v['signed_out_at']
+			})
+		return jsonify({'success': True, 'volunteers': volunteers_list})
+	except Exception as e:
+		return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/event_signin/current_patrons', methods=['GET'])
+@csrf.exempt
+def get_current_patrons():
+	"""Get currently signed-in patrons"""
+	try:
+		event_id = request.args.get('event_id')
+		patrons = database.get_current_attendees(event_id)
+		# Convert to list of dicts
+		patrons_list = []
+		for a in patrons:
+			patrons_list.append({
+				'id': a['id'],
+				'name': a['name'],
+				'member_number': a['member_number'],
+				'signed_in_at': a['signed_in_at'],
+				'signed_out_at': a['signed_out_at'],
+				'is_shooter': bool(a['is_shooter']) if 'is_shooter' in a.keys() else False,
+				'is_guest': bool(a['is_guest']) if 'is_guest' in a.keys() else False
+			})
+		return jsonify({'success': True, 'patrons': patrons_list})
+	except Exception as e:
+		return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/event_signin/sign_out/<int:signin_id>', methods=['POST'])
+@csrf.exempt
+def sign_out_volunteer(signin_id):
+	"""Sign out a volunteer"""
+	try:
+		success = database.sign_out_volunteer(signin_id)
+		if success:
+			# Get the signin record to check if it's a volunteer and calculate work hours
+			record = database.get_event_signin(signin_id)
+			if record and record['signin_type'] == 'volunteer' and record['signed_out_at']:
+				# Calculate work hours
+				from datetime import datetime
+				import math
+				try:
+					dt_in = datetime.strptime(record['signed_in_at'], '%Y-%m-%d %H:%M:%S.%f')
+				except ValueError:
+					dt_in = datetime.strptime(record['signed_in_at'], '%Y-%m-%d %H:%M:%S')
+				try:
+					dt_out = datetime.strptime(record['signed_out_at'], '%Y-%m-%d %H:%M:%S.%f')
+				except ValueError:
+					dt_out = datetime.strptime(record['signed_out_at'], '%Y-%m-%d %H:%M:%S')
+				hours = (dt_out - dt_in).total_seconds() / 3600
+				# Round up to nearest 1/4 hour
+				hours = math.ceil(hours * 4) / 4
+				
+				# Get member
+				member = database.get_member_by_badge_number(record['member_number'])
+				if member:
+					date = dt_in.date()
+					
+					# Get event title for activity
+					events, error = fetch_calendar_events()
+					
+					# Transform events to add IDs like in event_signin route
+					transformed_events = []
+					for i, event in enumerate(events):
+						event_id = f"cal_{i}_{int(event['start'].timestamp())}"
+						transformed_events.append({
+							'id': event_id,
+							'name': event['summary'],
+							**event
+						})
+					
+					event = next((e for e in transformed_events if e.get('id') == record['event_id']), None)
+					activity = "Event Volunteer"
+					notes = event.get('name', '') if event else ''
+					
+					database.add_work_hours(member['id'], date, activity, hours, notes)
+			
+			return jsonify({'success': True, 'message': 'Successfully signed out!'})
+		else:
+			return jsonify({'success': False, 'message': 'Volunteer not found or already signed out'}), 404
+	except Exception as e:
+		app.logger.error(f"Error in sign_out_volunteer: {e}")
+		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
+
+@app.route('/event_signin/clear_volunteers', methods=['POST'])
+@csrf.exempt
+def clear_volunteers():
+	"""Clear all volunteer sign-in records"""
+	try:
+		deleted_count = database.clear_all_volunteers()
+		return jsonify({'success': True, 'message': f'Cleared {deleted_count} volunteer records'})
+	except Exception as e:
+		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
+
+@app.route('/event_signin/clear_patrons', methods=['POST'])
+@csrf.exempt
+def clear_patrons():
+	"""Clear all patron sign-in records"""
+	try:
+		deleted_count = database.clear_all_attendees()
+		return jsonify({'success': True, 'message': f'Cleared {deleted_count} patron records'})
+	except Exception as e:
+		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
+
+@app.route('/event_signin/clear_all', methods=['POST'])
+@csrf.exempt
+def clear_all_event_signins():
+	"""Clear all event sign-in records (patrons and volunteers)"""
+	try:
+		deleted_count = database.clear_all_event_signins()
+		return jsonify({'success': True, 'message': f'Cleared {deleted_count} event sign-in records'})
+	except Exception as e:
+		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
+
 # Confirmation page route
 @app.route('/application_confirmation')
 def application_confirmation():
@@ -3041,8 +3579,143 @@ def reject_application(app_id):
 		flash('Failed to reject application.', 'error')
 	return redirect(url_for('admin_applications'))
 
-# Initialize database on startup
-database.init_database()
+def fetch_calendar_events():
+    """Fetch and parse events from Google Calendar iCal feed"""
+    try:
+        # Google Calendar iCal URL
+        ical_url = 'https://calendar.google.com/calendar/ical/c_ca2e41cc4854724b0399d8e956d58e33a525336b60a3bcbe38732cbc04527109%40group.calendar.google.com/public/basic.ics'
+
+        # Fetch the iCal data
+        response = requests.get(ical_url, timeout=10)
+        response.raise_for_status()
+
+        # Parse the iCal data
+        cal = Calendar.from_ical(response.content)
+
+        # Use recurring-ical-events to expand recurring events
+        import recurring_ical_events
+        now = datetime.datetime.now(pytz.UTC)
+        end_date = now + datetime.timedelta(days=180)  # 6 months ahead
+
+        # Get all events (including expanded recurring ones)
+        expanded_events = recurring_ical_events.of(cal).between(now, end_date)
+
+        events = []
+
+        for event in expanded_events:
+            start_dt = event['DTSTART'].dt
+            end_dt = event.get('DTEND', event['DTSTART']).dt
+
+            # Handle all-day events (date objects)
+            if isinstance(start_dt, datetime.date) and not isinstance(start_dt, datetime.datetime):
+                all_day = True
+                start_dt = datetime.datetime.combine(start_dt, datetime.time.min).replace(tzinfo=pytz.UTC)
+                end_dt = datetime.datetime.combine(end_dt, datetime.time.max).replace(tzinfo=pytz.UTC)
+            else:
+                all_day = False
+                # Ensure timezone awareness for datetime objects
+                if start_dt.tzinfo is None:
+                    start_dt = pytz.UTC.localize(start_dt)
+                if end_dt.tzinfo is None:
+                    end_dt = pytz.UTC.localize(end_dt)
+
+            event_data = {
+                'summary': str(event.get('SUMMARY', 'No Title')),
+                'description': str(event.get('DESCRIPTION', '')),
+                'location': str(event.get('LOCATION', '')),
+                'start': start_dt,
+                'end': end_dt,
+                'all_day': all_day
+            }
+
+            events.append(event_data)
+
+        # Sort events by start date
+        events.sort(key=lambda x: x['start'])
+
+        return events, None
+
+    except Exception as e:
+        return [], f"Failed to fetch calendar events: {str(e)}"
+
+@app.route('/calendar')
+@login_required
+def calendar():
+    """Display calendar events from iCal feed"""
+    import calendar as cal_module
+    
+    view_type = request.args.get('view', 'list')  # Default to list view
+    month_param = request.args.get('month')
+    year_param = request.args.get('year')
+
+    events, error = fetch_calendar_events()
+
+    # Get current date for default month/year
+    now = datetime.datetime.now(pytz.UTC)
+    if month_param and year_param:
+        try:
+            current_month = int(month_param)
+            current_year = int(year_param)
+        except ValueError:
+            current_month = now.month
+            current_year = now.year
+    else:
+        current_month = now.month
+        current_year = now.year
+
+    # Create calendar data for monthly view
+    calendar_data = None
+    if view_type == 'calendar':
+        calendar_data = []
+
+        # Get calendar for the month
+        cal = cal_module.monthcalendar(current_year, current_month)
+
+        # Create events lookup by date
+        events_by_date = {}
+        for event in events:
+            if event['start'].year == current_year and event['start'].month == current_month:
+                date_key = event['start'].day
+                if date_key not in events_by_date:
+                    events_by_date[date_key] = []
+                events_by_date[date_key].append(event)
+
+        # Build calendar weeks
+        for week in cal:
+            week_data = []
+            for day in week:
+                day_events = []
+                if day > 0:  # Valid day of month
+                    day_events = events_by_date.get(day, [])
+                week_data.append({
+                    'day': day,
+                    'events': day_events
+                })
+            calendar_data.append(week_data)
+
+    # Navigation dates
+    prev_month = current_month - 1 if current_month > 1 else 12
+    prev_year = current_year if current_month > 1 else current_year - 1
+    next_month = current_month + 1 if current_month < 12 else 1
+    next_year = current_year if current_month < 12 else current_year + 1
+
+    return render_template('calendar.html',
+                         events=events,
+                         calendar_error=error,
+                         active_page='calendar',
+                         view_type=view_type,
+                         calendar_data=calendar_data,
+                         current_month=current_month,
+                         current_year=current_year,
+                         prev_month=prev_month,
+                         prev_year=prev_year,
+                         next_month=next_month,
+                         next_year=next_year,
+                         month_name=cal_module.month_name[current_month],
+                         is_admin=current_user.is_admin_or_bdfl(),
+                         member_stats=get_member_stats(),
+                         pending_applications=get_pending_application_count())
+
 
 if __name__ == "__main__":
     import sys

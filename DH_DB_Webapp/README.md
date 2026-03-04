@@ -81,6 +81,37 @@ python init_db.py
 python app.py
 ```
 
+### Production Deployment
+
+For safe production deployment with automatic backups and validation:
+
+```bash
+# From the project root directory
+python deploy_production.py
+```
+
+This script will:
+- Create backups of your database and configuration
+- Update all dependencies
+- Run database migrations (if any)
+- Validate the installation
+- Generate production configuration recommendations
+
+### Dependency Updates
+
+To safely update dependencies without affecting your data:
+
+```bash
+# Safe dependency update with backups
+python update_dependencies.py
+
+# Or simple installation (Linux/Mac)
+./install_deps.sh
+
+# Or simple installation (Windows)
+install_deps.bat
+```
+
 ## Configuration
 
 ### Development Server

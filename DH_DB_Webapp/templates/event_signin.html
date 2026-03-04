@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Sign-In</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #384839;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: #f5f5f5;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .event-selection {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .event-selection label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .event-selection select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .signout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .signout-btn:hover {
+            background: #c82333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .signinForm {
+            /* Form styles */
+        }
+
+        .waiver-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .waiver-content h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .waiver-text {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .waiver-text p {
+            margin: 0 0 10px 0;
+        }
+
+        .waiver-text em {
+            font-style: italic;
+            color: #666;
+        }
+
+        .waiver-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .waiver-checkbox input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .waiver-checkbox label {
+            font-size: 14px;
+            line-height: 1.4;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .submitBtn {
+            width: 100%;
+            padding: 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submitBtn:hover {
+            background: #45a049;
+        }
+
+        .submitBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .volunteers-section {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .patrons-section {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        #volunteersTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #volunteersTable th,
+        #volunteersTable td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #volunteersTable th {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+
+        #volunteersTable tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        #patronsTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #patronsTable th,
+        #patronsTable td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        #patronsTable th {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+
+        #patronsTable tbody tr:hover {
+            background: #f5f5f5;
+        }
+
+        .signout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .signout-btn:hover {
+            background: #c82333;
+        }
+
+        .signout-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid #888;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: #4CAF50;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #ddd;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        .modal-body .waiver-text {
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .modal-body .waiver-text p {
+            margin: 0 0 15px 0;
+        }
+
+        .modal-body .waiver-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-body .waiver-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+        }
+
+        .modal-body .waiver-checkbox input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .modal-body .waiver-checkbox label {
+            font-size: 16px;
+            line-height: 1.4;
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .modal-footer {
+            background: #f8f9fa;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .cancelBtn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .cancelBtn:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Event Sign-In</h1>
+
+        <!-- Event Selection -->
+        <div class="event-selection">
+            <label for="eventSelect">Select Today's Event:</label>
+            <select id="eventSelect" onchange="onEventChange()">
+                <option value="">Choose an event...</option>
+                {% for event in open_events %}
+                <option value="{{ event.id }}">{{ event.name }} - {{ event.event_date }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if not open_events %}
+        <div style="text-align: center; padding: 40px; color: #666;">
+            <h3>No Events Available</h3>
+            <p>There are no events with active sign-ins today.</p>
+        </div>
+        {% endif %}
+
+        <div id="eventContent" style="display: none;">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('patrons')">Patrons</button>
+                <button class="tab" onclick="switchTab('volunteers')">Volunteers</button>
+            </div>
+
+        <!-- Patrons Tab -->
+        <div id="patrons" class="tab-content active">
+            <form id="patronsForm" class="signinForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="signin_type" value="attendee">
+                <div class="form-group">
+                    <label for="patron_name">Full Name *</label>
+                    <input type="text" id="patron_name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Type:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="is_shooter" name="is_shooter" value="1">
+                            <label for="is_shooter">Shooter</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="is_guest" name="is_guest" value="1">
+                            <label for="is_guest">Guest</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="showWaiverBtn" class="submitBtn">Sign In as Patron</button>
+            </form>
+
+            <!-- Waiver Modal -->
+            <div id="waiverModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Waiver Agreement</h2>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="waiver-text">
+                            <p>Participant, including parent or legal guardian of participant under 18 (hereinafter "Undersigned"), agrees to indemnify, hold harmless and defend Dug Hill Rod & Gun Club, Inc. and any of its members, directors, officers or agents (hereinafter "DHRGC"), from any and all fault, liabilities, costs, expenses, claims, demands or lawsuits arising out of, related to or connected with activities involving the use or discharge of firearms, archery equipment, hunting and hunting equipment, or other related outdoor equipment or activities (hereinafter "Shooting Sports"); the Undersigned's participation in a course of instruction (hereinafter "Education"), Shooting Sports activity, or DHRGC event; the range, buildings, land and premises used for Education, Shooting Sports, or DHRGC event (hereinafter the "Premises"); the Undersigned's presence on or use of said Premises; and any and all acts or omissions of the Undersigned. And should any such claim, demand or lawsuit arise or be asserted in any way whatsoever related thereto, whether arising under the laws of the United States or of any State, or under any theory of law or equity, the Undersigned will indemnify, hold harmless and defend DHRGC from any and all costs, expenses or liability including, but not limited to, attorney fees, court costs, arbitration fees or costs, the cost of any settlement or judgment made or rendered against DHRGC, whether individually, jointly, or in solido with the Undersigned, together with all costs of court and other costs or expenses incurred in connection with any such claim, demand or lawsuit, including attorney's fees.</p>
+
+                            <p>The Undersigned furthermore waives for himself/herself and his/her executors, administrators, assignees, guests, or heirs, any and all rights and claims for damages, losses, demands and any other actions whatsoever, which he/she may have or which may arise against DHRGC, (including, but not limited to any and all injuries, damages or illnesses suffered by the Undersigned or the Undersigned's property), which may, in any way whatsoever, arise out of, be related to or be connected with: Shooting Sports; Education; the Premises, including any latent defect in the Premises; the Undersigned's presence on or use of said Premises; the Undersigned's property (whether or not entrusted to DHRGC); and the use or discharge of firearms, archery equipment, hunting equipment, or other related outdoor equipment. DHRGC shall not be liable for, and the Undersigned, on behalf of himself/herself and his/her executors, administrators, assignees, or heirs, hereby expressly releases DHRGC from any and all such claims.</p>
+
+                            <p>The Undersigned understands that they are not in any way required to enter the Premises or participate in any Shooting Sports or Education activities and hereby expressly assumes the risk of entering the Premises and of taking part in activities on the Premises which include, but are not limited to, Shooting Sports, Education, and the firing of live ammunition.</p>
+
+                            <p>This instrument binds the Undersigned and his / her executors, administrators, assignees, or heirs. By signing, I acknowledge and agree to the above terms and conditions.</p>
+                        </div>
+                        <div class="waiver-checkbox">
+                            <input type="checkbox" id="modal_waiver" required>
+                            <label for="modal_waiver">I have read and agree to the waiver terms *</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="agreeBtn" class="submitBtn">I Agree - Sign In</button>
+                        <button type="button" id="cancelBtn" class="cancelBtn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Patrons Table -->
+            <div class="patrons-section">
+                <h2 style="text-align: center; margin: 30px 0 20px 0; color: #333;">Current Patrons</h2>
+                <div class="table-container">
+                    <table id="patronsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patronsTableBody">
+                            <tr>
+                                <td colspan="2" style="text-align: center; padding: 20px; color: #666;">Loading patrons...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        </div> <!-- End eventContent -->
+
+        <!-- Volunteers Tab -->
+        <div id="volunteers" class="tab-content">
+            <form id="volunteersForm" class="signinForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="signin_type" value="volunteer">
+                <div class="form-group">
+                    <label for="volunteer_member_number">Member Number *</label>
+                    <input type="text" id="volunteer_member_number" name="member_number" required placeholder="Enter your member number">
+                </div>
+
+                <button type="submit" class="submitBtn">Sign In as Volunteer</button>
+            </form>
+
+            <!-- Current Volunteers Table -->
+            <div class="volunteers-section">
+                <h2 style="text-align: center; margin: 30px 0 20px 0; color: #333;">Currently Signed In Volunteers</h2>
+                <div class="table-container">
+                    <table id="volunteersTable">
+                        <thead>
+                            <tr>
+                                <th>Member #</th>
+                                <th>Time In</th>
+                                <th>Time Out</th>
+                                <th>Work Hours</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="volunteersTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 20px; color: #666;">Loading volunteers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading and Message Elements -->
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Signing you in...</p>
+    </div>
+
+    <div id="message" class="message" style="display: none;"></div>
+
+    <script>
+        let selectedEventId = null;
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const eventSelect = document.getElementById('eventSelect');
+            // Load from localStorage
+            const savedEventId = localStorage.getItem('selectedEventId');
+            if (savedEventId) {
+                eventSelect.value = savedEventId;
+                selectedEventId = savedEventId;
+                onEventChange(); // Show content
+            }
+        });
+
+        function onEventChange() {
+            const eventSelect = document.getElementById('eventSelect');
+            selectedEventId = eventSelect.value;
+            
+            // Save to localStorage
+            if (selectedEventId) {
+                localStorage.setItem('selectedEventId', selectedEventId);
+            } else {
+                localStorage.removeItem('selectedEventId');
+            }
+            
+            const eventContent = document.getElementById('eventContent');
+            
+            if (selectedEventId) {
+                eventContent.style.display = 'block';
+                loadPatrons();
+                loadVolunteers();
+            } else {
+                eventContent.style.display = 'none';
+            }
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Show selected tab
+            document.querySelector(`button[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        function handleFormSubmit(formId) {
+            return async function(e) {
+                e.preventDefault();
+
+                const form = e.target;
+                const submitBtn = form.querySelector('.submitBtn');
+                const loading = document.getElementById('loading');
+                const message = document.getElementById('message');
+
+                // Hide previous messages
+                message.style.display = 'none';
+
+                // Check if event is selected
+                if (!selectedEventId) {
+                    message.className = 'message error';
+                    message.textContent = 'Please select an event first.';
+                    message.style.display = 'block';
+                    submitBtn.disabled = false;
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                // Show loading
+                submitBtn.disabled = true;
+                loading.style.display = 'block';
+
+                try {
+                    const formData = new FormData(form);
+                    // Add event_id to form data
+                    if (selectedEventId) {
+                        formData.append('event_id', selectedEventId);
+                    }
+                    const response = await fetch('/event_signin/submit', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        message.className = 'message success';
+                        message.textContent = result.message;
+                        message.style.display = 'block';
+                        // Reset form
+                        form.reset();
+                        
+                        // Reload volunteers table if someone signed in as volunteer
+                        const signinType = formData.get('signin_type');
+                        if (signinType === 'volunteer') {
+                            loadVolunteers();
+                        } else if (signinType === 'attendee') {
+                            loadPatrons();
+                        }
+                    } else {
+                        message.className = 'message error';
+                        message.textContent = result.message;
+                        message.style.display = 'block';
+                    }
+                } catch (error) {
+                    message.className = 'message error';
+                    message.textContent = 'An error occurred. Please try again.';
+                    message.style.display = 'block';
+                } finally {
+                    submitBtn.disabled = false;
+                    loading.style.display = 'none';
+                }
+            };
+        }
+
+        // Attach form handlers (only for volunteers form, patrons handled by modal)
+        document.getElementById('volunteersForm').addEventListener('submit', handleFormSubmit('volunteersForm'));
+
+        // Load volunteers and patrons on page load
+        loadVolunteers();
+        loadPatrons();
+
+        // Refresh volunteers and patrons every 30 seconds
+        setInterval(() => {
+            loadVolunteers();
+            loadPatrons();
+        }, 30000);
+
+        async function loadVolunteers() {
+            try {
+                const response = await fetch('/event_signin/current_volunteers');
+                const result = await response.json();
+
+                if (result.success) {
+                    updateVolunteersTable(result.volunteers);
+                } else {
+                    console.error('Failed to load volunteers:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading volunteers:', error);
+            }
+        }
+
+        function updateVolunteersTable(volunteers) {
+            const tbody = document.getElementById('volunteersTableBody');
+
+            if (volunteers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #666;">No volunteers have signed in today</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = volunteers.map(volunteer => {
+                const timeOut = volunteer.signed_out_at ? formatDateTime(volunteer.signed_out_at) : '';
+                const workHours = volunteer.signed_out_at ? calculateWorkHours(volunteer.signed_in_at, volunteer.signed_out_at) : calculateCurrentWorkHours(volunteer.signed_in_at);
+                const signOutButton = volunteer.signed_out_at 
+                    ? '<span style="color: #666; font-style: italic;">Signed out</span>' 
+                    : `<button class="signout-btn" onclick="signOutVolunteer(${volunteer.id})">Sign Out</button>`;
+                
+                return `
+                <tr>
+                    <td>${volunteer.member_number || 'N/A'}</td>
+                    <td>${formatDateTime(volunteer.signed_in_at)}</td>
+                    <td>${timeOut}</td>
+                    <td>${workHours}</td>
+                    <td>${signOutButton}</td>
+                </tr>
+            `}).join('');
+        }
+
+        async function signOutVolunteer(signinId) {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Signing out...';
+
+            try {
+                const response = await fetch(`/event_signin/sign_out/${signinId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload volunteers list
+                    loadVolunteers();
+                } else {
+                    alert('Failed to sign out: ' + result.message);
+                    button.disabled = false;
+                    button.textContent = 'Sign Out';
+                }
+            } catch (error) {
+                alert('Error signing out. Please try again.');
+                button.disabled = false;
+                button.textContent = 'Sign Out';
+            }
+        }
+
+        async function loadPatrons() {
+            try {
+                const url = selectedEventId 
+                    ? `/event_signin/current_patrons?event_id=${selectedEventId}`
+                    : '/event_signin/current_patrons';
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    updatePatronsTable(result.patrons);
+                } else {
+                    console.error('Failed to load patrons:', result.error);
+                }
+            } catch (error) {
+                console.error('Error loading patrons:', error);
+            }
+        }
+
+        function updatePatronsTable(patrons) {
+            const tbody = document.getElementById('patronsTableBody');
+
+            if (patrons.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2" style="text-align: center; padding: 20px; color: #666;">No patrons have signed in today</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = patrons.map(patron => {
+                const typeLabels = [];
+                if (patron.is_shooter) typeLabels.push('Shooter');
+                if (patron.is_guest) typeLabels.push('Guest');
+                const typeText = typeLabels.length > 0 ? typeLabels.join(', ') : 'Patron';
+                
+                return `
+                <tr>
+                    <td>${patron.name}</td>
+                    <td>${typeText}</td>
+                </tr>
+            `}).join('');
+        }
+
+        async function signOutPatron(signinId) {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Signing out...';
+
+            try {
+                const response = await fetch(`/event_signin/sign_out/${signinId}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload patrons list
+                    loadPatrons();
+                } else {
+                    alert('Failed to sign out: ' + result.message);
+                    button.disabled = false;
+                    button.textContent = 'Sign Out';
+                }
+            } catch (error) {
+                alert('Error signing out. Please try again.');
+                button.disabled = false;
+                button.textContent = 'Sign Out';
+            }
+        }
+
+        function formatDateTime(dateTimeStr) {
+            // Assume the input is in UTC format (YYYY-MM-DD HH:MM:SS)
+            // Append 'Z' to indicate UTC timezone
+            const date = new Date(dateTimeStr + 'Z');
+            return date.toLocaleString('en-US', {
+                timeZone: 'America/New_York',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function calculateWorkHours(signInTime, signOutTime) {
+            // Parse UTC timestamps
+            const signIn = new Date(signInTime + 'Z');
+            const signOut = new Date(signOutTime + 'Z');
+            
+            // Calculate difference in milliseconds
+            const diffMs = signOut - signIn;
+            
+            // Convert to hours
+            let hours = diffMs / (1000 * 60 * 60);
+            
+            // Round up to nearest 1/4 hour
+            hours = Math.ceil(hours * 4) / 4;
+            
+            return hours.toFixed(2);
+        }
+
+        function calculateCurrentWorkHours(signInTime) {
+            // Parse UTC timestamp
+            const signIn = new Date(signInTime + 'Z');
+            const now = new Date();
+            
+            // Calculate difference in milliseconds
+            const diffMs = now - signIn;
+            
+            // Convert to hours
+            let hours = diffMs / (1000 * 60 * 60);
+            
+            // Round up to nearest 1/4 hour
+            hours = Math.ceil(hours * 4) / 4;
+            
+            return hours.toFixed(2);
+        }
+
+        // Modal functionality
+        const modal = document.getElementById('waiverModal');
+        const showWaiverBtn = document.getElementById('showWaiverBtn');
+        const closeBtn = document.querySelector('.close');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const agreeBtn = document.getElementById('agreeBtn');
+        const modalWaiverCheckbox = document.getElementById('modal_waiver');
+        const patronsForm = document.getElementById('patronsForm');
+
+        // Show modal when sign in button is clicked
+        showWaiverBtn.addEventListener('click', function() {
+            const nameInput = document.getElementById('patron_name');
+            if (!nameInput.value.trim()) {
+                alert('Please enter your full name first.');
+                nameInput.focus();
+                return;
+            }
+            modal.style.display = 'block';
+            modalWaiverCheckbox.checked = false;
+            agreeBtn.disabled = true;
+        });
+
+        // Close modal when X is clicked
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        // Close modal when Cancel is clicked
+        cancelBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Enable/disable agree button based on checkbox
+        modalWaiverCheckbox.addEventListener('change', function() {
+            agreeBtn.disabled = !this.checked;
+        });
+
+        // Make shooter and guest checkboxes mutually exclusive
+        const isShooterCheckbox = document.getElementById('is_shooter');
+        const isGuestCheckbox = document.getElementById('is_guest');
+
+        isShooterCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                isGuestCheckbox.checked = false;
+            }
+        });
+
+        isGuestCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                isShooterCheckbox.checked = false;
+            }
+        });
+
+        // Submit form when agree button is clicked
+        agreeBtn.addEventListener('click', async function() {
+            if (!modalWaiverCheckbox.checked) {
+                alert('Please check the waiver agreement box to continue.');
+                return;
+            }
+
+            modal.style.display = 'none';
+
+            // Get form data
+            const name = document.getElementById('patron_name').value.trim();
+            if (!name) {
+                alert('Please enter your name.');
+                return;
+            }
+
+            // Check if event is selected
+            if (!selectedEventId) {
+                alert('Please select an event first.');
+                return;
+            }
+
+            // Show loading
+            agreeBtn.disabled = true;
+            agreeBtn.textContent = 'Signing In...';
+            const loading = document.getElementById('loading');
+            const message = document.getElementById('message');
+            loading.style.display = 'block';
+            message.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                const csrfToken = document.querySelector('#patronsForm input[name="csrf_token"]').value;
+                formData.append('csrf_token', csrfToken);
+                formData.append('signin_type', 'attendee');
+                formData.append('name', name);
+                formData.append('waiver_agreed', 'on');
+                // Add event_id
+                if (selectedEventId) {
+                    formData.append('event_id', selectedEventId);
+                }
+                
+                // Add checkbox values
+                if (isShooterCheckbox.checked) {
+                    formData.append('is_shooter', '1');
+                }
+                if (isGuestCheckbox.checked) {
+                    formData.append('is_guest', '1');
+                }
+
+                const response = await fetch('/event_signin/submit', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    message.className = 'message success';
+                    message.textContent = result.message;
+                    message.style.display = 'block';
+                    // Reset form
+                    patronsForm.reset();
+                    // Reload patrons table
+                    loadPatrons();
+                } else {
+                    message.className = 'message error';
+                    message.textContent = result.message;
+                    message.style.display = 'block';
+                }
+            } catch (error) {
+                message.className = 'message error';
+                message.textContent = 'An error occurred. Please try again.';
+                message.style.display = 'block';
+            } finally {
+                agreeBtn.disabled = false;
+                agreeBtn.textContent = 'I Agree - Sign In';
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
