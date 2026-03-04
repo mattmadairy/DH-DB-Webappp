@@ -188,12 +188,12 @@ if env == 'development':
     # Disable rate limiting in development
     limiter = Limiter(app=app, key_func=get_remote_address)
 else:
-    # Production limits
+    # Production limits with persistent storage
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
         default_limits=["500 per day", "100 per hour"],
-        storage_uri="memory://"
+        storage_uri="file:///tmp/flask_limiter"
     )
 
 # User class for Flask-Login
@@ -2900,10 +2900,9 @@ def kiosk_submit():
 		# Check if member already has an active check-in
 		existing_checkin = database.get_active_checkin_for_member(member_number)
 		if existing_checkin:
-			return jsonify({
-				'success': False, 
-				'error': f'Member #{member_number} is already checked in. Please sign out first before checking in again.'
-			}), 400
+			# Automatically sign out the previous check-in
+			sign_out_time = datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d %H:%M:%S')
+			database.sign_out_checkin(existing_checkin['id'], sign_out_time)
 		
 		# Validate activities
 		if not activities:
@@ -3087,24 +3086,23 @@ def event_signin():
 		attendees = database.get_event_attendees(event_id)
 		total_signins = len(volunteers) + len(attendees)
 
-		# Only include events that have sign-ins
-		if total_signins > 0:
-			# Format the event date for display
-			if event['all_day']:
-				event_date_display = event['start'].strftime('%B %d, %Y (All Day)')
-			else:
-				event_date_display = event['start'].strftime('%B %d, %Y %I:%M %p')
+		# Include all today's events for sign-in
+		# Format the event date for display
+		if event['all_day']:
+			event_date_display = event['start'].strftime('%B %d, %Y (All Day)')
+		else:
+			event_date_display = event['start'].strftime('%B %d, %Y %I:%M %p')
 
-			open_events.append({
-				'id': event_id,
-				'name': event['summary'],
-				'event_date': event_date_display,
-				'location': event['location'],
-				'description': event['description'],
-				'start': event['start'],
-				'end': event['end'],
-				'all_day': event['all_day']
-			})
+		open_events.append({
+			'id': event_id,
+			'name': event['summary'],
+			'event_date': event_date_display,
+			'location': event['location'],
+			'description': event['description'],
+			'start': event['start'],
+			'end': event['end'],
+			'all_day': event['all_day']
+		})
 
 	return render_template('event_signin.html', open_events=open_events)
 
