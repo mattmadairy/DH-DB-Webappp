@@ -88,8 +88,8 @@
                     <div class="card-header">
                         <h2 class="card-title">📅 Dug Hill Rod & Gun Club Events</h2>
                         <div class="view-toggle">
-                            <a href="{{ url_for('calendar', view='list') }}" class="view-btn {% if view_type == 'list' %}active{% endif %}">📋 List View</a>
                             <a href="{{ url_for('calendar', view='calendar') }}" class="view-btn {% if view_type == 'calendar' %}active{% endif %}">📅 Calendar View</a>
+                            <a href="{{ url_for('calendar', view='list') }}" class="view-btn {% if view_type == 'list' %}active{% endif %}">📋 List View</a>
                         </div>
                     </div>
                     <p>View upcoming club events, meetings, and activities from our shared Google Calendar.</p>

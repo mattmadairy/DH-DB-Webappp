@@ -3649,7 +3649,7 @@ def calendar():
     """Display calendar events from iCal feed"""
     import calendar as cal_module
     
-    view_type = request.args.get('view', 'list')  # Default to list view
+    view_type = request.args.get('view', 'calendar')  # Default to calendar view
     month_param = request.args.get('month')
     year_param = request.args.get('year')
 
