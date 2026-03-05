@@ -60,7 +60,7 @@ try:
     import webbrowser
     GOOGLE_CALENDAR_AVAILABLE = True
 except ImportError as e:
-    print(f"Google Calendar API not available: {e}")
+    app.logger.warning(f"Google Calendar API not available: {e}")
     GOOGLE_CALENDAR_AVAILABLE = False
 
 # Google Calendar API scopes
@@ -97,7 +97,7 @@ def save_document_config(config):
 		with open(DESCRIPTIONS_FILE, 'w') as f:
 			json.dump(config, f, indent=2)
 	except Exception as e:
-		print(f"Error saving config: {e}")
+		app.logger.error(f"Error saving config: {e}")
 
 def load_document_descriptions():
 	"""Load custom document descriptions from JSON file"""
@@ -361,7 +361,11 @@ def set_security_headers(response):
 	response.headers['X-Frame-Options'] = 'DENY'
 	response.headers['X-XSS-Protection'] = '1; mode=block'
 	response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-	response.headers['Content-Security-Policy'] = "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; frame-src https://js.stripe.com; connect-src 'self' https://api.stripe.com"
+	response.headers['Content-Security-Policy'] = (
+		"default-src 'self'; style-src 'self' 'unsafe-inline'; "
+		"script-src 'self' 'unsafe-inline' https://js.stripe.com; "
+		"frame-src https://js.stripe.com; connect-src 'self' https://api.stripe.com"
+	)
 	return response
 
 # Decorator for admin-only routes
@@ -2257,7 +2261,7 @@ def bulk_add_dues():
 				success_count += 1
 			except Exception as e:
 				error_msg = f"Member {member_id}: {str(e)}"
-				print(error_msg)
+				app.logger.warning(error_msg)
 				errors.append(error_msg)
 				continue
 		
@@ -2267,7 +2271,7 @@ def bulk_add_dues():
 		
 		return jsonify(response)
 	except Exception as e:
-		print(f"Bulk add dues error: {str(e)}")
+		app.logger.error(f"Bulk add dues error: {str(e)}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 400
@@ -2307,7 +2311,7 @@ def bulk_add_work_hours():
 				success_count += 1
 			except Exception as e:
 				error_msg = f"Member {member_id}: {str(e)}"
-				print(error_msg)
+				app.logger.warning(error_msg)
 				errors.append(error_msg)
 				continue
 		
@@ -2317,7 +2321,7 @@ def bulk_add_work_hours():
 		
 		return jsonify(response)
 	except Exception as e:
-		print(f"Bulk add work hours error: {str(e)}")
+		app.logger.error(f"Bulk add work hours error: {str(e)}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 400
@@ -2358,7 +2362,7 @@ def bulk_add_meeting_attendance():
 				success_count += 1
 			except Exception as e:
 				error_msg = f"Member {member_id}: {str(e)}"
-				print(error_msg)
+				app.logger.warning(error_msg)
 				errors.append(error_msg)
 				continue
 		
@@ -2368,7 +2372,7 @@ def bulk_add_meeting_attendance():
 		
 		return jsonify(response)
 	except Exception as e:
-		print(f"Bulk add meeting attendance error: {str(e)}")
+		app.logger.error(f"Bulk add meeting attendance error: {str(e)}")
 		import traceback
 		traceback.print_exc()
 		return jsonify({'success': False, 'message': str(e)}), 400
@@ -2489,8 +2493,8 @@ def edit_section(member_id):
 		return "Member not found", 404
 	if request.method == 'POST':
 		try:
-			print(f"[DEBUG] Received POST to /edit_section/{member_id} with section={section}")
-			print(f"[DEBUG] Form data: {request.form.to_dict(flat=False)}")
+			app.logger.debug(f"Received POST to /edit_section/{member_id} with section={section}")
+			app.logger.debug(f"Form data: {request.form.to_dict(flat=False)}")
 			# Update only the requested section
 			if section == 'personal':
 				database.update_member_section(member_id, {
@@ -2576,7 +2580,7 @@ def edit_section(member_id):
 				database.update_member_committees_normalized(member_id, new_memberships)
 			return ('', 204)  # AJAX expects empty response
 		except Exception as e:
-			print(f"Error updating section {section} for member {member_id}: {e}")
+			app.logger.error(f"Error updating section {section} for member {member_id}: {e}")
 			import traceback
 			traceback.print_exc()
 			return jsonify({'error': str(e)}), 400
@@ -2934,7 +2938,7 @@ def kiosk_submit():
 		})
 		
 	except Exception as e:
-		print(f"Error processing check-in: {e}")
+		app.logger.error(f"Error processing check-in: {e}")
 		return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/kiosk/today-checkins', methods=['GET'])
@@ -2948,7 +2952,7 @@ def kiosk_today_checkins():
 		checkins = [dict(row) for row in records]
 		return jsonify({'success': True, 'checkins': checkins})
 	except Exception as e:
-		print(f"Error fetching today's check-ins: {e}")
+		app.logger.error(f"Error fetching today's check-ins: {e}")
 		return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/kiosk/signout/<int:checkin_id>', methods=['POST'])
@@ -2968,7 +2972,7 @@ def kiosk_sign_out(checkin_id):
 			'sign_out_time': sign_out_time
 		})
 	except Exception as e:
-		print(f"Error signing out: {e}")
+		app.logger.error(f"Error signing out: {e}")
 		return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/kiosk/report')
@@ -3723,12 +3727,12 @@ if __name__ == "__main__":
     port = 5000
     
     # Display startup info
-    print("\n" + "="*60)
-    print("DH Member Database - Server Starting")
-    print("="*60)
-    print(f"Local access:   http://127.0.0.1:{port}")
-    print(f"Network access: http://{local_ip}:{port}")
-    print("="*60 + "\n")
+    app.logger.info("\n" + "="*60)
+    app.logger.info("DH Member Database - Server Starting")
+    app.logger.info("="*60)
+    app.logger.info(f"Local access:   http://127.0.0.1:{port}")
+    app.logger.info(f"Network access: http://{local_ip}:{port}")
+    app.logger.info("="*60 + "\n")
     
     # Run the app without console (use pythonw.exe or run in background)
     if '--background' in sys.argv or getattr(sys, 'frozen', False):
