@@ -1313,7 +1313,7 @@ def events_report():
 			events.append({
 				'id': event_id,
 				'name': event['summary'],
-				'event_date': event['start'].strftime('%Y-%m-%d'),
+				'event_date': event['start'].astimezone(TIMEZONE).strftime('%Y-%m-%d'),
 				'volunteer_count': len(volunteers),
 				'attendee_count': len(attendees),
 				'total_signins': total_signins
@@ -1344,11 +1344,11 @@ def event_details(event_id):
 			event = {
 				'id': cal_event_id,
 				'name': cal_event['summary'],
-				'event_date': cal_event['start'].strftime('%Y-%m-%d'),
+				'event_date': cal_event['start'].astimezone(TIMEZONE).strftime('%Y-%m-%d'),
 				'location': cal_event.get('location', 'TBD'),
 				'description': cal_event.get('description', ''),
-				'start': cal_event['start'],
-				'end': cal_event['end'],
+				'start': cal_event['start'].astimezone(TIMEZONE),
+				'end': cal_event['end'].astimezone(TIMEZONE),
 				'all_day': cal_event['all_day']
 			}
 			break
@@ -2863,12 +2863,13 @@ def kiosk():
 	
 	upcoming_events = []
 	for event in calendar_events:
-		if event['start'] >= now and event['start'] <= thirty_days_later:
+		local_start = event['start'].astimezone(TIMEZONE)
+		if local_start >= now and local_start <= thirty_days_later:
 			upcoming_events.append({
 				'name': event['summary'],
-				'date': event['start'].strftime('%m-%d-%Y'),
-				'day': event['start'].strftime('%A'),
-				'time': event['start'].strftime('%I:%M %p') if not event['all_day'] else 'All Day',
+				'date': local_start.strftime('%m-%d-%Y'),
+				'day': local_start.strftime('%A'),
+				'time': local_start.strftime('%I:%M %p') if not event['all_day'] else 'All Day',
 				'location': event.get('location', 'TBD')
 			})
 	
@@ -3069,13 +3070,14 @@ def event_signin():
 	# Get events from calendar instead of database
 	calendar_events, error = fetch_calendar_events()
 
-	# Get today's date (in UTC to match event timestamps)
-	today = datetime.datetime.now(pytz.UTC).date()
+	# Get today's date (in local timezone)
+	today = datetime.datetime.now(TIMEZONE).date()
 
 	# Filter events to only show those happening today
 	today_events = []
 	for event in calendar_events:
-		event_date = event['start'].date()
+		local_start = event['start'].astimezone(TIMEZONE)
+		event_date = local_start.date()
 		if event_date == today:
 			today_events.append(event)
 
@@ -3092,10 +3094,11 @@ def event_signin():
 
 		# Include all today's events for sign-in
 		# Format the event date for display
+		local_start = event['start'].astimezone(TIMEZONE)
 		if event['all_day']:
-			event_date_display = event['start'].strftime('%B %d, %Y (All Day)')
+			event_date_display = local_start.strftime('%B %d, %Y (All Day)')
 		else:
-			event_date_display = event['start'].strftime('%B %d, %Y %I:%M %p')
+			event_date_display = local_start.strftime('%B %d, %Y %I:%M %p')
 
 		open_events.append({
 			'id': event_id,
@@ -3103,8 +3106,8 @@ def event_signin():
 			'event_date': event_date_display,
 			'location': event['location'],
 			'description': event['description'],
-			'start': event['start'],
-			'end': event['end'],
+			'start': local_start,
+			'end': event['end'].astimezone(TIMEZONE),
 			'all_day': event['all_day']
 		})
 
@@ -3653,7 +3656,7 @@ def calendar():
     events, error = fetch_calendar_events()
 
     # Get current date for default month/year
-    now = datetime.datetime.now(pytz.UTC)
+    now = datetime.datetime.now(TIMEZONE)
     if month_param and year_param:
         try:
             current_month = int(month_param)
@@ -3676,21 +3679,32 @@ def calendar():
         # Create events lookup by date
         events_by_date = {}
         for event in events:
-            if event['start'].year == current_year and event['start'].month == current_month:
-                date_key = event['start'].day
+            # Convert event start time to local timezone for date matching
+            local_start = event['start'].astimezone(TIMEZONE)
+            if local_start.year == current_year and local_start.month == current_month:
+                date_key = local_start.day
                 if date_key not in events_by_date:
                     events_by_date[date_key] = []
                 events_by_date[date_key].append(event)
 
-        # Build calendar weeks
+        # Build calendar weeks - shift day numbers back by 1
         for week in cal:
             week_data = []
             for day in week:
                 day_events = []
                 if day > 0:  # Valid day of month
-                    day_events = events_by_date.get(day, [])
+                    # Shift the day back by 1 for display (so March 1 appears where March 2 was)
+                    shifted_day = day - 1
+                    if shifted_day > 0:  # Make sure it's still a valid day
+                        day_events = events_by_date.get(shifted_day, [])
+                        display_day = shifted_day
+                    else:
+                        display_day = 0  # Don't show day 0
+                        day_events = []
+                else:
+                    display_day = 0
                 week_data.append({
-                    'day': day,
+                    'day': display_day,
                     'events': day_events
                 })
             calendar_data.append(week_data)
@@ -3701,8 +3715,16 @@ def calendar():
     next_month = current_month + 1 if current_month < 12 else 1
     next_year = current_year if current_month < 12 else current_year + 1
 
+    # Convert event times to local timezone for display
+    local_events = []
+    for event in events:
+        local_event = event.copy()
+        local_event['start'] = event['start'].astimezone(TIMEZONE)
+        local_event['end'] = event['end'].astimezone(TIMEZONE)
+        local_events.append(local_event)
+
     return render_template('calendar.html',
-                         events=events,
+                         events=local_events,
                          calendar_error=error,
                          active_page='calendar',
                          view_type=view_type,
