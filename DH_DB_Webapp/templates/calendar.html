@@ -68,6 +68,16 @@
             <a href="{{ url_for('member_documents') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'documents' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📄 Documents</a>
             <a href="{{ url_for('member_meeting_minutes') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'meeting-minutes' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📝 Meeting Minutes</a>
             <a href="{{ url_for('calendar') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; {% if active_page == 'calendar' %}background-color:rgb(255,255,0); color:#384839; font-weight:bold;{% else %}background-color:#eaeaea; color:#384839; font-weight:normal;{% endif %} text-decoration:none; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📅 Calendar</a>
+            
+            <!-- Sign In Pages Dropdown -->
+            <div class="menu-toggle" onclick="toggleSignInSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; cursor:pointer;">
+                📝 Sign In Pages <span id="signin-submenu-arrow">▼</span>
+            </div>
+            <div id="signin-submenu" class="submenu">
+                <a href="{{ url_for('kiosk') }}" target="_blank" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🖥️ Kiosk Check-in</a>
+                <a href="{{ url_for('event_signin') }}" target="_blank" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📅 Event Sign-in</a>
+            </div>
+            
             {% if is_admin %}
             <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
             {% endif %}
@@ -209,5 +219,13 @@
             </div>
         </div>
     </div>
+    <script>
+    function toggleSignInSubmenu() {
+        var submenu = document.getElementById('signin-submenu');
+        var arrow = document.getElementById('signin-submenu-arrow');
+        submenu.classList.toggle('active');
+        arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
+    }
+    </script>
 </body>
 </html>
