@@ -34,7 +34,7 @@ def get_meeting_attendance_report(year=None, month=None):
         return rows
     else:
         query = '''
-            SELECT m.badge_number, m.first_name, m.last_name, a.meeting_date, a.status
+            SELECT m.id, m.badge_number, m.first_name, m.last_name, a.meeting_date, a.status, a.id as attendance_id
             FROM members m
             JOIN meeting_attendance a ON m.id = a.member_id
             WHERE m.deleted = 0
@@ -268,6 +268,17 @@ def init_database():
 			pdf_filename TEXT,
 			created_at TEXT DEFAULT CURRENT_TIMESTAMP,
 			updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+		)
+	""")
+	
+	# Create meeting_guests table
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS meeting_guests (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			meeting_date TEXT NOT NULL,
+			signed_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			signed_out_at TIMESTAMP
 		)
 	""")
 	
@@ -744,6 +755,50 @@ def delete_meeting_attendance(att_id):
     conn = get_connection()
     c = conn.cursor()
     c.execute("DELETE FROM meeting_attendance WHERE id=?", (att_id,))
+    conn.commit()
+    conn.close()
+
+# ========== Meeting Guests Functions ==========
+
+def add_meeting_guest(name, meeting_date):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("INSERT INTO meeting_guests (name, meeting_date) VALUES (?, ?)", (name, meeting_date))
+    guest_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return guest_id
+
+def get_meeting_guests(meeting_date=None):
+    conn = get_connection()
+    c = conn.cursor()
+    if meeting_date:
+        c.execute("SELECT * FROM meeting_guests WHERE meeting_date = ? ORDER BY signed_in_at DESC", (meeting_date,))
+    else:
+        c.execute("SELECT * FROM meeting_guests ORDER BY signed_in_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def get_meeting_guest_by_id(guest_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM meeting_guests WHERE id=?", (guest_id,))
+    row = c.fetchone()
+    conn.close()
+    return row
+
+def sign_out_meeting_guest(guest_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE meeting_guests SET signed_out_at = CURRENT_TIMESTAMP WHERE id = ?", (guest_id,))
+    conn.commit()
+    conn.close()
+
+def delete_meeting_guest(guest_id):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM meeting_guests WHERE id=?", (guest_id,))
     conn.commit()
     conn.close()
 

@@ -1389,13 +1389,13 @@ def index():
 	if current_user.is_admin_or_bdfl():
 		# Admin dashboard - show all members
 		search = request.args.get('search', '').strip()
-		member_type = request.args.get('member_type', 'All')
+		member_type = request.args.get('member_type', 'All Members')
 		all_members = database.get_all_members()
 		# Filter by member type
-		if member_type and member_type != 'All':
+		if member_type and member_type != 'All Members':
 			members = [m for m in all_members if m['membership_type'] == member_type]
 		else:
-			members = all_members
+			members = [m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']]
 		# Filter by search (all columns)
 		if search:
 			search_lower = search.lower()
@@ -1404,11 +1404,11 @@ def index():
 			members = [m for m in members if member_matches(m)]
 		
 		# Calculate member counts for each type
-		member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
+		member_types_list = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
 		member_counts = {}
 		for mt in member_types_list:
-			if mt == "All":
-				member_counts[mt] = len(all_members)
+			if mt == "All Members":
+				member_counts[mt] = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']])
 			else:
 				member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
 		
@@ -1434,13 +1434,13 @@ def admin_dashboard():
 		return redirect(url_for('index'))
 	
 	search = request.args.get('search', '').strip()
-	member_type = request.args.get('member_type', 'All')
+	member_type = request.args.get('member_type', 'All Members')
 	all_members = database.get_all_members()
 	# Filter by member type
-	if member_type and member_type != 'All':
+	if member_type and member_type != 'All Members':
 		members = [m for m in all_members if m['membership_type'] == member_type]
 	else:
-		members = all_members
+		members = [m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']]
 	# Filter by search (all columns)
 	if search:
 		search_lower = search.lower()
@@ -1449,13 +1449,11 @@ def admin_dashboard():
 		members = [m for m in members if member_matches(m)]
 	
 	# Calculate member counts for each type
-	member_types_list = ["All", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
+	member_types_list = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
 	member_counts = {}
 	for mt in member_types_list:
-		if mt == "All":
-			member_counts[mt] = len(all_members)
-		else:
-			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
+		if mt == "All Members":
+				member_counts[mt] = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']])
 	
 	member_stats = get_member_stats()
 	applications = database.get_all_applications(status='pending')
@@ -2817,14 +2815,14 @@ def committee_email_list():
 @app.route('/email_list')
 @login_required
 def email_list():
-	member_type = request.args.get('member_type', 'All')
+	member_type = request.args.get('member_type', 'All Members')
 	all_members = database.get_all_members()
 	
 	# Filter by member type
-	if member_type and member_type != 'All':
+	if member_type and member_type != 'All Members':
 		members = [m for m in all_members if m['membership_type'] == member_type]
 	else:
-		members = all_members
+		members = [m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']]
 	
 	# Collect all emails (primary and secondary)
 	emails = []
@@ -3063,6 +3061,111 @@ def kiosk_export_csv():
 	response.headers['Content-Type'] = 'text/csv'
 	response.headers['Content-Disposition'] = f'attachment; filename={filename}'
 	return response
+
+# ========== Meeting Sign-in Routes ==========
+
+@app.route('/meeting_signin')
+def meeting_signin():
+	"""Serve the meeting sign-in page (no login required)"""
+	# Get today's date
+	today = datetime.date.today().strftime('%Y-%m-%d')
+	
+	# Get signed-in members for today
+	members_signed_in = database.get_meeting_attendance_report(year=None, month=None)
+	today_members = [m for m in members_signed_in if m['meeting_date'] == today]
+	
+	# Get signed-in guests for today
+	guests_signed_in = database.get_meeting_guests(meeting_date=today)
+	
+	return render_template('meeting_signin.html', 
+						   today_members=today_members,
+						   today_guests=guests_signed_in,
+						   today_date=today)
+
+@app.route('/meeting_signin/submit', methods=['POST'])
+@csrf.exempt  # Exempt CSRF for public sign-in
+def meeting_signin_submit():
+	"""Handle meeting sign-in form submission"""
+	signin_type = request.form.get('signin_type')
+	today = datetime.date.today().strftime('%Y-%m-%d')
+	
+	if signin_type == 'member':
+		member_number = request.form.get('member_number', '').strip()
+		if not member_number:
+			return jsonify({'success': False, 'message': 'Member number is required'})
+		
+		# Find member by badge number
+		member = database.get_member_by_badge_number(member_number)
+		if not member:
+			return jsonify({'success': False, 'message': 'Member not found'})
+		
+		# Check if already signed in today
+		existing = database.get_meeting_attendance_by_member_and_year(member['id'], datetime.date.today().year)
+		today_attendance = [a for a in existing if a['meeting_date'] == today]
+		if today_attendance:
+			return jsonify({'success': False, 'message': 'Already signed in today'})
+		
+		# Add attendance
+		database.add_meeting_attendance(member['id'], today, 'Attended')
+		return jsonify({'success': True, 'message': f'Welcome, {member["first_name"]} {member["last_name"]}!', 'name': f'{member["first_name"]} {member["last_name"]}'})
+	
+	elif signin_type == 'guest':
+		guest_name = request.form.get('guest_name', '').strip()
+		if not guest_name:
+			return jsonify({'success': False, 'message': 'Guest name is required'})
+		
+		# Check if already signed in today
+		existing_guests = database.get_meeting_guests(meeting_date=today)
+		if any(g['name'].lower() == guest_name.lower() for g in existing_guests):
+			return jsonify({'success': False, 'message': 'Already signed in today'})
+		
+		# Add guest
+		database.add_meeting_guest(guest_name, today)
+		return jsonify({'success': True, 'message': f'Welcome, {guest_name}!', 'name': guest_name})
+	
+	return jsonify({'success': False, 'message': 'Invalid sign-in type'})
+
+@app.route('/meeting_signin/guests', methods=['GET'])
+@csrf.exempt
+def get_meeting_guests_today():
+	"""Get today's signed-in guests for the sign-in page"""
+	today = datetime.date.today().strftime('%Y-%m-%d')
+	guests = database.get_meeting_guests(meeting_date=today)
+	return jsonify([{'id': g['id'], 'name': g['name'], 'signed_in_at': g['signed_in_at']} for g in guests])
+
+@app.route('/meeting_signin/signout', methods=['POST'])
+@csrf.exempt
+def meeting_signin_signout():
+	"""Sign out a member or guest from meeting"""
+	data = request.get_json()
+	signin_type = data.get('type')
+	signin_id = data.get('id')
+	
+	if signin_type == 'member':
+		# For members, we need to delete the meeting attendance record
+		database.delete_meeting_attendance(signin_id)
+		return jsonify({'success': True, 'message': 'Member signed out successfully'})
+	elif signin_type == 'guest':
+		# For guests, update the signed_out_at timestamp
+		database.sign_out_meeting_guest(signin_id)
+		return jsonify({'success': True, 'message': 'Guest signed out successfully'})
+	else:
+		return jsonify({'success': False, 'message': 'Invalid sign-in type'})
+
+@app.route('/meeting_signin/members', methods=['GET'])
+@csrf.exempt
+def get_meeting_members_today():
+	"""Get today's signed-in members for the sign-in page"""
+	today = datetime.date.today().strftime('%Y-%m-%d')
+	members_signed_in = database.get_meeting_attendance_report(year=None, month=None)
+	today_members = [m for m in members_signed_in if m['meeting_date'] == today]
+	return jsonify([{
+		'id': m['attendance_id'],
+		'badge_number': m['badge_number'],
+		'first_name': m['first_name'],
+		'last_name': m['last_name'],
+		'meeting_date': m['meeting_date']
+	} for m in today_members])
 
 @app.route('/event_signin')
 def event_signin():
