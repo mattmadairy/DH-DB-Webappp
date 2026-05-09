@@ -269,7 +269,8 @@ function toggleSignInSubmenu() {
                     <th onclick="sortTable(3)" id="th3">Last Name</th>
                     <th onclick="sortTable(4)" id="th4">Primary Email</th>
                     <th onclick="sortTable(5)" id="th5">Primary Phone</th>
-                    {% if member_type == 'Prospective' %}<th onclick="sortTable(6)" id="th6">Status</th>{% endif %}
+                    <th onclick="sortTable(6)" id="th6">Join Date</th>
+                    {% if member_type == 'Prospective' %}<th onclick="sortTable(7)" id="th7">Status</th>{% endif %}
                     <th>Actions</th>
                 </tr>
                 {% for member in members %}
@@ -287,6 +288,7 @@ function toggleSignInSubmenu() {
                             </div>
                         </td>
                         <td style="min-width:130px; text-align:center;">{{ member['phone'] }}</td>
+                        <td style="min-width:100px; text-align:center; white-space:nowrap;">{{ member['join_date']|format_mmddyyyy if member['join_date'] else '' }}</td>
                         {% if member_type == 'Prospective' %}
                         {% set all_done = member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}
                         <td style="font-weight:bold; color:#111; background-color:{% if all_done %}#3ec96b{% else %}#ffe600{% endif %}; text-align:left; padding:6px 8px;">
@@ -341,11 +343,29 @@ function toggleSignInSubmenu() {
                 var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
                 rows.sort(function(a, b) {
                     var x, y;
-                    // Special handling for Status column (index 6)
-                    if (n === 6) {
+                    // Special handling for Status column (index 7 for Prospective)
+                    if (n === 7) {
                         x = a.cells[n].querySelector('.status-sort-value')?.innerText || '0';
                         y = b.cells[n].querySelector('.status-sort-value')?.innerText || '0';
                         x = parseInt(x); y = parseInt(y);
+                    } else if (n === 6) {
+                        // Special handling for Join Date column (index 6) - parse as dates
+                        x = a.cells[n].innerText.trim();
+                        y = b.cells[n].innerText.trim();
+                        if (x && y) {
+                            // Parse MM-DD-YYYY format
+                            var dateX = new Date(x.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2'));
+                            var dateY = new Date(y.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2'));
+                            x = dateX.getTime(); y = dateY.getTime();
+                        } else if (x) {
+                            x = new Date(x.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2')).getTime();
+                            y = 0;
+                        } else if (y) {
+                            x = 0;
+                            y = new Date(y.replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2')).getTime();
+                        } else {
+                            x = 0; y = 0;
+                        }
                     } else {
                         x = a.cells[n].innerText.toLowerCase();
                         y = b.cells[n].innerText.toLowerCase();

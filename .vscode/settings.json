@@ -1,4 +1,18 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"c:\\\\Users\\\\Matt\\\\VS CODE REPO'S\\\\DH-DB-Webappp\\\\DH_DB_Webapp\" ; python -c \"import app; print\\('App imports successfully'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\Users\\\\Matt\\\\VS CODE REPO'S\\\\DH-DB-Webappp\\\\DH_DB_Webapp\" ; python -c \"from jinja2 import Template; Template\\(open\\('templates/index\\.html'\\)\\.read\\(\\)\\); print\\('Template syntax is valid'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"c:\\\\Users\\\\Matt\\\\VS CODE REPO'S\\\\DH-DB-Webappp\\\\DH_DB_Webapp\" ; python -c \"from flask import Flask; app = Flask\\(__name__\\); app\\.jinja_env\\.parse\\(open\\('templates/index\\.html', encoding='utf-8'\\)\\.read\\(\\)\\); print\\('Template syntax is valid'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
 }
