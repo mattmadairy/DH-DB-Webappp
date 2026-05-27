@@ -1364,7 +1364,14 @@ def update_member_committee_role(member_id, committee_id, role):
 def get_all_meeting_minutes():
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM meeting_minutes ORDER BY meeting_date DESC")
+    c.execute("""
+        SELECT *
+        FROM meeting_minutes
+        ORDER BY
+            strftime('%Y', meeting_date) DESC,
+            CAST(strftime('%m', meeting_date) AS INTEGER) ASC,
+            meeting_date ASC
+    """)
     rows = c.fetchall()
     conn.close()
     return rows
@@ -1372,7 +1379,14 @@ def get_all_meeting_minutes():
 def get_meeting_minutes_by_year(year):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM meeting_minutes WHERE strftime('%Y', meeting_date) = ? ORDER BY meeting_date DESC", (year,))
+    c.execute("""
+        SELECT *
+        FROM meeting_minutes
+        WHERE strftime('%Y', meeting_date) = ?
+        ORDER BY
+            CAST(strftime('%m', meeting_date) AS INTEGER) ASC,
+            meeting_date ASC
+    """, (year,))
     rows = c.fetchall()
     conn.close()
     return rows
