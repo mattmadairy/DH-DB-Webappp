@@ -54,6 +54,9 @@ venv.bak/
 *.backup
 *_backup_*
 
+# Static assets
+static/*.pdf
+
 # OS
 Thumbs.db
 .DS_Store
