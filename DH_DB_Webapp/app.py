@@ -1642,6 +1642,12 @@ def member_documents():
 			if file_key == doc_key:
 				ordered_files.append(filename)
 				break
+
+	# Then append any documents not present in saved order so none are hidden
+	ordered_set = set(ordered_files)
+	unordered_files = [f for f in regular_pdf_files if f not in ordered_set]
+	unordered_files.sort(key=lambda f: f.lower())
+	ordered_files.extend(unordered_files)
 	
 	# Create title and icon dictionaries for template
 	document_titles = {}
