@@ -41,6 +41,16 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f8f8f8; font-weight: bold; }
+        .current-checkins-list { list-style: none; padding-left: 0; margin: 0; }
+        .current-checkin-item { background: #f8f9fa; border-left: 4px solid #667eea; margin-bottom: 12px; padding: 12px 14px; border-radius: 8px; }
+        .current-checkin-member { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .current-checkin-number { font-weight: bold; color: #333; font-size: 1.05em; }
+        .current-checkin-time { color: #666; font-size: 0.9em; }
+        .current-checkin-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .current-checkin-tag { background: #667eea; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .current-checkin-guest-tag { background: #ffc107; color: #333; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .current-checkins-empty { text-align: center; color: #999; font-style: italic; padding: 20px; }
+        .current-checkins-refresh { text-align: center; color: #999; font-size: 12px; margin-top: 10px; }
     </style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
@@ -70,7 +80,7 @@
             {% if member %}
             <!-- Small Group Collapse Button above Personal Info -->
             <div class="small-group-collapse">
-                <button class="collapse-btn small-group-btn" onclick="const cards = ['personal-card', 'member-info-card', 'contact-card', 'address-card', 'dues-card', 'work-hours-card', 'meeting-attendance-card', 'committees-card', 'visits-card']; cards.forEach(id => { const card = document.getElementById(id); if(card) card.classList.toggle('collapsed'); }); this.textContent = this.textContent === 'Expand' ? 'Collapse' : 'Expand';">Expand</button>
+                <button class="collapse-btn small-group-btn" onclick="const cards = ['personal-card', 'member-info-card', 'contact-card', 'address-card', 'dues-card', 'work-hours-card', 'meeting-attendance-card', 'committees-card', 'visits-card', 'current-checkins-card']; cards.forEach(id => { const card = document.getElementById(id); if(card) card.classList.toggle('collapsed'); }); this.textContent = this.textContent === 'Expand' ? 'Collapse' : 'Expand';">Expand</button>
             </div>
             
             <div class="dashboard-container">
@@ -411,6 +421,19 @@
                     {% endif %}
                     </div>
                 </div>
+
+                <!-- Current Check-Ins Card -->
+                <div id="current-checkins-card" class="dashboard-card collapsed" data-card-id="current-checkins-card">
+                    <div class="card-header">
+                        <h2 class="card-title">🟩 Current Check-In's</h2>
+                    </div>
+                    <div class="card-content">
+                        <ul class="current-checkins-list" id="dashboardCurrentCheckins">
+                            <li class="current-checkins-empty">Loading check-ins...</li>
+                        </ul>
+                        <div class="current-checkins-refresh">Auto-refreshes every 30 minutes</div>
+                    </div>
+                </div>
             
             {% else %}
             <!-- No Member Record Found -->
@@ -534,6 +557,55 @@
             // Reload page with new parameters
             window.location.href = url.toString();
         }
+
+        function formatCurrentCheckinTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function loadDashboardCurrentCheckins() {
+            const checkinsList = document.getElementById('dashboardCurrentCheckins');
+            if (!checkinsList) {
+                return;
+            }
+
+            fetch('/kiosk/today-checkins')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success || !Array.isArray(data.checkins) || data.checkins.length === 0) {
+                        checkinsList.innerHTML = '<li class="current-checkins-empty">No members currently checked in</li>';
+                        return;
+                    }
+
+                    checkinsList.innerHTML = data.checkins.map(checkin => {
+                        const activities = checkin.activities ? checkin.activities.split(', ') : [];
+                        const guestCount = (checkin.guest1_name ? 1 : 0) + (checkin.guest2_name ? 1 : 0);
+
+                        return `
+                            <li class="current-checkin-item">
+                                <div class="current-checkin-member">
+                                    <span class="current-checkin-number">Member #${checkin.member_number}</span>
+                                    <span class="current-checkin-time">${formatCurrentCheckinTime(checkin.check_in_time)}</span>
+                                </div>
+                                <div class="current-checkin-tags">
+                                    ${activities.map(activity => `<span class="current-checkin-tag">${activity}</span>`).join('')}
+                                    ${guestCount > 0 ? `<span class="current-checkin-guest-tag">Guests: ${guestCount}</span>` : ''}
+                                </div>
+                            </li>
+                        `;
+                    }).join('');
+                })
+                .catch(() => {
+                    checkinsList.innerHTML = '<li class="current-checkins-empty">Unable to load current check-ins right now.</li>';
+                });
+        }
+
+        loadDashboardCurrentCheckins();
+        setInterval(loadDashboardCurrentCheckins, 1800000);
     </script>
 </body>
 </html>
