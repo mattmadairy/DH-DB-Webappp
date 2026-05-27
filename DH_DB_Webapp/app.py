@@ -81,6 +81,49 @@ app.config.from_object(config[env])
 # Document descriptions management
 DESCRIPTIONS_FILE = os.path.join(app.root_path, 'document_descriptions.json')
 
+def get_documents_upload_dir():
+	"""Get writable document upload directory.
+
+	Prefers configured DOCUMENTS_UPLOAD_DIR, otherwise falls back to static folder
+	when writable, else uses instance/documents.
+	"""
+	configured_dir = os.environ.get('DOCUMENTS_UPLOAD_DIR')
+	if configured_dir:
+		upload_dir = configured_dir
+	elif os.access(app.static_folder, os.W_OK):
+		upload_dir = app.static_folder
+	else:
+		upload_dir = os.path.join(app.instance_path, 'documents')
+
+	os.makedirs(upload_dir, exist_ok=True)
+	return upload_dir
+
+def get_document_search_dirs():
+	"""Return ordered directories to search for document files."""
+	upload_dir = get_documents_upload_dir()
+	dirs = [upload_dir]
+	if os.path.abspath(upload_dir) != os.path.abspath(app.static_folder):
+		dirs.append(app.static_folder)
+	return dirs
+
+def find_document_file_path(filename):
+	"""Find document in upload/static locations and return absolute path or None."""
+	for directory in get_document_search_dirs():
+		candidate = os.path.join(directory, filename)
+		if os.path.exists(candidate):
+			return candidate
+	return None
+
+def list_document_pdf_files():
+	"""List unique PDF filenames from upload/static directories."""
+	pdf_files = set()
+	for directory in get_document_search_dirs():
+		if os.path.exists(directory):
+			for filename in os.listdir(directory):
+				if filename.lower().endswith('.pdf'):
+					pdf_files.add(filename)
+	return list(pdf_files)
+
 def load_document_config():
 	"""Load document configuration including descriptions and order"""
 	try:
@@ -1578,13 +1621,8 @@ def member_documents():
 	
 	member = dict(member) if member else None
 	
-	# Get list of PDF files in static directory
-	static_dir = app.static_folder
-	pdf_files = []
-	if os.path.exists(static_dir):
-		for filename in os.listdir(static_dir):
-			if filename.lower().endswith('.pdf'):
-				pdf_files.append(filename)
+	# Get list of PDF files across document storage directories
+	pdf_files = list_document_pdf_files()
 	
 	# Filter out meeting minutes PDFs from regular documents
 	all_meeting_minutes = database.get_all_meeting_minutes()
@@ -1659,8 +1697,8 @@ def upload_document(filename):
 		return redirect(url_for('member_documents'))
 	
 	try:
-		# Save file to static directory
-		file_path = os.path.join(app.static_folder, filename)
+		# Save file to configured documents directory
+		file_path = os.path.join(get_documents_upload_dir(), filename)
 		file.save(file_path)
 		flash(f'Document "{filename}" uploaded successfully!', 'success')
 	except Exception as e:
@@ -1702,14 +1740,14 @@ def upload_new_document():
 	
 	filename = filename + '.pdf'
 	
-	# Check if file already exists
-	file_path = os.path.join(app.static_folder, filename)
-	if os.path.exists(file_path):
+	# Check if file already exists in any document storage location
+	if find_document_file_path(filename):
 		flash(f'Document "{filename}" already exists. Use the replace button to update it.', 'warning')
 		return redirect(url_for('member_documents'))
 	
 	try:
-		# Save file to static directory
+		# Save file to configured documents directory
+		file_path = os.path.join(get_documents_upload_dir(), filename)
 		file.save(file_path)
 		
 		# Save the custom description
@@ -1789,10 +1827,10 @@ def delete_document(filename):
 			flash('This document is associated with meeting minutes and cannot be deleted from here. Delete the meeting minutes entry instead.', 'warning')
 			return redirect(url_for('member_documents'))
 	
-	file_path = os.path.join(app.static_folder, filename)
+	file_path = find_document_file_path(filename)
 	
 	# Check if file exists
-	if not os.path.exists(file_path):
+	if not file_path:
 		flash(f'Document "{filename}" not found.', 'warning')
 		return redirect(url_for('member_documents'))
 	
@@ -1843,8 +1881,9 @@ def update_description(filename):
 			flash('Only PDF files are allowed.', 'danger')
 			return redirect(url_for('member_documents'))
 		
-		# Save the new file
-		file_path = os.path.join(app.static_folder, filename)
+		# Save the new file (replace existing location if present)
+		existing_path = find_document_file_path(filename)
+		file_path = existing_path if existing_path else os.path.join(get_documents_upload_dir(), filename)
 		file.save(file_path)
 		flash(f'File "{filename}" replaced successfully!', 'success')
 	
@@ -1858,6 +1897,25 @@ def update_description(filename):
 	
 	flash(f'Document "{filename}" updated successfully!', 'success')
 	return redirect(url_for('member_documents'))
+
+
+@app.route('/documents/<path:filename>')
+@login_required
+def serve_document(filename):
+	"""Serve documents from upload/static storage locations."""
+	if '..' in filename or filename.startswith('/') or '\\' in filename:
+		flash('Invalid filename.', 'danger')
+		return redirect(url_for('member_documents'))
+
+	file_path = find_document_file_path(filename)
+	if not file_path:
+		flash(f'Document "{filename}" not found.', 'warning')
+		return redirect(url_for('member_documents'))
+
+	from flask import send_from_directory
+	directory = os.path.dirname(file_path)
+	basename = os.path.basename(file_path)
+	return send_from_directory(directory, basename)
 
 
 @app.route('/reorder_documents', methods=['POST'])

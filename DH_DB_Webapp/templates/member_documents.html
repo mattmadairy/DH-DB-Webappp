@@ -87,7 +87,7 @@
                                         <button onclick="event.preventDefault(); event.stopPropagation(); openEditDescriptionModal('{{ filename }}', '{{ document_titles[filename] }}', '{{ file_descriptions[filename] | replace("'", "\\'") }}')" class="upload-btn" style="background: #17a2b8; padding: 6px 16px;">✏️ Edit</button>
                                         <button type="button" onclick="deleteDocument({{ loop.index }})" class="upload-btn" style="background: #dc3545;">🗑️ Delete</button>
                                         {% endif %}
-                                        <a href="{{ url_for('static', filename=filename) }}" class="document-link" target="_blank">{{ document_icons[filename] }} View Document</a>
+                                        <a href="{{ url_for('serve_document', filename=filename) }}" class="document-link" target="_blank">{{ document_icons[filename] }} View Document</a>
                                     </div>
                                 </div>
                                 <div style="clear: both;"></div>
