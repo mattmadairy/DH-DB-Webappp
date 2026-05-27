@@ -170,8 +170,7 @@ python init_db.py
 2. **Add Member** (`/add_member`): Create new member records
 3. **Member Details** (`/member/<id>`): View complete member information
 4. **Edit Member** (`/edit_member/<id>`): Edit member information
-5. **Reports** (`/reports`): Access various reporting tools
-6. **Recycle Bin** (`/recycle_bin`): View and restore deleted members
+5. **Recycle Bin** (`/recycle_bin`): View and restore deleted members
 
 ## Project Structure
 
@@ -189,7 +188,6 @@ DH_DB_Webapp/
 │   ├── member_details.html
 │   ├── add_member.html
 │   ├── edit_member.html
-│   ├── reports.html
 │   ├── dues_report.html
 │   ├── work_hours_report.html
 │   ├── meeting_attendance_report.html
