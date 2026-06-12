@@ -1496,7 +1496,9 @@ def admin_dashboard():
 	member_counts = {}
 	for mt in member_types_list:
 		if mt == "All Members":
-				member_counts[mt] = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']])
+			member_counts[mt] = len([m for m in all_members if m['membership_type'] in ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']])
+		else:
+			member_counts[mt] = len([m for m in all_members if m['membership_type'] == mt])
 	
 	member_stats = get_member_stats()
 	applications = database.get_all_applications(status='pending')
