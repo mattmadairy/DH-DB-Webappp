@@ -125,6 +125,7 @@ function toggleSignInSubmenu() {
             <!-- Search Bar -->
             <div style="width:100%; display:flex; justify-content:center; align-items:center; margin-bottom:18px;">
                 <a href="{{ url_for('email_list', member_type=member_type) }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-right:16px;">📧 Email List</a>
+                <a href="{{ url_for('members_name_address_export_csv') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-right:16px;">📥 Name/Address Export</a>
                 <div style="display:inline-flex; align-items:center;">
                     <input id="dynamicSearch" type="text" placeholder="Search members..." style="width:340px; padding:8px 14px; border-radius:6px; border:1px solid #ccc; font-size:1.1em; margin-right:8px; background-color:#f5f5f5;">
                     <button type="button" id="searchBtn" style="padding:8px 18px; border-radius:6px; border:1px solid #ccc; background-color:#eaeaea; color:#384839; font-size:1.1em; font-weight:bold; cursor:pointer; margin-right:8px;">Search</button>

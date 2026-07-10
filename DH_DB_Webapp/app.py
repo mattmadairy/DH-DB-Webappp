@@ -1207,6 +1207,58 @@ def dues_unpaid_export_csv():
 	response.headers['Content-Disposition'] = f'attachment; filename=dues_unpaid_{year}.csv'
 	return response
 
+@app.route('/members_name_address_export_csv')
+@login_required
+@admin_required
+def members_name_address_export_csv():
+	all_members = database.get_all_members()
+
+	# Exclude non-active statuses requested for mailing export.
+	exported_members = [
+		member for member in all_members
+		if member['membership_type'] not in ['Former', 'Wait List']
+	]
+
+	# Keep ordering consistent with other member exports.
+	exported_members.sort(key=lambda m: (
+		int(m['badge_number']) if str(m['badge_number']).isdigit() else 0,
+		m['last_name'] or '',
+		m['first_name'] or ''
+	))
+
+	import csv
+	import io
+
+	output = io.StringIO()
+	writer = csv.writer(output)
+
+	writer.writerow([
+		'Badge Number',
+		'First Name',
+		'Last Name',
+		'Address',
+		'City',
+		'State',
+		'Zip'
+	])
+
+	for member in exported_members:
+		writer.writerow([
+			member['badge_number'] or '',
+			member['first_name'] or '',
+			member['last_name'] or '',
+			member['address'] or '',
+			member['city'] or '',
+			member['state'] or '',
+			member['zip'] or ''
+		])
+
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = 'attachment; filename=members_names_addresses.csv'
+	return response
+
 @app.route('/work_hours_export_csv')
 @login_required
 @admin_required
