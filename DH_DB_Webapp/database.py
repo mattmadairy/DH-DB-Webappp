@@ -60,7 +60,7 @@ def get_meeting_years():
 def get_work_hours_report(start_date=None, end_date=None):
     """
     Return a list of (badge_number, first_name, last_name, total_hours, id)
-    for all members, optionally filtered by date range.
+    for Associate, Active, and Life members, optionally filtered by date range.
     """
     conn = get_connection()
     c = conn.cursor()
@@ -70,6 +70,7 @@ def get_work_hours_report(start_date=None, end_date=None):
         FROM members m
         LEFT JOIN work_hours w ON m.id = w.member_id
         WHERE m.deleted = 0
+          AND m.membership_type IN ('Associate', 'Active', 'Life')
     """
     params = []
     if start_date:
