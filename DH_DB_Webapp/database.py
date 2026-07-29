@@ -70,7 +70,7 @@ def get_work_hours_report(start_date=None, end_date=None):
         FROM members m
         LEFT JOIN work_hours w ON m.id = w.member_id
         WHERE m.deleted = 0
-          AND m.membership_type IN ('Associate', 'Active', 'Life')
+          AND LOWER(TRIM(COALESCE(m.membership_type, ''))) IN ('associate', 'active', 'life')
     """
     params = []
     if start_date:
