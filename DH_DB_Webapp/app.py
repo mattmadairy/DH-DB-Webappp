@@ -3821,10 +3821,11 @@ def fetch_calendar_events():
         # Use recurring-ical-events to expand recurring events
         import recurring_ical_events
         now = datetime.datetime.now(pytz.UTC)
-        end_date = now + datetime.timedelta(days=180)  # 6 months ahead
+        start_date = now - datetime.timedelta(days=365)  # include past year
+        end_date = now + datetime.timedelta(days=365)  # include next year
 
         # Get all events (including expanded recurring ones)
-        expanded_events = recurring_ical_events.of(cal).between(now, end_date)
+        expanded_events = recurring_ical_events.of(cal).between(start_date, end_date)
 
         events = []
 
@@ -3845,13 +3846,20 @@ def fetch_calendar_events():
                 if end_dt.tzinfo is None:
                     end_dt = pytz.UTC.localize(end_dt)
 
+            # Preserve the original calendar date for month/day matching.
+            if isinstance(start_dt, datetime.datetime):
+                event_date = start_dt.date()
+            else:
+                event_date = start_dt
+
             event_data = {
                 'summary': str(event.get('SUMMARY', 'No Title')),
                 'description': str(event.get('DESCRIPTION', '')),
                 'location': str(event.get('LOCATION', '')),
                 'start': start_dt,
                 'end': end_dt,
-                'all_day': all_day
+                'all_day': all_day,
+                'event_date': event_date
             }
 
             events.append(event_data)
@@ -3894,34 +3902,30 @@ def calendar():
     if view_type == 'calendar':
         calendar_data = []
 
-        # Get calendar for the month
-        cal = cal_module.monthcalendar(current_year, current_month)
+        # Get calendar for the month using Sunday-first layout to match the template headers
+        cal = cal_module.Calendar(firstweekday=6).monthdayscalendar(current_year, current_month)
 
         # Create events lookup by date
         events_by_date = {}
         for event in events:
-            # Convert event start time to local timezone for date matching
-            local_start = event['start'].astimezone(TIMEZONE)
-            if local_start.year == current_year and local_start.month == current_month:
-                date_key = local_start.day
+            event_date = event.get('event_date')
+            if event_date is None:
+                event_date = event['start'].astimezone(TIMEZONE).date()
+
+            if event_date.year == current_year and event_date.month == current_month:
+                date_key = event_date.day
                 if date_key not in events_by_date:
                     events_by_date[date_key] = []
                 events_by_date[date_key].append(event)
 
-        # Build calendar weeks - shift day numbers back by 1
+        # Build calendar weeks using the actual day numbers from the month calendar
         for week in cal:
             week_data = []
             for day in week:
                 day_events = []
                 if day > 0:  # Valid day of month
-                    # Shift the day back by 1 for display (so March 1 appears where March 2 was)
-                    shifted_day = day - 1
-                    if shifted_day > 0:  # Make sure it's still a valid day
-                        day_events = events_by_date.get(shifted_day, [])
-                        display_day = shifted_day
-                    else:
-                        display_day = 0  # Don't show day 0
-                        day_events = []
+                    day_events = events_by_date.get(day, [])
+                    display_day = day
                 else:
                     display_day = 0
                 week_data.append({
@@ -3944,7 +3948,7 @@ def calendar():
         local_event['end'] = event['end'].astimezone(TIMEZONE)
         local_events.append(local_event)
 
-    return render_template('calendar.html',
+    response = make_response(render_template('calendar.html',
                          events=local_events,
                          calendar_error=error,
                          active_page='calendar',
@@ -3959,7 +3963,11 @@ def calendar():
                          month_name=cal_module.month_name[current_month],
                          is_admin=current_user.is_admin_or_bdfl(),
                          member_stats=get_member_stats(),
-                         pending_applications=get_pending_application_count())
+                         pending_applications=get_pending_application_count()))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 if __name__ == "__main__":

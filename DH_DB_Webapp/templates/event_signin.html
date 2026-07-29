@@ -54,6 +54,13 @@
             color: white;
         }
 
+        .tab.disabled {
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
         .event-selection {
             margin-bottom: 30px;
             padding: 20px;
@@ -492,7 +499,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>Event Sign-In</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+            <h1 style="margin:0; flex:1; text-align:center;">Event Sign-In</h1>
+            <a href="https://calendar.google.com/calendar/embed?src=c_ca2e41cc4854724b0399d8e956d58e33a525336b60a3bcbe38732cbc04527109%40group.calendar.google.com&ctz=America%2FNew_York" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:10px 16px; background:#4CAF50; color:white; text-decoration:none; border-radius:8px; font-weight:600;">View Calendar</a>
+        </div>
 
         <!-- Event Selection -->
         <div class="event-selection">
@@ -515,7 +525,7 @@
         <div id="eventContent" style="display: none;">
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('patrons')">Patrons</button>
-                <button class="tab" onclick="switchTab('volunteers')">Volunteers</button>
+                <button class="tab disabled" aria-disabled="true" onclick="return false;">Volunteers</button>
             </div>
 
         <!-- Patrons Tab -->
