@@ -214,6 +214,7 @@ def init_database():
 			sponsor TEXT,
 			card_internal TEXT,
 			card_external TEXT,
+            qualifications TEXT,
 			member_notes TEXT,
 			deleted INTEGER DEFAULT 0,
 			deleted_on TEXT
@@ -464,6 +465,7 @@ def ensure_membership_tracking_columns():
 		'introduced_date': 'TEXT',
 		'background_check_submitted': 'TEXT',
 		'background_check_passed': 'TEXT',
+        'qualifications': 'TEXT',
 		'member_notes': 'TEXT'
 	}
 	
@@ -617,8 +619,8 @@ def add_member(data):
 	c.execute("""
 		INSERT INTO members (
 			badge_number, membership_type, first_name, middle_name, last_name, suffix, nickname, dob,
-			email, email2, phone, phone2, address, city, state, zip, join_date, sponsor, card_internal, card_external
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            email, email2, phone, phone2, address, city, state, zip, join_date, sponsor, card_internal, card_external, qualifications
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	""", data)
 	conn.commit()
 	member_id = c.lastrowid
@@ -631,7 +633,7 @@ def update_member(member_id, data):
 	c.execute("""
 		UPDATE members SET
 			badge_number=?, membership_type=?, first_name=?, middle_name=?, last_name=?, suffix=?, nickname=?, dob=?,
-			email=?, email2=?, phone=?, phone2=?, address=?, city=?, state=?, zip=?, join_date=?, sponsor=?, card_internal=?, card_external=?
+            email=?, email2=?, phone=?, phone2=?, address=?, city=?, state=?, zip=?, join_date=?, sponsor=?, card_internal=?, card_external=?, qualifications=?
 		WHERE id=?
 	""", data + (member_id,))
 	conn.commit()

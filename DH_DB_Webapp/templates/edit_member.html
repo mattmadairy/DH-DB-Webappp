@@ -42,6 +42,19 @@
                 <tr><td colspan="2">&nbsp;</td></tr>
                 <tr><td style="padding-right:40px;"><label for="join_date"><b>Join Date:</b></label></td><td><input type="text" id="join_date" name="join_date" value="{{ member['join_date'] }}"></td></tr>
                 <tr><td style="padding-right:40px;"><label for="sponsor"><b>Sponsor:</b></label></td><td><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}"></td></tr>
+                <tr>
+                    <td style="padding-right:40px; vertical-align:top;"><label><b>Qualifications:</b></label></td>
+                    <td>
+                        <div style="display:flex; flex-wrap:wrap; gap:18px;">
+                            {% for qualification in ['RSO', 'Holster', 'Instructor'] %}
+                            <label style="display:inline-flex; align-items:center; gap:6px; font-weight:normal;">
+                                <input type="checkbox" name="qualifications" value="{{ qualification }}" {% if qualification in member_qualifications %}checked{% endif %}>
+                                {{ qualification }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
                 <tr><td style="padding-right:40px;"><label for="card_internal"><b>Card/Fob Internal Number:</b></label></td><td><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}"></td></tr>
                 <tr><td style="padding-right:40px;"><label for="card_external"><b>Card/Fob External Number:</b></label></td><td><input type="text" id="card_external" name="card_external" value="{{ member['card_external'] }}"></td></tr>
             </table>

@@ -347,6 +347,7 @@ function generateEmailList() {
 			   <tr><td style="border:2px solid #222;"><b>Background Check Passed:</b></td><td style="border:2px solid #222;">{{ member['background_check_passed']|format_mmddyyyy if member.get('background_check_passed') else '' }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Qualifications:</b></td><td style="border:2px solid #222; white-space:pre-wrap; word-wrap:break-word;">{{ member['qualifications'] if member['qualifications'] else '' }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Card/Fob External Number:</b></td><td style="border:2px solid #222;">{{ member['card_external'] }}</td></tr>
 			   <tr>
@@ -794,6 +795,16 @@ function submitCommittees() {
 				<label for="background_check_passed">Background Check Passed:</label><input type="date" id="background_check_passed" name="background_check_passed" value="{{ member['background_check_passed'] if member.get('background_check_passed') else '' }}">
 				<label for="join_date">Join Date:</label><input type="date" id="join_date" name="join_date" value="{{ member['join_date'] }}">
 				<label for="sponsor">Sponsor:</label><input type="text" id="sponsor" name="sponsor" value="{{ member['sponsor'] }}">
+				<div style="display:contents;"></div>
+				<div style="grid-column:1 / -1; margin-top:2px; margin-bottom:4px; font-weight:bold;">Qualifications:</div>
+				<div style="grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:18px; align-items:center; padding:6px 0 2px 0;">
+					{% for qualification in ['RSO', 'Holster', 'Instructor'] %}
+					<label style="display:inline-flex; align-items:center; gap:6px; font-weight:normal;">
+						<input type="checkbox" name="qualifications" value="{{ qualification }}" {% if qualification in member_qualifications %}checked{% endif %}>
+						{{ qualification }}
+					</label>
+					{% endfor %}
+				</div>
 				<label for="card_internal">Card Internal:</label><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}">
 				<label for="card_external">Card External:</label><input type="text" id="card_external" name="card_external" value="{{ member['card_external'] }}">
 				<label for="position">Executive Role:</label>
