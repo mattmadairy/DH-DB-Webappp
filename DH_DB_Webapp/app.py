@@ -508,8 +508,8 @@ def login():
 			except (KeyError, IndexError):
 				must_change_password = False
 			
-			# If password reset is required, log them in regardless of password and redirect
-			if must_change_password:
+			# A temporary password must still be verified before first-login setup.
+			if must_change_password and check_password_hash(user_data['password_hash'], password):
 				# Handle role column that might not exist in older databases
 				try:
 					role = user_data['role']
@@ -745,6 +745,9 @@ def change_password():
 def reset_user_password(user_id):
 	# Get the target user to check their role
 	target_user = database.get_user_by_id(user_id)
+	if not target_user:
+		flash('User not found.', 'error')
+		return redirect(url_for('admin_users'))
 	if target_user and target_user['role'] == 'BDFL':
 		# Only BDFL can reset their own password or another BDFL's password
 		if not current_user.is_bdfl():
@@ -755,8 +758,12 @@ def reset_user_password(user_id):
 			flash('Access denied. Cannot reset another BDFL user password.', 'error')
 			return redirect(url_for('admin_users'))
 	
-	# Reset password to "Changem3" and set must_change_password flag
-	password_hash = generate_password_hash('Changem3')
+	temporary_password = request.form.get('temporary_password', '')
+	if len(temporary_password) < 6 or not any(char.isupper() for char in temporary_password) or not any(char.islower() for char in temporary_password) or not any(char.isdigit() for char in temporary_password):
+		flash('Temporary password must be at least 6 characters and include uppercase, lowercase, and numeric characters.', 'error')
+		return redirect(url_for('admin_users'))
+
+	password_hash = generate_password_hash(temporary_password)
 	database.update_user_password(user_id, password_hash)
 	database.add_password_history(user_id, password_hash)
 	
@@ -778,7 +785,7 @@ def reset_user_password(user_id):
 			user_agent=request.headers.get('User-Agent'),
 			success=True
 		)
-		flash(f'Password reset for user "{user_data["username"]}". New password: Changem3', 'info')
+		flash(f'Password reset for user "{user_data["username"]}". Provide them with the temporary password.', 'info')
 	else:
 		flash('Password reset successfully.', 'info')
 	
@@ -2221,6 +2228,7 @@ def member_details(member_id):
 	if not member:
 		return "Member not found", 404
 	member = dict(member) if member else None
+	online_user = database.get_user_by_email(member['email']) if member.get('email') else None
 	dues = database.get_dues_by_member(member_id)
 	work_hours = database.get_work_hours_by_member(member_id)
 	total_work_hours = sum(wh['hours'] for wh in work_hours)
@@ -2260,6 +2268,7 @@ def member_details(member_id):
 	return render_template(
 		'member_details.html',
 		member=member,
+		online_user=online_user,
 		dues=dues,
 		dues_years=dues_years,
 		work_hours=work_hours,
@@ -2277,6 +2286,54 @@ def member_details(member_id):
 		member_qualifications=parse_qualifications(member.get('qualifications')),
 		pending_applications=pending_applications
 	)
+
+@app.route('/member/<int:member_id>/rebuild-online-account', methods=['POST'])
+@login_required
+@admin_required
+def rebuild_member_online_account(member_id):
+	member = database.get_member_by_id(member_id)
+	if not member or not member['email']:
+		flash('A member email address is required to rebuild an online account.', 'error')
+		return redirect(url_for('member_details', member_id=member_id, tab='membership'))
+
+	username = request.form.get('username', '').strip()
+	temporary_password = request.form.get('temporary_password', '')
+	confirm_password = request.form.get('confirm_password', '')
+
+	if not username or not temporary_password:
+		flash('Username and temporary password are required.', 'error')
+	elif temporary_password != confirm_password:
+		flash('Temporary passwords do not match.', 'error')
+	elif len(temporary_password) < 6 or not any(char.isupper() for char in temporary_password) or not any(char.islower() for char in temporary_password) or not any(char.isdigit() for char in temporary_password):
+		flash('Temporary password must be at least 6 characters and include uppercase, lowercase, and numeric characters.', 'error')
+	else:
+		name = ' '.join(part for part in [member['first_name'], member['last_name']] if part)
+		password_hash = generate_password_hash(temporary_password)
+		user_id, error = database.rebuild_member_user_account(
+			email=member['email'],
+			name=name,
+			username=username,
+			password_hash=password_hash,
+			current_user_id=current_user.id,
+		)
+		if error:
+			flash(error, 'error')
+		else:
+			database.add_password_history(user_id, password_hash)
+			database.log_audit(
+				user_id=current_user.id,
+				username=current_user.username,
+				action='member_account_rebuild',
+				target_user=username,
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=True,
+				details=f'Rebuilt online account for member ID {member_id}'
+			)
+			flash(f'Online account rebuilt for "{username}". Provide the member with the temporary password.', 'info')
+
+	return redirect(url_for('member_details', member_id=member_id, tab='membership'))
+
 @app.route('/member_report/<int:member_id>')
 @login_required
 def member_report(member_id):

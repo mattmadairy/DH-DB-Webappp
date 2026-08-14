@@ -47,6 +47,25 @@
             font-size: 1em;
             box-sizing: border-box;
         }
+        .password-field {
+            position: relative;
+        }
+        .password-field input {
+            padding-right: 64px;
+        }
+        .password-visibility-toggle {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            color: #384839;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            padding: 6px;
+        }
         .btn {
             width: 100%;
             padding: 12px;
@@ -145,11 +164,23 @@
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
+                <div class="password-field">
+                    <input type="password" id="password" name="password" required>
+                    <button type="button" class="password-visibility-toggle" aria-label="Show password" onclick="toggleLoginPasswordVisibility(this)">Show</button>
+                </div>
             </div>
             
             <button type="submit" class="btn">Login</button>
         </form>
     </div>
+    <script>
+        function toggleLoginPasswordVisibility(button) {
+            const input = document.getElementById('password');
+            const hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+            button.textContent = hidden ? 'Hide' : 'Show';
+            button.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+        }
+    </script>
 </body>
 </html>

@@ -826,6 +826,42 @@ def create_user(username, password_hash, email, name=None, role='User', is_activ
         conn.close()
         return None
 
+def rebuild_member_user_account(email, name, username, password_hash, current_user_id):
+    """Replace a standard member account with a fresh, active account."""
+    from datetime import datetime
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute("SELECT * FROM users WHERE email=?", (email,))
+        existing_user = c.fetchone()
+
+        if existing_user:
+            if existing_user['id'] == current_user_id:
+                return None, 'You cannot rebuild your own online account.'
+            if existing_user['role'] != 'User':
+                return None, 'Privileged accounts must be managed from User Management.'
+
+        c.execute("SELECT id FROM users WHERE username=?", (username,))
+        username_owner = c.fetchone()
+        if username_owner and (not existing_user or username_owner['id'] != existing_user['id']):
+            return None, 'Username already exists.'
+
+        if existing_user:
+            c.execute("DELETE FROM users WHERE id=?", (existing_user['id'],))
+
+        c.execute("""
+            INSERT INTO users (username, name, password_hash, email, created_at, role, must_change_password, is_active)
+            VALUES (?, ?, ?, ?, ?, 'User', 1, 1)
+        """, (username, name, password_hash, email, datetime.now().isoformat()))
+        user_id = c.lastrowid
+        conn.commit()
+        return user_id, None
+    except sqlite3.Error:
+        conn.rollback()
+        return None, 'Unable to rebuild the online account. Please try again.'
+    finally:
+        conn.close()
+
 def update_user_active_status(user_id, is_active):
     """Update user's active status"""
     conn = get_connection()

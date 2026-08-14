@@ -205,6 +205,25 @@ function generateEmailList() {
 	}
 	.tabcontent { display: none; }
 	.tabcontent.active { display: block; }
+	.password-field {
+		position: relative;
+	}
+	.password-field input {
+		padding-right: 64px !important;
+	}
+	.password-visibility-toggle {
+		position: absolute;
+		top: 50%;
+		right: 8px;
+		transform: translateY(-50%);
+		border: 0;
+		background: transparent;
+		color: #384839;
+		cursor: pointer;
+		font-size: 0.9em;
+		font-weight: bold;
+		padding: 6px;
+	}
 	.submenu {
 		display: none;
 		flex-direction: column;
@@ -592,6 +611,9 @@ function generateEmailList() {
 		   </table>
 		   <div style="display:flex; justify-content:center; align-items:center; margin-top:16px;">
 			   <button onclick="openModal('membershipModal')" style="display:inline-block; padding:6px 18px; border-radius:6px; border:1px solid #384839; background-color:#f8f8f8; color:#384839; font-weight:normal; cursor:pointer;">✏️ Edit Membership Info</button>
+			   {% if current_user.is_admin_or_bdfl() and member['email'] %}
+			   <button onclick="openModal('rebuildAccountModal')" style="display:inline-block; padding:6px 18px; margin-left:8px; border-radius:6px; border:1px solid #a94442; background-color:#f8f8f8; color:#a94442; font-weight:normal; cursor:pointer;">Rebuild Online Account</button>
+			   {% endif %}
 		   </div>
 	   </div>
 	<div id="tab-contact" class="tabcontent">
@@ -1051,6 +1073,45 @@ function submitCommittees() {
 		</form>
 	</div>
 </div>
+
+{% if current_user.is_admin_or_bdfl() and member['email'] %}
+<div id="rebuildAccountModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+	<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
+		<button type="button" onclick="closeModal('rebuildAccountModal')" style="position:absolute; top:10px; right:10px; background:none; border:none; font-size:1.5em; color:#384839; cursor:pointer;">&times;</button>
+		<h3 style="margin-top:0; color:#a94442;">Rebuild Online Account</h3>
+		<p style="line-height:1.4; color:#444;">This permanently replaces the member's standard online account and signs them in with a new temporary password.</p>
+		<form method="POST" action="{{ url_for('rebuild_member_online_account', member_id=member['id']) }}" onsubmit="return confirm('Rebuild this online account? The existing standard account will be permanently replaced.');">
+			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+			<label for="rebuild_username" style="display:block; margin-bottom:4px; font-weight:bold;">Username</label>
+			<input id="rebuild_username" name="username" required value="{{ online_user['username'] if online_user else member['email'].split('@')[0] }}" style="width:100%; box-sizing:border-box; margin-bottom:12px; padding:8px; border:1px solid #ccc; border-radius:4px;">
+			<label for="temporary_password" style="display:block; margin-bottom:4px; font-weight:bold;">Temporary Password</label>
+			<div class="password-field" style="margin-bottom:12px;">
+				<input id="temporary_password" name="temporary_password" type="text" value="Changem3" required autocomplete="new-password" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:4px;">
+				<button type="button" class="password-visibility-toggle" aria-label="Hide password" onclick="togglePasswordVisibility('temporary_password', this)">Hide</button>
+			</div>
+			<label for="confirm_password" style="display:block; margin-bottom:4px; font-weight:bold;">Confirm Temporary Password</label>
+			<div class="password-field" style="margin-bottom:16px;">
+				<input id="confirm_password" name="confirm_password" type="text" value="Changem3" required autocomplete="new-password" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid #ccc; border-radius:4px;">
+				<button type="button" class="password-visibility-toggle" aria-label="Hide password" onclick="togglePasswordVisibility('confirm_password', this)">Hide</button>
+			</div>
+			<div style="display:flex; justify-content:flex-end; gap:8px;">
+				<button type="button" onclick="closeModal('rebuildAccountModal')">Cancel</button>
+				<button type="submit" style="background:#a94442; color:#fff; border:1px solid #843534; border-radius:4px; padding:7px 12px; cursor:pointer;">Rebuild Account</button>
+			</div>
+		</form>
+	</div>
+</div>
+{% endif %}
+
+<script>
+function togglePasswordVisibility(inputId, button) {
+	const input = document.getElementById(inputId);
+	const hidden = input.type === 'password';
+	input.type = hidden ? 'text' : 'password';
+	button.textContent = hidden ? 'Hide' : 'Show';
+	button.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+}
+</script>
 
 <div id="contactModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
 		<div style="background-color:#f5f5f5; margin:10% auto; padding:20px; border:1px solid #888; width:370px; border-radius:8px; position:relative;">
