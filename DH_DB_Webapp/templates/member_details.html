@@ -164,6 +164,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	updateSidebarToggle(collapsed);
 });
 
+document.addEventListener('click', function(event) {
+	const sidebar = document.getElementById('mainSidebar');
+	const mobileToggle = document.querySelector('.mobile-sidebar-toggle');
+	if (window.innerWidth <= 900 && !sidebar.classList.contains('collapsed') && !sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
+		toggleSidebar();
+	}
+});
+
 function generateEmailList() {
 	window.location.href = '{{ url_for("email_list") }}';
 }
