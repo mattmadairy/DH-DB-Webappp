@@ -377,6 +377,53 @@ def format_name_last_first(value):
 
 app.jinja_env.filters['format_name_last_first'] = format_name_last_first
 
+QUALIFICATION_OPTIONS = ['RSO', 'Holster', 'Instructor']
+
+def parse_qualifications(value):
+	"""Convert a stored qualification string into a list for checkbox rendering."""
+	if not value:
+		return []
+	if isinstance(value, (list, tuple, set)):
+		items = value
+	else:
+		items = str(value).split(',')
+	return [item.strip() for item in items if item and item.strip()]
+
+def qualifications_from_form(form):
+	"""Normalize checkbox or legacy text input values into the stored string format."""
+	selected = []
+	raw_values = form.getlist('qualifications')
+	if not raw_values:
+		raw_values = [part.strip() for part in form.get('qualifications', '').split(',') if part.strip()]
+	for value in raw_values:
+		if value in QUALIFICATION_OPTIONS and value not in selected:
+			selected.append(value)
+	return ', '.join(selected)
+
+def get_qualifications_report_data():
+	"""Return members grouped by qualification for the qualifications report."""
+	all_members = database.get_all_members()
+	reportable_members = [
+		member for member in all_members
+		if member['membership_type'] not in ['Former', 'Wait List']
+	]
+
+	grouped_members = {}
+	for qualification in QUALIFICATION_OPTIONS:
+		qualified_members = []
+		for member in reportable_members:
+			member_qualifications = parse_qualifications(member['qualifications'])
+			if qualification in member_qualifications:
+				qualified_members.append(member)
+		qualified_members.sort(key=lambda m: (
+			int(m['badge_number']) if str(m['badge_number']).isdigit() else 0,
+			m['last_name'] or '',
+			m['first_name'] or ''
+		))
+		grouped_members[qualification] = qualified_members
+
+	return grouped_members
+
 def get_member_stats():
 	all_members = database.get_all_members()
 	life_count = len([m for m in all_members if m['membership_type'] == 'Life'])
@@ -1384,6 +1431,58 @@ def work_hours_report():
 	pending_applications = get_pending_application_count()
 	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
 
+@app.route('/qualifications_report')
+@login_required
+@admin_required
+def qualifications_report():
+	qualifications_by_type = get_qualifications_report_data()
+	qualification_counts = {name: len(members) for name, members in qualifications_by_type.items()}
+	now = datetime.datetime.now(TIMEZONE)
+	member_stats = get_member_stats()
+	pending_applications = get_pending_application_count()
+	return render_template(
+		'qualifications_report.html',
+		qualifications_by_type=qualifications_by_type,
+		qualification_options=QUALIFICATION_OPTIONS,
+		qualification_counts=qualification_counts,
+		now=now,
+		active_page='qualifications_report',
+		member_stats=member_stats,
+		pending_applications=pending_applications
+	)
+
+@app.route('/qualifications_export_csv')
+@login_required
+@admin_required
+def qualifications_export_csv():
+	qualification = request.args.get('qualification', '').strip()
+	if qualification not in QUALIFICATION_OPTIONS:
+		return jsonify({'error': 'Invalid qualification'}), 400
+
+	qualifications_by_type = get_qualifications_report_data()
+	members = qualifications_by_type.get(qualification, [])
+
+	import csv
+	import io
+
+	output = io.StringIO()
+	writer = csv.writer(output)
+	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Membership Type', 'Qualifications'])
+	for member in members:
+		writer.writerow([
+			member['badge_number'] or '',
+			member['last_name'] or '',
+			member['first_name'] or '',
+			member['membership_type'] or '',
+			member['qualifications'] or ''
+		])
+
+	output.seek(0)
+	response = make_response(output.getvalue())
+	response.headers['Content-Type'] = 'text/csv'
+	response.headers['Content-Disposition'] = f'attachment; filename=qualifications_{qualification.lower()}.csv'
+	return response
+
 @app.route('/events_report')
 @login_required
 @admin_required
@@ -2175,6 +2274,7 @@ def member_details(member_id):
 		total_meetings=total_meetings,
 		work_activity_display_names=activity_display_names,
 		current_year=current_year,
+		member_qualifications=parse_qualifications(member.get('qualifications')),
 		pending_applications=pending_applications
 	)
 @app.route('/member_report/<int:member_id>')
@@ -2523,10 +2623,11 @@ def edit_member(member_id):
 			request.form['sponsor'],
 			request.form['card_internal'],
 			request.form['card_external'],
+			qualifications_from_form(request.form),
 		)
 		database.update_member(member_id, data)
 		return redirect(url_for('index'))
-	return render_template('edit_member.html', member=member)
+	return render_template('edit_member.html', member=member, member_qualifications=parse_qualifications(member['qualifications']))
 
 # Add Member route
 @app.route('/add_member', methods=['GET', 'POST'])
@@ -2557,6 +2658,7 @@ def add_member():
 				request.form.get('sponsor', ''),
 				request.form.get('card_internal', ''),
 				request.form.get('card_external', ''),
+				request.form.get('qualifications', ''),
 			)
 			member_id = database.add_member(data)
 			
@@ -2635,6 +2737,7 @@ def edit_section(member_id):
 					'sponsor': request.form['sponsor'],
 					'card_internal': request.form['card_internal'],
 					'card_external': request.form['card_external'],
+					'qualifications': qualifications_from_form(request.form),
 					'member_notes': request.form['member_notes'],
 				})
 				# Update user active status if membership type changed

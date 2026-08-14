@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Qualifications Report - Dug Hill Rod & Gun Club</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
+    <style>
+        .active-menu { background-color: rgb(255,255,0) !important; font-weight: bold !important; }
+        .submenu { display: none; flex-direction: column; margin-left: 10px; }
+        .submenu.active { display: flex; }
+        .submenu a { width: 160px !important; font-size: 0.9em !important; padding: 8px 0 !important; margin-bottom: 6px !important; }
+        .menu-toggle { cursor: pointer; user-select: none; }
+        body { background-color:#384839; font-family: Arial, Helvetica, sans-serif; }
+        .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
+        table { width:100%; max-width:1000px; margin:auto; border-collapse:collapse; background:#f5f5f5; }
+        th, td { border:2px solid #384839; padding:8px; text-align:center; }
+        th { background:#eaeaea; color:#222; }
+        .print-btn { margin-left:8px; padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; }
+        .badge-list { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+        .badge-pill { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid #384839; background:#fff; font-size:0.9em; }
+        .qualification-card { background-color:#f5f5f5; border-radius:8px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:24px; width:100%; max-width:1100px; }
+        .qualification-tabs { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 18px 0; }
+        .qualification-tab {
+            padding:10px 18px;
+            border-radius:6px;
+            border:1px solid #384839;
+            background:#eaeaea;
+            color:#384839;
+            cursor:pointer;
+            font-weight:normal;
+            font-size:1em;
+            box-shadow:0 1px 2px rgba(0,0,0,0.04);
+        }
+        .qualification-tab.active { background:rgb(255,255,0); font-weight:bold; }
+        .qualification-panel { display:none; }
+        .qualification-panel.active { display:block; }
+        .qualification-controls {
+            display:flex;
+            justify-content:center;
+            gap:12px;
+            flex-wrap:wrap;
+            margin-bottom:16px;
+        }
+        .report-header { text-align:center; color:#f5f5f5; margin-bottom:20px; }
+        .report-header h1, .report-header h2 { margin:0; }
+        .print-header { display:none; }
+        @media print {
+            body { background:#fff !important; }
+            .side-menu, .print-btn, .report-controls, .qualification-tabs { display:none !important; }
+            .main-content { margin-left:0 !important; }
+            .print-header { display:block !important; text-align:center !important; color:#000 !important; margin-bottom:16px !important; }
+            .print-header h1, .print-header h2, .print-header h3 { margin:0 !important; color:#000 !important; }
+            .qualification-card { box-shadow:none !important; page-break-inside:avoid; }
+            .qualification-panel { display:none !important; }
+            body.print-qualification-rso #qualification-rso,
+            body.print-qualification-holster #qualification-holster,
+            body.print-qualification-instructor #qualification-instructor { display:block !important; }
+            table { max-width:none !important; }
+            th, td { border:2px solid #222 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-header">
+        <h1>Dug Hill Rod & Gun Club</h1>
+        <h2>Membership Database</h2>
+        <h3>Qualifications Report</h3>
+    </div>
+    <div style="display:flex; flex-direction:row;">
+        <div class="side-menu" style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
+            <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
+            <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
+            {% if current_user.is_admin_or_bdfl() %}
+            <a href="{{ url_for('admin_applications') }}" class="{{ 'active-menu' if active_page == 'admin_applications' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'admin_applications' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center; position:relative;">📋 Applications{% if pending_applications > 0 %}<span style="position:absolute; top:-5px; right:-5px; background-color:#dc3545; color:white; border-radius:50%; padding:2px 6px; font-size:0.75em; font-weight:bold; min-width:18px; text-align:center;">{{ pending_applications }}</span>{% endif %}</a>
+            {% endif %}
+            <a href="{{ url_for('bulk_actions') }}" class="{{ 'active-menu' if active_page == 'bulk_actions' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'bulk_actions' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">⚡ Bulk Actions</a>
+            <a href="{{ url_for('committees') }}" class="{{ 'active-menu' if active_page == 'committees' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'committees' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👥 Committees</a>
+            <div class="menu-toggle" onclick="toggleSubmenu()" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">📊 Reports <span id="submenu-arrow">▲</span></div>
+            <div id="reports-submenu" class="submenu" style="display:flex;">
+                <a href="{{ url_for('dues_report') }}" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">💵 Dues</a>
+                <a href="{{ url_for('work_hours_report') }}" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">Work Hours</a>
+                <a href="{{ url_for('meeting_attendance_report') }}" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">Meeting Attendance</a>
+                <a href="{{ url_for('events_report') }}" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:normal; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">Events</a>
+                <a href="{{ url_for('qualifications_report') }}" class="{{ 'active-menu' if active_page == 'qualifications_report' else '' }}" style="width:160px; display:inline-block; padding:8px 0; margin-bottom:6px; border-radius:6px; border:1px solid #384839; background-color:{{ 'rgb(255,255,0)' if active_page == 'qualifications_report' else '#eaeaea' }}; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'qualifications_report' else 'normal' }}; font-size:0.9em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">Qualifications</a>
+            </div>
+            <a href="{{ url_for('recycle_bin') }}" class="{{ 'active-menu' if active_page == 'recycle_bin' else '' }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:{{ 'bold' if active_page == 'recycle_bin' else 'normal' }}; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🗑️ Recycle Bin</a>
+            <a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Members Area</a>
+            <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
+            <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+                <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
+                    <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
+                    <div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
+                    <div style="border-top:1px solid #555; padding-top:8px;"><strong>Total:</strong> {{ member_stats.total_members }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content" style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center; width:100%;">
+            <div class="report-header" style="width:100%; margin-bottom:20px; text-align:center;">
+                <h1 style="margin-bottom:0.2em; color:#f5f5f5; font-size:3em;">Dug Hill Rod & Gun Club</h1>
+                <h1 style="margin-top:0.2em; color:#f5f5f5; font-size:3em;">Membership Database</h1>
+                <h2 style="font-size:2.2em; margin-bottom:0.2em; margin-top:0; color:#f5f5f5; font-family:Arial, Helvetica, sans-serif; font-weight:bold; text-decoration:underline;">Qualifications Report</h2>
+            </div>
+
+            <div class="qualification-tabs" role="tablist" aria-label="Qualifications Tabs">
+                {% for qualification in qualification_options %}
+                <button type="button" class="qualification-tab {% if loop.first %}active{% endif %}" data-tab="qualification-{{ qualification|lower }}" onclick="showQualificationTab('qualification-{{ qualification|lower }}', this)">{{ qualification }} ({{ qualification_counts[qualification] }})</button>
+                {% endfor %}
+            </div>
+
+            {% for qualification in qualification_options %}
+            <div id="qualification-{{ qualification|lower }}" class="qualification-card qualification-panel {% if loop.first %}active{% endif %}">
+                <h2 style="text-align:center; margin-top:0; color:#384839;">{{ qualification }} <span style="font-weight:normal;">({{ qualification_counts[qualification] }})</span></h2>
+                <div class="qualification-controls">
+                    <button type="button" class="print-btn" onclick="printQualificationTab('qualification-{{ qualification|lower }}')">🖨️ Print {{ qualification }}</button>
+                    <a href="{{ url_for('qualifications_export_csv', qualification=qualification) }}" class="print-btn" style="display:inline-block; text-decoration:none; line-height:1.4; background-color:#28a745; color:#fff;">📥 Export CSV</a>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Badge #</th>
+                                <th>Name</th>
+                                <th>Membership Type</th>
+                                <th>Qualifications</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in qualifications_by_type[qualification] %}
+                            <tr>
+                                <td>{{ member['badge_number'] }}</td>
+                                <td>{{ member['last_name'] }}, {{ member['first_name'] }}</td>
+                                <td>{{ member['membership_type'] }}</td>
+                                <td>
+                                    <div class="badge-list">
+                                        {% for item in member['qualifications'].split(',') if member['qualifications'] %}
+                                            <span class="badge-pill">{{ item.strip() }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if not qualifications_by_type[qualification] %}
+                    <p style="text-align:center; color:#666; margin:16px 0 0 0;">No members with this qualification.</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+    function toggleSubmenu() {
+        var submenu = document.getElementById('reports-submenu');
+        var arrow = document.getElementById('submenu-arrow');
+        submenu.classList.toggle('active');
+        arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
+    }
+    function showQualificationTab(tabId, button) {
+        var panels = document.querySelectorAll('.qualification-panel');
+        var tabs = document.querySelectorAll('.qualification-tab');
+        panels.forEach(function(panel) {
+            panel.classList.remove('active');
+        });
+        tabs.forEach(function(tab) {
+            tab.classList.remove('active');
+        });
+        var activePanel = document.getElementById(tabId);
+        if (activePanel) {
+            activePanel.classList.add('active');
+        }
+        if (button) {
+            button.classList.add('active');
+        }
+    }
+    function printQualificationTab(tabId) {
+        document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor');
+        document.body.classList.add('print-' + tabId);
+        window.print();
+        setTimeout(function() {
+            document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor');
+        }, 250);
+    }
+    </script>
+</body>
+</html>
