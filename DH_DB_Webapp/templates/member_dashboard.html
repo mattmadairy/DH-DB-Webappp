@@ -11,7 +11,8 @@
         .dashboard-card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
         .dashboard-card.collapsed .card-content { height: 0; overflow: hidden; padding: 0; margin: 0; }
         .dashboard-card.collapsed .card-header { border-bottom: none; margin-bottom: 0; }
-        .card-header { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
+        .card-header { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; cursor: pointer; }
+        .card-header:focus-visible { outline: 3px solid #007bff; outline-offset: 3px; }
         .card-title { margin: 0; color: #384839; font-size: 1.5em; }
         .collapse-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; padding: 0; color: #666; transition: color 0.2s; }
         select, input, button {
@@ -250,11 +251,6 @@
             </div>
             
             {% if member %}
-            <!-- Small Group Collapse Button above Personal Info -->
-            <div class="small-group-collapse">
-                <button class="collapse-btn small-group-btn" onclick="const cards = ['personal-card', 'member-info-card', 'contact-card', 'address-card', 'dues-card', 'work-hours-card', 'meeting-attendance-card', 'committees-card', 'visits-card', 'current-checkins-card']; cards.forEach(id => { const card = document.getElementById(id); if(card) card.classList.toggle('collapsed'); }); this.textContent = this.textContent === 'Expand' ? 'Collapse' : 'Expand';">Expand</button>
-            </div>
-            
             <div class="dashboard-container">
                 
                 <!-- Personal Info Card -->
@@ -625,17 +621,10 @@
     </div>
     
     <script>
-        function toggleCard(cardId) {
-            const card = document.getElementById(cardId);
-            const button = card.querySelector('.collapse-btn');
-            
-            card.classList.toggle('collapsed');
-            
-            if (card.classList.contains('collapsed')) {
-                button.textContent = '+';
-            } else {
-                button.textContent = '−';
-            }
+        function toggleDashboardCard(header) {
+            const card = header.closest('.dashboard-card');
+            const collapsed = card.classList.toggle('collapsed');
+            header.setAttribute('aria-expanded', String(!collapsed));
         }
         
         function toggleRow(button) {
@@ -671,6 +660,22 @@
             sidebar.classList.toggle('collapsed', collapsed);
             document.body.classList.toggle('sidebar-collapsed', collapsed);
             updateSidebarToggle(collapsed);
+
+            document.querySelectorAll('.dashboard-card > .card-header').forEach(function(header) {
+                const card = header.closest('.dashboard-card');
+                header.setAttribute('role', 'button');
+                header.setAttribute('tabindex', '0');
+                header.setAttribute('aria-expanded', String(!card.classList.contains('collapsed')));
+                header.addEventListener('click', function() {
+                    toggleDashboardCard(header);
+                });
+                header.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggleDashboardCard(header);
+                    }
+                });
+            });
         });
 
         function filterWorkHoursByYear() {
