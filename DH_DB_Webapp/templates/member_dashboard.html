@@ -262,6 +262,19 @@
             
             {% if member %}
             <div class="dashboard-container">
+
+                <!-- Current Check-Ins Card -->
+                <div id="current-checkins-card" class="dashboard-card collapsed" data-card-id="current-checkins-card">
+                    <div class="card-header">
+                        <h2 class="card-title">🟩 Current Check-In's</h2>
+                    </div>
+                    <div class="card-content">
+                        <ul class="current-checkins-list" id="dashboardCurrentCheckins">
+                            <li class="current-checkins-empty">Loading check-ins...</li>
+                        </ul>
+                        <div class="current-checkins-refresh">Auto-refreshes every 30 minutes</div>
+                    </div>
+                </div>
                 
                 <!-- Personal Info Card -->
                 <div class="dashboard-card collapsed" id="personal-card">
@@ -608,19 +621,6 @@
                     </div>
                 </div>
 
-                <!-- Current Check-Ins Card -->
-                <div id="current-checkins-card" class="dashboard-card collapsed" data-card-id="current-checkins-card">
-                    <div class="card-header">
-                        <h2 class="card-title">🟩 Current Check-In's</h2>
-                    </div>
-                    <div class="card-content">
-                        <ul class="current-checkins-list" id="dashboardCurrentCheckins">
-                            <li class="current-checkins-empty">Loading check-ins...</li>
-                        </ul>
-                        <div class="current-checkins-refresh">Auto-refreshes every 30 minutes</div>
-                    </div>
-                </div>
-            
             {% else %}
             <!-- No Member Record Found -->
             <div class="dashboard-container">
