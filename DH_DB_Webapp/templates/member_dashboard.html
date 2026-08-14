@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Member Dashboard - Dug Hill Rod & Gun Club</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
     <style>
         body { background-color: #f5f5f5; font-family: Arial, Helvetica, sans-serif; }
         .main-content { margin-left:210px; display:flex; flex-direction:column; align-items:center; }
-        .dashboard-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; max-width: 1250px; margin: 0 auto; }
+        .dashboard-container { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; width: 100%; max-width: 1250px; margin: 0 auto; }
         .dashboard-card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px; }
         .dashboard-card.collapsed .card-content { height: 0; overflow: hidden; padding: 0; margin: 0; }
         .dashboard-card.collapsed .card-header { border-bottom: none; margin-bottom: 0; }
         .card-header { border-bottom: 1px solid #ddd; padding-bottom: 10px; margin-bottom: 15px; }
         .card-title { margin: 0; color: #384839; font-size: 1.5em; }
         .collapse-btn { background: none; border: none; font-size: 1.2em; cursor: pointer; padding: 0; color: #666; transition: color 0.2s; }
+        select, input, button {
+            font: inherit;
+        }
         .collapse-btn:hover { color: #333; }
         .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
         .info-row { position: relative; margin-bottom: 15px; }
@@ -51,6 +55,101 @@
         .current-checkin-guest-tag { background: #ffc107; color: #333; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
         .current-checkins-empty { text-align: center; color: #999; font-style: italic; padding: 20px; }
         .current-checkins-refresh { text-align: center; color: #999; font-size: 12px; margin-top: 10px; }
+
+        @media (max-width: 900px) {
+            body {
+                overflow-x: hidden;
+            }
+
+            div[style*="position:fixed; top:0; left:0; height:100vh; width:210px"] {
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: auto !important;
+                padding-top: 20px !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 0 12px 20px !important;
+            }
+
+            .dashboard-container {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+
+            .dashboard-card {
+                padding: 14px !important;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .card-title {
+                font-size: 1.2em !important;
+            }
+
+            h1 {
+                font-size: clamp(2rem, 7vw, 3rem) !important;
+            }
+
+            .small-group-collapse {
+                justify-content: center !important;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+            }
+
+            th, td {
+                padding: 8px 10px;
+                min-width: 90px;
+            }
+
+            select {
+                width: 100%;
+                min-height: 44px;
+                padding: 10px 12px;
+            }
+
+            .current-checkin-member {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .dashboard-card {
+                padding: 12px !important;
+            }
+
+            .card-header {
+                padding-bottom: 8px;
+                margin-bottom: 10px;
+            }
+
+            .info-item {
+                padding: 10px 12px;
+            }
+
+            .info-value {
+                font-size: 1em;
+            }
+
+            .small-group-btn {
+                width: 100% !important;
+                max-width: 200px;
+            }
+        }
     </style>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
@@ -475,9 +574,6 @@
             } else {
                 button.textContent = '−';
             }
-        }
-        
-        function filterWorkHoursByYear() {
         }
         
         function filterWorkHoursByYear() {

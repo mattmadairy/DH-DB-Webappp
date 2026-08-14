@@ -76,6 +76,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Member Details - Dug Hill Rod & Gun Club</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
 <script>
@@ -189,6 +190,99 @@ function generateEmailList() {
 	.menu-toggle {
 		cursor: pointer;
 		user-select: none;
+	}
+	@media (max-width: 900px) {
+		body {
+			overflow-x: hidden;
+		}
+
+		div[style*="position:fixed; top:0; left:0; height:100vh; width:210px"] {
+			position: static !important;
+			width: 100% !important;
+			height: auto !important;
+			padding-top: 20px !important;
+			box-shadow: none !important;
+		}
+
+		div[style*="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;"] {
+			margin-left: 0 !important;
+			width: 100% !important;
+			padding: 0 12px 20px !important;
+		}
+
+		.tabbar {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			padding: 0 8px;
+		}
+
+		.tablink {
+			flex: 1 1 120px;
+			min-width: 120px;
+			padding: 10px 12px;
+		}
+
+		table {
+			display: block;
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+			white-space: nowrap;
+			width: 100%;
+		}
+
+		input, select, textarea, button {
+			font: inherit;
+		}
+
+		.modal > div {
+			width: min(92vw, 420px) !important;
+			margin: 8% auto !important;
+			padding: 16px !important;
+		}
+
+		form div[style*="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;"] {
+			display: grid !important;
+			grid-template-columns: 1fr !important;
+			gap: 8px !important;
+		}
+
+		form label {
+			display: block;
+			margin-top: 4px;
+		}
+
+		form input,
+		form select,
+		form textarea {
+			width: 100%;
+			min-height: 44px;
+			box-sizing: border-box;
+		}
+
+		h1 {
+			font-size: clamp(2rem, 7vw, 3rem) !important;
+		}
+	}
+
+	@media (max-width: 520px) {
+		.tablink {
+			flex-basis: calc(50% - 8px);
+			min-width: 0;
+		}
+
+		.tabbar {
+			padding: 0 4px;
+		}
+
+		.modal > div {
+			padding: 14px !important;
+		}
+
+		.modal button {
+			width: 100%;
+			margin: 6px 0 !important;
+		}
 	}
 </style>
 </head>

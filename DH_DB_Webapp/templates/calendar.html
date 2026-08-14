@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Club Calendar - Dug Hill Rod & Gun Club</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}">
     <style>
@@ -48,13 +49,49 @@
         .event-time-small { font-size: 0.7em; opacity: 0.9; margin-bottom: 2px; }
         .event-title-small { font-weight: bold; font-size: 0.8em; line-height: 1.1; }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
+            body {
+                overflow-x: hidden;
+            }
+
+            div[style*="position:fixed; top:0; left:0; height:100vh; width:210px"] {
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+                padding-top: 20px !important;
+                box-shadow: none !important;
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 0 12px 20px !important;
+            }
+
+            .card-header {
+                display: block !important;
+            }
+
+            .view-toggle {
+                margin-top: 12px;
+                flex-wrap: wrap;
+            }
+
             .event-header {
                 flex-direction: column;
                 gap: 10px;
             }
             .event-date {
                 text-align: left !important;
+            }
+
+            .calendar-grid {
+                min-width: 640px;
+                overflow-x: auto;
+            }
+
+            h1 {
+                font-size: clamp(2rem, 7vw, 3rem) !important;
             }
         }
     </style>
