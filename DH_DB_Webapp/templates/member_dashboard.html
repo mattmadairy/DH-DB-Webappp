@@ -636,6 +636,16 @@
             const card = header.closest('.dashboard-card');
             const collapsed = card.classList.toggle('collapsed');
             header.setAttribute('aria-expanded', String(!collapsed));
+
+            if (!collapsed) {
+                requestAnimationFrame(function() {
+                    const cardBounds = card.getBoundingClientRect();
+                    const headerBounds = header.getBoundingClientRect();
+                    if (cardBounds.bottom > window.innerHeight && headerBounds.top > 16) {
+                        header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
         }
         
         function toggleRow(button) {
