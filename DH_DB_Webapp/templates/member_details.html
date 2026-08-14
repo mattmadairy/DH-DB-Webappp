@@ -587,7 +587,7 @@ function generateEmailList() {
 			   <tr><td style="border:2px solid #222;"><b>Background Check Passed:</b></td><td style="border:2px solid #222;">{{ member['background_check_passed']|format_mmddyyyy if member.get('background_check_passed') else '' }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Join Date:</b></td><td style="border:2px solid #222;">{{ member['join_date']|format_mmddyyyy }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Sponsor:</b></td><td style="border:2px solid #222;">{{ member['sponsor'] }}</td></tr>
-			   <tr><td style="border:2px solid #222;"><b>Qualifications:</b></td><td style="border:2px solid #222; white-space:pre-wrap; word-wrap:break-word;">{{ member['qualifications'] if member['qualifications'] else '' }}</td></tr>
+			   <tr><td style="border:2px solid #222;"><b>Qualifications:</b></td><td style="border:2px solid #222; white-space:pre-wrap; word-wrap:break-word;">{{ member['qualifications'] if member['qualifications'] else '' }}{% if member.get('new_member_orientation_completed') %}{% if member['qualifications'] %}<br>{% endif %}New Member Orientation{% if member.get('new_member_orientation_date') %}: {{ member['new_member_orientation_date']|format_mmddyyyy }}{% endif %}{% endif %}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Card/Fob Internal Number:</b></td><td style="border:2px solid #222;">{{ member['card_internal'] }}</td></tr>
 			   <tr><td style="border:2px solid #222;"><b>Card/Fob External Number:</b></td><td style="border:2px solid #222;">{{ member['card_external'] }}</td></tr>
 			   <tr>
@@ -1047,6 +1047,13 @@ function submitCommittees() {
 						{{ qualification }}
 					</label>
 					{% endfor %}
+				</div>
+				<div style="grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:4px 0 2px 0;">
+					<label style="display:inline-flex; align-items:center; gap:6px; font-weight:normal;">
+						<input type="checkbox" name="new_member_orientation_completed" value="1" {% if member.get('new_member_orientation_completed') %}checked{% endif %}>
+						New Member Orientation
+					</label>
+					<input type="date" id="new_member_orientation_date" name="new_member_orientation_date" value="{{ member['new_member_orientation_date'] if member.get('new_member_orientation_date') else '' }}">
 				</div>
 				<label for="card_internal">Card Internal:</label><input type="text" id="card_internal" name="card_internal" value="{{ member['card_internal'] }}">
 				<label for="card_external">Card External:</label><input type="text" id="card_external" name="card_external" value="{{ member['card_external'] }}">

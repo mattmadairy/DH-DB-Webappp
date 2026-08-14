@@ -378,6 +378,7 @@ def format_name_last_first(value):
 app.jinja_env.filters['format_name_last_first'] = format_name_last_first
 
 QUALIFICATION_OPTIONS = ['RSO', 'Holster', 'Instructor']
+QUALIFICATIONS_REPORT_OPTIONS = QUALIFICATION_OPTIONS + ['New Member Orientation']
 
 def parse_qualifications(value):
 	"""Convert a stored qualification string into a list for checkbox rendering."""
@@ -409,11 +410,15 @@ def get_qualifications_report_data():
 	]
 
 	grouped_members = {}
-	for qualification in QUALIFICATION_OPTIONS:
+	for qualification in QUALIFICATIONS_REPORT_OPTIONS:
 		qualified_members = []
 		for member in reportable_members:
 			member_qualifications = parse_qualifications(member['qualifications'])
-			if qualification in member_qualifications:
+			if qualification == 'New Member Orientation':
+				is_qualified = bool(member['new_member_orientation_completed'])
+			else:
+				is_qualified = qualification in member_qualifications
+			if is_qualified:
 				qualified_members.append(member)
 		qualified_members.sort(key=lambda m: (
 			int(m['badge_number']) if str(m['badge_number']).isdigit() else 0,
@@ -1450,7 +1455,7 @@ def qualifications_report():
 	return render_template(
 		'qualifications_report.html',
 		qualifications_by_type=qualifications_by_type,
-		qualification_options=QUALIFICATION_OPTIONS,
+		qualification_options=QUALIFICATIONS_REPORT_OPTIONS,
 		qualification_counts=qualification_counts,
 		now=now,
 		active_page='qualifications_report',
@@ -1463,7 +1468,7 @@ def qualifications_report():
 @admin_required
 def qualifications_export_csv():
 	qualification = request.args.get('qualification', '').strip()
-	if qualification not in QUALIFICATION_OPTIONS:
+	if qualification not in QUALIFICATIONS_REPORT_OPTIONS:
 		return jsonify({'error': 'Invalid qualification'}), 400
 
 	qualifications_by_type = get_qualifications_report_data()
@@ -1474,14 +1479,15 @@ def qualifications_export_csv():
 
 	output = io.StringIO()
 	writer = csv.writer(output)
-	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Membership Type', 'Qualifications'])
+	writer.writerow(['Badge Number', 'Last Name', 'First Name', 'Membership Type', 'Qualifications', 'Orientation Date'])
 	for member in members:
 		writer.writerow([
 			member['badge_number'] or '',
 			member['last_name'] or '',
 			member['first_name'] or '',
 			member['membership_type'] or '',
-			member['qualifications'] or ''
+			member['qualifications'] or '',
+			member['new_member_orientation_date'] if qualification == 'New Member Orientation' else ''
 		])
 
 	output.seek(0)
@@ -2791,6 +2797,8 @@ def edit_section(member_id):
 					'introduced_date': request.form.get('introduced_date') or None,
 					'background_check_submitted': request.form.get('background_check_submitted') or None,
 					'background_check_passed': request.form.get('background_check_passed') or None,
+					'new_member_orientation_completed': 1 if request.form.get('new_member_orientation_completed') else 0,
+					'new_member_orientation_date': request.form.get('new_member_orientation_date') or None,
 					'sponsor': request.form['sponsor'],
 					'card_internal': request.form['card_internal'],
 					'card_external': request.form['card_external'],

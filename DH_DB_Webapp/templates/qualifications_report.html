@@ -53,7 +53,8 @@
             .qualification-panel { display:none !important; }
             body.print-qualification-rso #qualification-rso,
             body.print-qualification-holster #qualification-holster,
-            body.print-qualification-instructor #qualification-instructor { display:block !important; }
+            body.print-qualification-instructor #qualification-instructor,
+            body.print-qualification-new-member-orientation #qualification-new-member-orientation { display:block !important; }
             table { max-width:none !important; }
             th, td { border:2px solid #222 !important; }
         }
@@ -103,15 +104,17 @@
 
             <div class="qualification-tabs" role="tablist" aria-label="Qualifications Tabs">
                 {% for qualification in qualification_options %}
-                <button type="button" class="qualification-tab {% if loop.first %}active{% endif %}" data-tab="qualification-{{ qualification|lower }}" onclick="showQualificationTab('qualification-{{ qualification|lower }}', this)">{{ qualification }} ({{ qualification_counts[qualification] }})</button>
+                {% set qualification_id = qualification|lower|replace(' ', '-') %}
+                <button type="button" class="qualification-tab {% if loop.first %}active{% endif %}" data-tab="qualification-{{ qualification_id }}" onclick="showQualificationTab('qualification-{{ qualification_id }}', this)">{{ qualification }} ({{ qualification_counts[qualification] }})</button>
                 {% endfor %}
             </div>
 
             {% for qualification in qualification_options %}
-            <div id="qualification-{{ qualification|lower }}" class="qualification-card qualification-panel {% if loop.first %}active{% endif %}">
+            {% set qualification_id = qualification|lower|replace(' ', '-') %}
+            <div id="qualification-{{ qualification_id }}" class="qualification-card qualification-panel {% if loop.first %}active{% endif %}">
                 <h2 style="text-align:center; margin-top:0; color:#384839;">{{ qualification }} <span style="font-weight:normal;">({{ qualification_counts[qualification] }})</span></h2>
                 <div class="qualification-controls">
-                    <button type="button" class="print-btn" onclick="printQualificationTab('qualification-{{ qualification|lower }}')">🖨️ Print {{ qualification }}</button>
+                    <button type="button" class="print-btn" onclick="printQualificationTab('qualification-{{ qualification_id }}')">🖨️ Print {{ qualification }}</button>
                     <a href="{{ url_for('qualifications_export_csv', qualification=qualification) }}" class="print-btn" style="display:inline-block; text-decoration:none; line-height:1.4; background-color:#28a745; color:#fff;">📥 Export CSV</a>
                 </div>
                 <div style="overflow-x:auto;">
@@ -121,7 +124,7 @@
                                 <th>Badge #</th>
                                 <th>Name</th>
                                 <th>Membership Type</th>
-                                <th>Qualifications</th>
+                                <th>{% if qualification == 'New Member Orientation' %}Orientation Date{% else %}Qualifications{% endif %}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -130,12 +133,16 @@
                                 <td>{{ member['badge_number'] }}</td>
                                 <td>{{ member['last_name'] }}, {{ member['first_name'] }}</td>
                                 <td>{{ member['membership_type'] }}</td>
-                                <td>
+								<td>
+									{% if qualification == 'New Member Orientation' %}
+										{{ member['new_member_orientation_date']|format_mmddyyyy if member['new_member_orientation_date'] else '' }}
+									{% else %}
                                     <div class="badge-list">
                                         {% for item in member['qualifications'].split(',') if member['qualifications'] %}
                                             <span class="badge-pill">{{ item.strip() }}</span>
                                         {% endfor %}
                                     </div>
+									{% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -175,11 +182,11 @@
         }
     }
     function printQualificationTab(tabId) {
-        document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor');
+        document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor', 'print-qualification-new-member-orientation');
         document.body.classList.add('print-' + tabId);
         window.print();
         setTimeout(function() {
-            document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor');
+            document.body.classList.remove('print-qualification-rso', 'print-qualification-holster', 'print-qualification-instructor', 'print-qualification-new-member-orientation');
         }, 250);
     }
     </script>

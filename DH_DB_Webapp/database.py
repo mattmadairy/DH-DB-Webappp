@@ -465,6 +465,8 @@ def ensure_membership_tracking_columns():
 		'introduced_date': 'TEXT',
 		'background_check_submitted': 'TEXT',
 		'background_check_passed': 'TEXT',
+        'new_member_orientation_completed': 'INTEGER DEFAULT 0',
+        'new_member_orientation_date': 'TEXT',
         'qualifications': 'TEXT',
 		'member_notes': 'TEXT'
 	}
