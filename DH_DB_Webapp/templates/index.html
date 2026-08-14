@@ -38,24 +38,108 @@ function copyEmail(inputId) {
         cursor: pointer;
         user-select: none;
     }
+    .side-menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 210px;
+        background-color: #2c332b;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 120px;
+        z-index: 100;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+        overflow-y: auto;
+        transition: width 0.25s ease, transform 0.25s ease;
+    }
+    .side-menu.collapsed {
+        width: 0;
+        transform: translateX(-100%);
+        overflow: hidden;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .side-menu.collapsed a,
+    .side-menu.collapsed .menu-toggle,
+    .side-menu.collapsed .sidebar-stat-box {
+        width: 54px !important;
+        overflow: hidden;
+        white-space: nowrap;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    .side-menu.collapsed .submenu,
+    .side-menu.collapsed .sidebar-stat-box {
+        display: none !important;
+    }
+    .sidebar-toggle {
+        position: absolute;
+        top: 18px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid #d9d9d9;
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        font-size: 1.1rem;
+        cursor: pointer;
+        z-index: 101;
+    }
+    .mobile-sidebar-toggle {
+        display: none;
+        border: 1px solid #d9d9d9;
+        color: #fff;
+        background: #384839;
+        cursor: pointer;
+        font-size: 1.1rem;
+    }
+    body.sidebar-collapsed .mobile-sidebar-toggle {
+        display: block;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        width: 44px;
+        height: 44px;
+        border-radius: 6px;
+        z-index: 110;
+    }
+    body.sidebar-collapsed .main-content,
+    body.sidebar-collapsed .content-shell {
+        margin-left: 0 !important;
+    }
 
     @media (max-width: 900px) {
         body {
             overflow-x: hidden;
         }
 
-        div[style*="position:fixed"][style*="width:210px"] {
-            position: static !important;
-            width: 100% !important;
-            height: auto !important;
-            min-height: auto !important;
-            padding-top: 24px !important;
-            margin: 0 !important;
-            overflow: visible !important;
-            box-shadow: none !important;
+        .side-menu {
+            position: fixed !important;
+            width: 210px !important;
+            height: 100vh !important;
+            transform: translateX(0);
+            transition: transform 0.25s ease, width 0.25s ease;
         }
 
-        div[style*="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;"] {
+        .side-menu.collapsed {
+            width: 0 !important;
+            transform: translateX(-100%);
+            overflow: hidden;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        body.sidebar-collapsed .main-content,
+        body.sidebar-collapsed .content-shell {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
+        .content-shell,
+        .main-content {
             margin-left: 0 !important;
             width: 100% !important;
             padding: 0 12px 20px !important;
@@ -119,12 +203,34 @@ function toggleSignInSubmenu() {
     submenu.classList.toggle('active');
     arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
 }
+function toggleSidebar() {
+    const sidebar = document.getElementById('mainSidebar');
+    const collapsed = sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+    updateSidebarToggle(collapsed);
+}
+function updateSidebarToggle(collapsed) {
+    const mobileToggle = document.querySelector('.mobile-sidebar-toggle');
+    if (mobileToggle) {
+        mobileToggle.setAttribute('aria-expanded', String(!collapsed));
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('mainSidebar');
+    if (!sidebar) return;
+    const collapsed = localStorage.getItem('sidebarCollapsed') === '1';
+    sidebar.classList.toggle('collapsed', collapsed);
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    updateSidebarToggle(collapsed);
+});
 </script>
 </head>
 <body style="background-color:#384839; font-family:Arial, Helvetica, sans-serif;">
     <div style="display:flex; flex-direction:row;">
         <!-- Static Side Menu -->
-        <div style="position:fixed; top:0; left:0; height:100vh; width:210px; background-color:#2c332b; display:flex; flex-direction:column; align-items:center; padding-top:120px; z-index:100; box-shadow:2px 0 8px rgba(0,0,0,0.08); overflow-y:auto;">
+        <div id="mainSidebar" class="side-menu">
+            <button type="button" class="sidebar-toggle" aria-label="Toggle sidebar" onclick="toggleSidebar()">☰</button>
             <img src="{{ url_for('static', filename='Main_Logo-removebg-preview.png') }}" alt="Main Logo" style="height:143px; margin-top:-88px; margin-left:-8px; margin-bottom:34px;">
             <a href="{{ url_for('admin_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#007bff; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🏠 Admin Home</a>
             {% if current_user.is_admin_or_bdfl() %}
@@ -172,7 +278,7 @@ function toggleSignInSubmenu() {
             {% endif %}
             <a href="{{ url_for('member_dashboard') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">👤 Members Area</a>
             <a href="{{ url_for('logout') }}" style="width:170px; display:inline-block; padding:10px 0; margin-bottom:10px; border-radius:6px; border:1px solid #384839; background-color:#d9534f; color:#ffffff; text-decoration:none; font-weight:bold; font-size:1em; font-family:Arial, Helvetica, sans-serif; box-shadow:0 1px 2px rgba(0,0,0,0.04); text-align:center;">🚪 Logout</a>
-            <div style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
+            <div class="sidebar-stat-box" style="width:170px; margin-top:20px; padding:10px; border-top:1px solid #384839;">
                 <div style="color:#f5f5f5; font-size:0.9em; line-height:1.6; text-align:left;">
                     <div style="margin-bottom:8px;"><strong>Life:</strong> {{ member_stats.life_members }}</div>
                     <div style="margin-bottom:8px;"><strong>Probationary, Associate, & Active:</strong> {{ member_stats.voting_members }}</div>
@@ -180,8 +286,9 @@ function toggleSignInSubmenu() {
                 </div>
             </div>
         </div>
+        <button type="button" class="mobile-sidebar-toggle" aria-label="Open navigation menu" aria-expanded="true" onclick="toggleSidebar()">☰</button>
         <!-- Main content area shifted right to accommodate side menu -->
-        <div style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
+        <div class="content-shell" style="flex:1; margin-left:210px; display:flex; flex-direction:column; align-items:center;">
             <!-- Email List Button moved to search bar row -->
             {% block content %}
             <!-- Main page content goes here -->
