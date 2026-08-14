@@ -314,9 +314,16 @@ function generateEmailList() {
 
 		.content-shell,
 		.main-content {
+			margin-left: 210px !important;
+			width: calc(100% - 210px) !important;
+			box-sizing: border-box;
+			padding: 0 12px 20px !important;
+		}
+
+		body.sidebar-collapsed .content-shell,
+		body.sidebar-collapsed .main-content {
 			margin-left: 0 !important;
 			width: 100% !important;
-			padding: 0 12px 20px !important;
 		}
 
 		.tabbar {
