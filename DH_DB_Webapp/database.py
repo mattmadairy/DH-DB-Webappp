@@ -57,10 +57,10 @@ def get_meeting_years():
     years = [row['year'] for row in c.fetchall() if row['year']]
     conn.close()
     return years
-def get_work_hours_report(start_date=None, end_date=None):
+def get_work_hours_report(start_date=None, end_date=None, membership_type=None):
     """
     Return a list of (badge_number, first_name, last_name, total_hours, id)
-    for Associate, Active, and Life members, optionally filtered by date range.
+    for the requested membership type, optionally filtered by date range.
     """
     conn = get_connection()
     c = conn.cursor()
@@ -70,17 +70,31 @@ def get_work_hours_report(start_date=None, end_date=None):
         FROM members m
         LEFT JOIN work_hours w ON m.id = w.member_id
         WHERE m.deleted = 0
-          AND LOWER(TRIM(COALESCE(m.membership_type, ''))) IN ('associate', 'active', 'life')
     """
     params = []
+    date_params = []
+    if membership_type:
+        query += " AND LOWER(TRIM(COALESCE(m.membership_type, ''))) = ?"
+        params.append(membership_type.lower())
+    else:
+        query += " AND LOWER(TRIM(COALESCE(m.membership_type, ''))) IN ('probationary', 'associate', 'active', 'life')"
     if start_date:
-        query += " AND (w.date >= ? OR w.date IS NULL)"
-        params.append(start_date)
+        query = query.replace(
+            "LEFT JOIN work_hours w ON m.id = w.member_id",
+            "LEFT JOIN work_hours w ON m.id = w.member_id AND w.date >= ?",
+        )
+        date_params.append(start_date)
     if end_date:
-        query += " AND (w.date <= ? OR w.date IS NULL)"
-        params.append(end_date)
+        join_condition = "LEFT JOIN work_hours w ON m.id = w.member_id"
+        if start_date:
+            join_condition += " AND w.date >= ?"
+        query = query.replace(
+            join_condition,
+            join_condition + " AND w.date <= ?",
+        )
+        date_params.append(end_date)
     query += " GROUP BY m.id ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name"
-    c.execute(query, params)
+    c.execute(query, date_params + params)
     rows = c.fetchall()
     conn.close()
     return rows

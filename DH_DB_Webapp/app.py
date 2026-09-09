@@ -1323,13 +1323,20 @@ def members_name_address_export_csv():
 @admin_required
 def work_hours_export_csv():
 	year = request.args.get('year')
+	membership_type = request.args.get('membership_type', 'all').lower()
+	if membership_type not in {'all', 'probationary', 'active', 'associate', 'life'}:
+		membership_type = 'all'
 	if not year:
 		now = datetime.datetime.now(TIMEZONE)
 		year = str(now.year)
 	
 	start_date = f"{year}-01-01"
 	end_date = f"{year}-12-31"
-	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
+	work_hours = database.get_work_hours_report(
+		start_date=start_date,
+		end_date=end_date,
+		membership_type=None if membership_type == 'all' else membership_type,
+	)
 	
 	# Create CSV content
 	import csv
@@ -1354,7 +1361,9 @@ def work_hours_export_csv():
 	output.seek(0)
 	response = make_response(output.getvalue())
 	response.headers['Content-Type'] = 'text/csv'
-	response.headers['Content-Disposition'] = f'attachment; filename=work_hours_{year}.csv'
+	filename_suffix = '' if membership_type == 'all' else f'_{membership_type}'
+	report_date = datetime.datetime.now(TIMEZONE).strftime('%m-%d-%Y')
+	response.headers['Content-Disposition'] = f'attachment; filename={year}_work_hours{filename_suffix}_{report_date}.csv'
 	return response
 
 @app.route('/meeting_attendance_export_csv')
@@ -1427,21 +1436,30 @@ def add_work_hours(member_id):
 @admin_required
 def work_hours_report():
 	year = request.args.get('year')
+	membership_type = request.args.get('membership_type', 'all').lower()
+	if membership_type not in {'all', 'probationary', 'active', 'associate', 'life'}:
+		membership_type = 'all'
 	# Get all work hours for all members for the selected year
 	if year:
 		start_date = f"{year}-01-01"
 		end_date = f"{year}-12-31"
 	else:
 		now = datetime.datetime.now(TIMEZONE)
-		year = now.year
+		year = str(now.year)
 		start_date = f"{year}-01-01"
 		end_date = f"{year}-12-31"
-	work_hours = database.get_work_hours_report(start_date=start_date, end_date=end_date)
-	years = database.get_dues_years()  # reuse dues years for dropdown
+	work_hours = database.get_work_hours_report(
+		start_date=start_date,
+		end_date=end_date,
+		membership_type=None if membership_type == 'all' else membership_type,
+	)
+	years = database.get_work_hours_years()
+	if year not in years:
+		years.insert(0, year)
 	now = datetime.datetime.now(TIMEZONE)
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
-	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, membership_type=membership_type, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/qualifications_report')
 @login_required

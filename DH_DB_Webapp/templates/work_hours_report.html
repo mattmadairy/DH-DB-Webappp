@@ -216,7 +216,15 @@
                 </div>
             </div>
             <div style="background-color:#f5f5f5; border-radius:8px; padding:32px; min-width:400px; min-height:200px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:40px; margin-top:24px; width:100%; max-width:800px;">
+                <div role="group" aria-label="Membership type filter" style="display:flex; justify-content:center; flex-wrap:wrap; gap:6px; margin-bottom:18px;">
+                    <a href="{{ url_for('work_hours_report', year=selected_year, membership_type='all') }}" style="padding:6px 12px; border:1px solid #384839; border-radius:6px; background-color:{{ '#384839' if membership_type == 'all' else '#eaeaea' }}; color:{{ '#fff' if membership_type == 'all' else '#384839' }}; text-decoration:none;">All</a>
+                    <a href="{{ url_for('work_hours_report', year=selected_year, membership_type='probationary') }}" style="padding:6px 12px; border:1px solid #384839; border-radius:6px; background-color:{{ '#384839' if membership_type == 'probationary' else '#eaeaea' }}; color:{{ '#fff' if membership_type == 'probationary' else '#384839' }}; text-decoration:none;">Probationary</a>
+                    <a href="{{ url_for('work_hours_report', year=selected_year, membership_type='active') }}" style="padding:6px 12px; border:1px solid #384839; border-radius:6px; background-color:{{ '#384839' if membership_type == 'active' else '#eaeaea' }}; color:{{ '#fff' if membership_type == 'active' else '#384839' }}; text-decoration:none;">Active</a>
+                    <a href="{{ url_for('work_hours_report', year=selected_year, membership_type='associate') }}" style="padding:6px 12px; border:1px solid #384839; border-radius:6px; background-color:{{ '#384839' if membership_type == 'associate' else '#eaeaea' }}; color:{{ '#fff' if membership_type == 'associate' else '#384839' }}; text-decoration:none;">Associate</a>
+                    <a href="{{ url_for('work_hours_report', year=selected_year, membership_type='life') }}" style="padding:6px 12px; border:1px solid #384839; border-radius:6px; background-color:{{ '#384839' if membership_type == 'life' else '#eaeaea' }}; color:{{ '#fff' if membership_type == 'life' else '#384839' }}; text-decoration:none;">Life</a>
+                </div>
                 <form method="get" action="{{ url_for('work_hours_report') }}" style="margin-bottom:18px; display:inline-flex; align-items:center; gap:16px;">
+                    <input type="hidden" name="membership_type" value="{{ membership_type }}">
                     <label for="year" style="font-size:1.1em; color:#384839; margin-right:8px;">Year:</label>
                     <select name="year" id="year" onchange="this.form.submit()" style="font-size:1.1em; padding:4px 12px; border-radius:6px; border:1px solid #384839;">
                         {% for y in years %}
@@ -226,7 +234,7 @@
                         {% endfor %}
                     </select>
                     <button type="button" class="print-btn" onclick="printReport()" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; cursor:pointer; margin-left:8px;">🖨️ Print Report</button>
-                    <button type="button" class="print-btn" onclick="window.location.href='{{ url_for('work_hours_export_csv', year=selected_year) }}'" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#fff; cursor:pointer; margin-left:8px;">📥 Export CSV</button>
+                    <button type="button" class="print-btn" onclick="window.location.href='{{ url_for('work_hours_export_csv', year=selected_year, membership_type=membership_type) }}'" style="padding:6px 18px; font-size:1.1em; border-radius:6px; border:1px solid #384839; background-color:#28a745; color:#fff; cursor:pointer; margin-left:8px;">📥 Export CSV</button>
                     <label class="hide-names-label" style="font-size:1em; color:#384839; margin-left:12px;">
                         <input type="checkbox" id="hideNamesPrint" style="margin-right:6px; vertical-align:middle;" onclick="toggleHideNames()"> Hide Names in Print
                     </label>
