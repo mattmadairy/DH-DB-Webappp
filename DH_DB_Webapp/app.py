@@ -1453,13 +1453,19 @@ def work_hours_report():
 		end_date=end_date,
 		membership_type=None if membership_type == 'all' else membership_type,
 	)
+	member_counts = {'all': 0, 'probationary': 0, 'active': 0, 'associate': 0, 'life': 0}
+	for member in database.get_all_members():
+		member_type = (member['membership_type'] or '').lower()
+		if member_type in member_counts and member_type != 'all':
+			member_counts[member_type] += 1
+			member_counts['all'] += 1
 	years = database.get_work_hours_years()
 	if year not in years:
 		years.insert(0, year)
 	now = datetime.datetime.now(TIMEZONE)
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
-	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, membership_type=membership_type, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
+	return render_template('work_hours_report.html', work_hours=work_hours, years=years, selected_year=year, membership_type=membership_type, member_counts=member_counts, now=now, active_page='work_hours_report', member_stats=member_stats, pending_applications=pending_applications)
 
 @app.route('/qualifications_report')
 @login_required
