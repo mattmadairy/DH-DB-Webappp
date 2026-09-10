@@ -525,8 +525,8 @@
 		}
 
 		function approveApplication(appId) {
-			const badgeNumber = prompt('Please enter a badge number for this member:');
-			if (badgeNumber && badgeNumber.trim()) {
+			const badgeNumber = prompt('Enter a badge number for this member, or leave blank for a prospective member:');
+			if (badgeNumber !== null) {
 				const formData = new FormData();
 				formData.append('badge_number', badgeNumber.trim());
 				

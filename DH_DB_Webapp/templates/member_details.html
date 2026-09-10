@@ -1019,9 +1019,9 @@ function submitCommittees() {
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
-				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}">
+				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" {% if member['membership_type'] in ['Life', 'Active', 'Associate', 'Probationary', 'Honorary'] %}required{% endif %}>
 				<label for="membership_type">Membership Type:</label>
-				<select id="membership_type" name="membership_type">
+				<select id="membership_type" name="membership_type" onchange="updateMembershipBadgeRequirement()">
 					<option value="Probationary" {% if member['membership_type'] == 'Probationary' %}selected{% endif %}>Probationary</option>
 					<option value="Associate" {% if member['membership_type'] == 'Associate' %}selected{% endif %}>Associate</option>
 					<option value="Active" {% if member['membership_type'] == 'Active' %}selected{% endif %}>Active</option>
@@ -1391,6 +1391,23 @@ function submitSection(section) {
 			alert('Error saving changes');
 		}
 	});
+}
+
+function updateMembershipBadgeRequirement() {
+	var membershipType = document.getElementById('membership_type').value;
+	var badgeNumber = document.getElementById('badge_number');
+	var badgeOptionalTypes = ['Prospective', 'Wait List', 'Former'];
+	badgeNumber.required = !badgeOptionalTypes.includes(membershipType);
+
+	if (badgeNumber.required && !badgeNumber.value.trim()) {
+		fetch('{{ url_for("api_next_available_badge") }}')
+			.then(function(response) { return response.json(); })
+			.then(function(data) {
+				if (!badgeNumber.value.trim()) {
+					badgeNumber.value = data.badge_number;
+				}
+			});
+	}
 }
 
 function sortTable(tableId, colIdx) {

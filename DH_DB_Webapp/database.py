@@ -532,6 +532,23 @@ def get_member_by_badge_number(badge_number):
 	conn.close()
 	return row
 
+def get_lowest_available_badge_number(start=8):
+    """Return the lowest unused numeric badge number at or above start."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT badge_number FROM members WHERE badge_number IS NOT NULL AND badge_number != ''")
+    used_badges = {
+        int(row['badge_number'])
+        for row in c.fetchall()
+        if str(row['badge_number']).strip().isdigit()
+    }
+    conn.close()
+
+    badge_number = start
+    while badge_number in used_badges:
+        badge_number += 1
+    return str(badge_number)
+
 def get_member_by_email(email):
 	"""Get member by email (primary or secondary)"""
 	conn = get_connection()
@@ -1307,7 +1324,8 @@ def approve_application(app_id, user_id, badge_number):
 		datetime.now().strftime('%Y-%m-%d'),
 		app['sponsor'],
 		'',  # card_internal
-		''   # card_external
+        '',  # card_external
+        ''   # qualifications
 	)
 	member_id = add_member(member_data)
 	

@@ -73,6 +73,19 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 # Set timezone to America/New_York
 TIMEZONE = pytz.timezone('America/New_York')
 
+BADGE_REQUIRED_MEMBERSHIP_TYPES = {'Life', 'Active', 'Associate', 'Probationary', 'Honorary'}
+BADGE_ASSIGNMENT_MEMBERSHIP_TYPES = BADGE_REQUIRED_MEMBERSHIP_TYPES
+
+def validate_member_badge(membership_type, badge_number):
+	"""Require badges for active membership categories."""
+	if membership_type in BADGE_REQUIRED_MEMBERSHIP_TYPES and not badge_number.strip():
+		raise ValueError(f'Badge number is required for {membership_type} members.')
+
+def assign_badge_on_prospective_promotion(old_membership_type, new_membership_type, badge_number):
+	if old_membership_type == 'Prospective' and new_membership_type in BADGE_ASSIGNMENT_MEMBERSHIP_TYPES:
+		return database.get_lowest_available_badge_number()
+	return badge_number
+
 # Load configuration
 env = os.environ.get('FLASK_ENV', 'development')
 from config import config
@@ -2689,9 +2702,17 @@ def edit_member(member_id):
 	if not member:
 		return "Member not found", 404
 	if request.method == 'POST':
+		membership_type = request.form['membership_type']
+		badge_number = request.form.get('badge_number', '').strip()
+		badge_number = assign_badge_on_prospective_promotion(member['membership_type'], membership_type, badge_number)
+		try:
+			validate_member_badge(membership_type, badge_number)
+		except ValueError as error:
+			flash(str(error), 'error')
+			return render_template('edit_member.html', member=member, member_qualifications=parse_qualifications(member['qualifications'])), 400
 		data = (
-			request.form['badge_number'],
-			request.form['membership_type'],
+			badge_number,
+			membership_type,
 			request.form['first_name'],
 			request.form.get('middle_name', ''),
 			request.form['last_name'],
@@ -2724,9 +2745,12 @@ def edit_member(member_id):
 def add_member():
 	if request.method == 'POST':
 		try:
+			membership_type = request.form.get('membership_type', '')
+			badge_number = request.form.get('badge_number', '').strip()
+			validate_member_badge(membership_type, badge_number)
 			data = (
-				request.form.get('badge_number', ''),
-				request.form.get('membership_type', ''),
+				badge_number,
+				membership_type,
 				request.form.get('first_name', ''),
 				request.form.get('middle_name', ''),
 				request.form.get('last_name', ''),
@@ -2787,6 +2811,12 @@ def add_member():
 			return jsonify({'success': False, 'error': str(e)}), 400
 	return render_template('add_member.html')
 
+@app.route('/api/next_available_badge', methods=['GET'])
+@login_required
+@admin_required
+def api_next_available_badge():
+	return jsonify({'badge_number': database.get_lowest_available_badge_number()})
+
 # Edit Section route
 @app.route('/edit_section/<int:member_id>', methods=['GET', 'POST'])
 @csrf.exempt
@@ -2813,8 +2843,11 @@ def edit_section(member_id):
 			elif section == 'membership':
 				old_membership_type = member['membership_type']
 				new_membership_type = request.form['membership_type']
+				badge_number = request.form.get('badge_number', '').strip()
+				badge_number = assign_badge_on_prospective_promotion(old_membership_type, new_membership_type, badge_number)
+				validate_member_badge(new_membership_type, badge_number)
 				database.update_member_section(member_id, {
-					'badge_number': request.form['badge_number'],
+					'badge_number': badge_number,
 					'membership_type': new_membership_type,
 					'join_date': request.form['join_date'] or None,
 					'application_submitted': request.form.get('application_submitted') or None,
@@ -3955,18 +3988,19 @@ def approve_application(app_id):
 		flash('Access denied. Only administrators can approve applications.', 'error')
 		return redirect(url_for('admin_applications'))
 	
-	badge_number = request.form.get('badge_number')
-	if not badge_number:
-		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-			return jsonify({'success': False, 'message': 'Badge number is required to approve application.'}), 400
-		flash('Badge number is required to approve application.', 'error')
-		return redirect(url_for('admin_applications'))
+	badge_number = request.form.get('badge_number', '').strip()
 	
 	success = database.approve_application(app_id, current_user.id, badge_number)
 	if success:
 		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-			return jsonify({'success': True, 'message': f'Application approved! Member created with badge number {badge_number}.'})
-		flash(f'Application approved! Member created with badge number {badge_number}.', 'info')
+			message = 'Application approved! Member created.'
+			if badge_number:
+				message = f'Application approved! Member created with badge number {badge_number}.'
+			return jsonify({'success': True, 'message': message})
+		message = 'Application approved! Member created.'
+		if badge_number:
+			message = f'Application approved! Member created with badge number {badge_number}.'
+		flash(message, 'info')
 	else:
 		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
 			return jsonify({'success': False, 'message': 'Failed to approve application.'}), 500

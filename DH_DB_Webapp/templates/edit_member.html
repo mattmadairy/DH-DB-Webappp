@@ -13,9 +13,9 @@
         <form method="post" style="width:100%; max-width:500px;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <table style="margin:auto; width:100%;">
-                <tr><td style="padding-right:40px;"><label for="badge_number"><b>Badge Number:</b></label></td><td><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" required></td></tr>
+                <tr><td style="padding-right:40px;"><label for="badge_number"><b>Badge Number:</b></label></td><td><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}"></td></tr>
                 <tr><td style="padding-right:40px;"><label for="membership_type"><b>Membership Type:</b></label></td><td>
-                    <select id="membership_type" name="membership_type" required style="width: 100%; box-sizing: border-box;">
+                    <select id="membership_type" name="membership_type" required style="width: 100%; box-sizing: border-box;" onchange="updateBadgeRequirement()">
                         {% set types = ["Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Former"] %}
                         {% for t in types %}
                             <option value="{{ t }}" {% if member['membership_type'] == t %}selected{% endif %}>{{ t }}</option>
@@ -64,6 +64,26 @@
                     <button type="button" onclick="window.location.href='{{ url_for('index') }}'">Cancel</button>
             </div>
         </form>
+    <script>
+        function updateBadgeRequirement() {
+            const membershipType = document.getElementById('membership_type').value;
+            const badgeNumber = document.getElementById('badge_number');
+            const badgeOptionalTypes = ['Prospective', 'Wait List', 'Former'];
+            badgeNumber.required = !badgeOptionalTypes.includes(membershipType);
+
+            if (badgeNumber.required && !badgeNumber.value.trim()) {
+                fetch('{{ url_for("api_next_available_badge") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!badgeNumber.value.trim()) {
+                            badgeNumber.value = data.badge_number;
+                        }
+                    });
+            }
+        }
+
+        updateBadgeRequirement();
+    </script>
     <div style="position:absolute; top:24px; left:32px; z-index:10;">
         <a href="{{ url_for('index') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #ccc; background-color:#f8f8f8; color:#333; text-decoration:none; font-weight:normal; box-shadow:0 1px 2px rgba(0,0,0,0.04);">🏠 Home</a>
     </div>
