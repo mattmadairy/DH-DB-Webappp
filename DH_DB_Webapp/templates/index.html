@@ -404,29 +404,26 @@ document.addEventListener('click', function(event) {
                     body: formData,
                     credentials: 'same-origin'
                 })
-                .then(function(resp) {
+                .then(async function(resp) {
                     console.log('Response status:', resp.status, resp.statusText);
                     console.log('Response headers:', resp.headers);
                     
-                    // Check if response is JSON
                     var contentType = resp.headers.get('content-type');
                     if (contentType && contentType.includes('application/json')) {
-                        return resp.json().then(function(data) {
-                            if (resp.ok && data.success) {
-                                alert('Member added successfully!');
-                                location.reload();
-                            } else {
-                                alert('Error adding member: ' + (data.error || 'Unknown error'));
-                                console.error('Error details:', data);
-                            }
-                        });
-                    } else {
-                        // Response is not JSON, probably HTML error or redirect
-                        return resp.text().then(function(text) {
-                            console.error('Non-JSON response:', text.substring(0, 500));
-                            alert('Server error: Received non-JSON response. Check console for details.');
-                        });
+                        var data = await resp.json();
+                        if (resp.ok && data.success) {
+                            alert('Member added successfully!');
+                            location.reload();
+                        } else {
+                            alert('Error adding member: ' + (data.error || data.message || 'Unknown error'));
+                            console.error('Error details:', data);
+                        }
+                        return;
                     }
+
+                    var text = await resp.text();
+                    console.error('Non-JSON response:', text.substring(0, 500));
+                    alert('Server error: ' + (text ? text.substring(0, 200) : 'Received non-JSON response. Check console for details.'));
                 })
                 .catch(function(error) {
                     console.error('Fetch error:', error);

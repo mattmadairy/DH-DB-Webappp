@@ -1272,12 +1272,26 @@ function submitEditDue() {
 	fetch(`/edit_due/${formData.get('due_id')}`, {
 		method: 'POST',
 		body: formData
-	}).then(response => {
+	}).then(async response => {
 		if (response.ok) {
 			location.reload();
-		} else {
-			alert('Error saving changes');
+			return;
 		}
+		let message = 'Error saving changes';
+		try {
+			const data = await response.json();
+			if (data && (data.error || data.message)) {
+				message = data.error || data.message;
+			}
+		} catch (e) {
+			try {
+				const text = await response.text();
+				if (text) {
+					message = text;
+				}
+			} catch (ignore) {}
+		}
+		alert(message);
 	});
 }
 
@@ -1384,12 +1398,26 @@ function submitSection(section) {
 	fetch(url, {
 		method: 'POST',
 		body: formData
-	}).then(response => {
+	}).then(async response => {
 		if (response.ok) {
 			location.reload();
-		} else {
-			alert('Error saving changes');
+			return;
 		}
+		let message = 'Error saving changes';
+		try {
+			const data = await response.json();
+			if (data && (data.error || data.message)) {
+				message = data.error || data.message;
+			}
+		} catch (e) {
+			try {
+				const text = await response.text();
+				if (text) {
+					message = text;
+				}
+			} catch (ignore) {}
+		}
+		alert(message);
 	});
 }
 

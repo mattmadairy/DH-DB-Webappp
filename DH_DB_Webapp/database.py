@@ -523,12 +523,32 @@ def get_member_by_id(member_id):
 	conn.close()
 	return row
 
+def normalize_badge_number(value):
+	"""Normalize badge numbers for numeric comparison: trims whitespace and leading zeros."""
+	if value is None:
+		return ""
+	text = str(value).strip()
+	if not text:
+		return ""
+	if not text.isdigit():
+		return text
+	return str(int(text))
+
+
 def get_member_by_badge_number(badge_number):
 	"""Get member by badge number"""
 	conn = get_connection()
 	c = conn.cursor()
 	c.execute("SELECT * FROM members WHERE badge_number=?", (badge_number,))
 	row = c.fetchone()
+	if row is None:
+		normalized = normalize_badge_number(badge_number)
+		if normalized:
+			c.execute("SELECT * FROM members WHERE badge_number IS NOT NULL")
+			for candidate in c.fetchall():
+				if normalize_badge_number(candidate['badge_number']) == normalized:
+					row = candidate
+					break
 	conn.close()
 	return row
 
@@ -538,9 +558,9 @@ def get_lowest_available_badge_number(start=8):
     c = conn.cursor()
     c.execute("SELECT badge_number FROM members WHERE badge_number IS NOT NULL AND badge_number != ''")
     used_badges = {
-        int(row['badge_number'])
+        int(normalize_badge_number(row['badge_number']))
         for row in c.fetchall()
-        if str(row['badge_number']).strip().isdigit()
+        if normalize_badge_number(row['badge_number']).isdigit()
     }
     conn.close()
 
@@ -548,6 +568,22 @@ def get_lowest_available_badge_number(start=8):
     while badge_number in used_badges:
         badge_number += 1
     return str(badge_number)
+
+def is_badge_number_in_use(badge_number, exclude_member_id=None):
+	"""Return True if badge_number is already assigned to another member."""
+	text = normalize_badge_number(badge_number)
+	if not text or not text.isdigit():
+		return False
+	conn = get_connection()
+	c = conn.cursor()
+	c.execute("SELECT id, badge_number FROM members WHERE badge_number IS NOT NULL")
+	for row in c.fetchall():
+		candidate = normalize_badge_number(row['badge_number'])
+		if candidate and candidate.isdigit() and candidate == text and (exclude_member_id is None or row['id'] != exclude_member_id):
+			conn.close()
+			return True
+	conn.close()
+	return False
 
 def get_member_by_email(email):
 	"""Get member by email (primary or secondary)"""

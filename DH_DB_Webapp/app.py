@@ -76,10 +76,13 @@ TIMEZONE = pytz.timezone('America/New_York')
 BADGE_REQUIRED_MEMBERSHIP_TYPES = {'Life', 'Active', 'Associate', 'Probationary', 'Honorary'}
 BADGE_ASSIGNMENT_MEMBERSHIP_TYPES = BADGE_REQUIRED_MEMBERSHIP_TYPES
 
-def validate_member_badge(membership_type, badge_number):
-	"""Require badges for active membership categories."""
-	if membership_type in BADGE_REQUIRED_MEMBERSHIP_TYPES and not badge_number.strip():
+def validate_member_badge(membership_type, badge_number, exclude_member_id=None):
+	"""Require badges for active membership categories and prevent duplicate assignment."""
+	badge_number = (badge_number or '').strip()
+	if membership_type in BADGE_REQUIRED_MEMBERSHIP_TYPES and not badge_number:
 		raise ValueError(f'Badge number is required for {membership_type} members.')
+	if badge_number and database.is_badge_number_in_use(badge_number, exclude_member_id):
+		raise ValueError(f'Badge number {badge_number} is already assigned to another member.')
 
 def assign_badge_on_prospective_promotion(old_membership_type, new_membership_type, badge_number):
 	if old_membership_type == 'Prospective' and new_membership_type in BADGE_ASSIGNMENT_MEMBERSHIP_TYPES:
@@ -2706,7 +2709,7 @@ def edit_member(member_id):
 		badge_number = request.form.get('badge_number', '').strip()
 		badge_number = assign_badge_on_prospective_promotion(member['membership_type'], membership_type, badge_number)
 		try:
-			validate_member_badge(membership_type, badge_number)
+			validate_member_badge(membership_type, badge_number, exclude_member_id=member_id)
 		except ValueError as error:
 			flash(str(error), 'error')
 			return render_template('edit_member.html', member=member, member_qualifications=parse_qualifications(member['qualifications'])), 400
@@ -2845,7 +2848,7 @@ def edit_section(member_id):
 				new_membership_type = request.form['membership_type']
 				badge_number = request.form.get('badge_number', '').strip()
 				badge_number = assign_badge_on_prospective_promotion(old_membership_type, new_membership_type, badge_number)
-				validate_member_badge(new_membership_type, badge_number)
+				validate_member_badge(new_membership_type, badge_number, exclude_member_id=member_id)
 				database.update_member_section(member_id, {
 					'badge_number': badge_number,
 					'membership_type': new_membership_type,
@@ -2945,13 +2948,17 @@ def get_due(due_id):
 @app.route('/edit_due/<int:due_id>', methods=['POST'])
 @login_required
 def edit_due(due_id):
-	payment_date = request.form['payment_date']
-	amount = request.form['amount']
-	year = request.form['year']
-	method = request.form.get('method', '')
-	notes = request.form.get('notes', '')
-	database.update_due(due_id, payment_date, amount, year, method, notes)
-	return ('', 204)
+	try:
+		payment_date = request.form['payment_date']
+		amount = request.form['amount']
+		year = request.form['year']
+		method = request.form.get('method', '')
+		notes = request.form.get('notes', '')
+		database.update_due(due_id, payment_date, amount, year, method, notes)
+		return ('', 204)
+	except Exception as e:
+		app.logger.error(f"Error updating due {due_id}: {e}")
+		return jsonify({'error': str(e)}), 400
 
 @app.route('/delete_due/<int:due_id>', methods=['POST'])
 @login_required
