@@ -645,6 +645,139 @@ def login():
 	
 	return render_template('login.html')
 
+def send_email(to_email, subject, body):
+	"""Send a plain-text email using the configured SMTP server. Returns True on success."""
+	import smtplib
+	from email.mime.text import MIMEText
+
+	mail_server = app.config.get('MAIL_SERVER')
+	sender = app.config.get('MAIL_DEFAULT_SENDER')
+	if not mail_server or not sender:
+		app.logger.error('Email not sent: MAIL_SERVER/MAIL_DEFAULT_SENDER not configured.')
+		return False
+
+	msg = MIMEText(body)
+	msg['Subject'] = subject
+	msg['From'] = sender
+	msg['To'] = to_email
+
+	try:
+		with smtplib.SMTP(mail_server, app.config.get('MAIL_PORT', 587), timeout=10) as server:
+			if app.config.get('MAIL_USE_TLS', True):
+				server.starttls()
+			username = app.config.get('MAIL_USERNAME')
+			password = app.config.get('MAIL_PASSWORD')
+			if username and password:
+				server.login(username, password)
+			server.sendmail(sender, [to_email], msg.as_string())
+		return True
+	except Exception as e:
+		app.logger.error(f'Failed to send email to {to_email}: {e}')
+		return False
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("5 per hour")
+def forgot_password():
+	if current_user.is_authenticated:
+		return redirect(url_for('index'))
+
+	if request.method == 'POST':
+		import secrets
+
+		email = (request.form.get('email') or '').strip()
+		user_data = database.get_user_by_email(email) if email else None
+
+		if user_data and user_data['is_active']:
+			token = secrets.token_urlsafe(32)
+			expires_at = (datetime.datetime.now(TIMEZONE) + datetime.timedelta(hours=1)).isoformat()
+			database.set_password_reset_token(user_data['id'], token, expires_at)
+
+			reset_url = url_for('reset_password', token=token, _external=True)
+			body = (
+				f"A password reset was requested for your Dug Hill Rod & Gun Club account.\n\n"
+				f"To reset your password, click the link below (expires in 1 hour):\n{reset_url}\n\n"
+				f"If you did not request this, you can safely ignore this email."
+			)
+			send_email(user_data['email'], 'Password Reset Request', body)
+			database.log_audit(
+				user_id=user_data['id'],
+				username=user_data['username'],
+				action='password_reset_requested',
+				ip_address=request.remote_addr,
+				user_agent=request.headers.get('User-Agent'),
+				success=True
+			)
+
+		# Always show the same message to avoid revealing whether an email is registered
+		flash('If an account with that email exists, a password reset link has been sent.', 'info')
+		return redirect(url_for('login'))
+
+	return render_template('forgot_password.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+	if current_user.is_authenticated:
+		return redirect(url_for('index'))
+
+	user_data = database.get_user_by_reset_token(token)
+	token_valid = False
+	if user_data and user_data['reset_token_expires']:
+		expires_at = datetime.datetime.fromisoformat(user_data['reset_token_expires'])
+		if expires_at.tzinfo is None:
+			expires_at = TIMEZONE.localize(expires_at)
+		token_valid = datetime.datetime.now(TIMEZONE) < expires_at
+
+	if not token_valid:
+		flash('This password reset link is invalid or has expired. Please request a new one.', 'error')
+		return redirect(url_for('forgot_password'))
+
+	if request.method == 'POST':
+		new_password = request.form.get('new_password')
+		confirm_password = request.form.get('confirm_password')
+
+		if not new_password or not confirm_password:
+			flash('All fields are required.', 'error')
+			return render_template('reset_password.html', token=token)
+
+		if new_password != confirm_password:
+			flash('Passwords do not match.', 'error')
+			return render_template('reset_password.html', token=token)
+
+		if len(new_password) < 6:
+			flash('Password must be at least 6 characters long.', 'error')
+			return render_template('reset_password.html', token=token)
+		if not any(c.isupper() for c in new_password):
+			flash('Password must contain at least one uppercase letter.', 'error')
+			return render_template('reset_password.html', token=token)
+		if not any(c.islower() for c in new_password):
+			flash('Password must contain at least one lowercase letter.', 'error')
+			return render_template('reset_password.html', token=token)
+		if not any(c.isdigit() for c in new_password):
+			flash('Password must contain at least one number.', 'error')
+			return render_template('reset_password.html', token=token)
+
+		if database.check_password_history(user_data['id'], new_password, history_count=5):
+			flash('Cannot reuse a recent password. Please choose a different password.', 'error')
+			return render_template('reset_password.html', token=token)
+
+		password_hash = generate_password_hash(new_password)
+		database.update_user_password(user_data['id'], password_hash)
+		database.add_password_history(user_data['id'], password_hash)
+		database.clear_password_reset_token(user_data['id'])
+		database.log_audit(
+			user_id=user_data['id'],
+			username=user_data['username'],
+			action='password_reset_completed',
+			ip_address=request.remote_addr,
+			user_agent=request.headers.get('User-Agent'),
+			success=True
+		)
+
+		flash('Your password has been reset. Please log in.', 'info')
+		return redirect(url_for('login'))
+
+	return render_template('reset_password.html', token=token)
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
 	if current_user.is_authenticated:

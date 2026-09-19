@@ -496,6 +496,30 @@ def ensure_membership_tracking_columns():
 	conn.commit()
 	conn.close()
 
+def ensure_password_reset_columns():
+	"""Add password reset token columns to users table if they don't exist"""
+	conn = sqlite3.connect(DB_NAME)
+	c = conn.cursor()
+
+	c.execute("PRAGMA table_info(users)")
+	existing_columns = {row[1] for row in c.fetchall()}
+
+	new_columns = {
+		'reset_token': 'TEXT',
+		'reset_token_expires': 'TEXT'
+	}
+
+	for col_name, col_type in new_columns.items():
+		if col_name not in existing_columns:
+			try:
+				c.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+				print(f"Added column {col_name} to users table")
+			except sqlite3.OperationalError as e:
+				print(f"Column {col_name} may already exist: {e}")
+
+	conn.commit()
+	conn.close()
+
 def get_connection():
 	conn = sqlite3.connect(DB_NAME, timeout=30.0)  # Increase timeout for PythonAnywhere
 	conn.row_factory = sqlite3.Row
@@ -506,6 +530,7 @@ def get_connection():
 # Initialize database on module import
 init_database()
 ensure_membership_tracking_columns()
+ensure_password_reset_columns()
 
 def get_all_members():
 	conn = get_connection()
@@ -982,6 +1007,34 @@ def update_user_password(user_id, password_hash):
     c = conn.cursor()
     c.execute("UPDATE users SET password_hash=?, must_change_password=0, last_password_change=? WHERE id=?", 
               (password_hash, datetime.now().isoformat(), user_id))
+    conn.commit()
+    conn.close()
+
+def set_password_reset_token(user_id, token, expires_at):
+    """Store a password reset token and its expiry (ISO string) for a user"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET reset_token=?, reset_token_expires=? WHERE id=?",
+              (token, expires_at, user_id))
+    conn.commit()
+    conn.close()
+
+def get_user_by_reset_token(token):
+    """Get user by an unexpired password reset token"""
+    if not token:
+        return None
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE reset_token=?", (token,))
+    user = c.fetchone()
+    conn.close()
+    return user
+
+def clear_password_reset_token(user_id):
+    """Remove a user's password reset token after use or expiry"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("UPDATE users SET reset_token=NULL, reset_token_expires=NULL WHERE id=?", (user_id,))
     conn.commit()
     conn.close()
 
