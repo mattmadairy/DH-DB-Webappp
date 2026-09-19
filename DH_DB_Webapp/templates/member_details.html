@@ -1019,7 +1019,11 @@ function submitCommittees() {
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 			<input type="hidden" name="member_id" value="{{ member['id'] }}">
 			<div style="display:grid; grid-template-columns:120px 1fr; gap:10px 12px; align-items:center;">
-				<label for="badge_number">Badge Number:</label><input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" {% if member['membership_type'] in ['Life', 'Active', 'Associate', 'Probationary', 'Honorary'] %}required{% endif %}>
+				<label for="badge_number">Badge Number:</label>
+				<div style="display:flex; align-items:center; gap:8px;">
+					<input type="text" id="badge_number" name="badge_number" value="{{ member['badge_number'] }}" {% if member['membership_type'] in ['Life', 'Active', 'Associate', 'Probationary', 'Honorary'] %}required{% endif %} readonly style="background-color:#eee;">
+					<button type="button" id="badge_unlock_btn" onclick="unlockBadgeNumber()" title="Unlock to edit badge number">🔒</button>
+				</div>
 				<label for="membership_type">Membership Type:</label>
 				<select id="membership_type" name="membership_type" onchange="updateMembershipBadgeRequirement()">
 					<option value="Probationary" {% if member['membership_type'] == 'Probationary' %}selected{% endif %}>Probationary</option>
@@ -1320,6 +1324,14 @@ function openModal(id) {
 		var today = new Date().toISOString().split('T')[0];
 		document.getElementById('payment_date').value = today;
 	}
+	if (id === 'membershipModal') {
+		var badgeNumber = document.getElementById('badge_number');
+		var unlockBtn = document.getElementById('badge_unlock_btn');
+		badgeNumber.readOnly = true;
+		badgeNumber.style.backgroundColor = '#eee';
+		unlockBtn.textContent = '🔒';
+		unlockBtn.disabled = false;
+	}
 }
 
 function closeModal(id) {
@@ -1419,6 +1431,26 @@ function submitSection(section) {
 		}
 		alert(message);
 	});
+}
+
+function unlockBadgeNumber() {
+	var badgeNumber = document.getElementById('badge_number');
+	var unlockBtn = document.getElementById('badge_unlock_btn');
+	if (badgeNumber.readOnly) {
+		if (!confirm('Are you sure you want to edit the badge number? This should only be changed intentionally.')) {
+			return;
+		}
+		badgeNumber.readOnly = false;
+		badgeNumber.style.backgroundColor = '';
+		badgeNumber.focus();
+		unlockBtn.textContent = '🔓';
+		unlockBtn.title = 'Lock badge number';
+	} else {
+		badgeNumber.readOnly = true;
+		badgeNumber.style.backgroundColor = '#eee';
+		unlockBtn.textContent = '🔒';
+		unlockBtn.title = 'Unlock to edit badge number';
+	}
 }
 
 function updateMembershipBadgeRequirement() {
