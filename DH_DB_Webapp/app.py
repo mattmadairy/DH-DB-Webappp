@@ -2,6 +2,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, make_response, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import json
+import re
 import logging
 
 # Place this after 'app = Flask(__name__)' and all app config
@@ -1948,6 +1949,65 @@ def member_dashboard():
 							is_admin=current_user.is_admin_or_bdfl())
 
 
+
+MEMBER_EDITABLE_FIELDS = (
+	'first_name', 'middle_name', 'last_name', 'suffix', 'nickname', 'dob',
+	'email2', 'phone', 'phone2', 'address', 'city', 'state', 'zip',
+)
+
+def notify_bdfl_member_self_edit(member, changes):
+	member_name = f"{member['first_name']} {member['last_name']}"
+	database.log_audit(
+		user_id=current_user.id,
+		username=current_user.username,
+		action='member_self_edit',
+		target_user=member_name,
+		ip_address=request.remote_addr,
+		user_agent=request.headers.get('User-Agent'),
+		success=True,
+		details=json.dumps(changes),
+	)
+	lines = [f"{member_name} (badge {member['badge_number'] or 'n/a'}) updated their information:", ""]
+	lines += [f"{k}: '{v['old']}' -> '{v['new']}'" for k, v in changes.items()]
+	for user in database.get_all_users():
+		if user['role'] == 'BDFL' and user['email']:
+			send_email(user['email'], f'Member information updated: {member_name}', '\n'.join(lines))
+
+@app.route('/member-dashboard/edit-profile', methods=['GET', 'POST'])
+@login_required
+def member_edit_profile():
+	member = database.get_member_by_email(current_user.email)
+	if not member:
+		return redirect(url_for('member_dashboard'))
+	member = dict(member)
+	if request.method == 'POST':
+		# Whitelist only; primary email is the login link and is not editable here.
+		fields = {key: request.form.get(key, '').strip() for key in MEMBER_EDITABLE_FIELDS}
+		error = None
+		if not fields['first_name'] or not fields['last_name']:
+			error = 'First and last name are required.'
+		elif fields['email2'] and not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]{2,}', fields['email2']):
+			error = 'Please enter a valid secondary email address.'
+		else:
+			for key in ('phone', 'phone2'):
+				digits = re.sub(r'\D', '', fields[key])
+				if not digits:
+					fields[key] = ''
+				elif len(digits) == 10:
+					fields[key] = f'({digits[:3]}) {digits[3:6]}-{digits[6:]}'
+				else:
+					error = 'Phone numbers must have 10 digits.'
+		if error:
+			flash(error, 'error')
+			member.update(fields)
+			return render_template('member_edit_profile.html', member=member, active_page='dashboard'), 400
+		changes = {k: {'old': member.get(k) or '', 'new': v} for k, v in fields.items() if (member.get(k) or '') != v}
+		if changes:
+			database.update_member_section(member['id'], fields)
+			notify_bdfl_member_self_edit(member, changes)
+		flash('Your information has been updated.', 'info')
+		return redirect(url_for('member_dashboard'))
+	return render_template('member_edit_profile.html', member=member, active_page='dashboard')
 
 @app.route('/member-documents')
 @login_required
