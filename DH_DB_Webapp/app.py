@@ -49,6 +49,7 @@ def exempt_csrf_for_event_signin():
 # csrf = CSRFProtect(app)
 
 # Google Calendar API imports
+GOOGLE_CALENDAR_IMPORT_ERROR = None
 try:
     import sys
     # Add system Python path to find Google packages
@@ -61,6 +62,7 @@ try:
     import webbrowser
     GOOGLE_CALENDAR_AVAILABLE = True
 except ImportError as e:
+    GOOGLE_CALENDAR_IMPORT_ERROR = str(e)
     app.logger.warning(f"Google Calendar API not available: {e}")
     GOOGLE_CALENDAR_AVAILABLE = False
 
@@ -3888,7 +3890,7 @@ def get_google_calendar_service():
 
 def get_google_sheets_service(member_type=None):
 	if not GOOGLE_CALENDAR_AVAILABLE:
-		return None, 'Google API libraries are unavailable.'
+		return None, f'Google API libraries are unavailable: {GOOGLE_CALENDAR_IMPORT_ERROR or "unknown import error"}'
 
 	token_path = os.path.join(app.root_path, 'token.pickle')
 	credentials_path = os.path.join(app.root_path, 'credentials.json')
