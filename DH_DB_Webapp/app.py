@@ -3982,10 +3982,10 @@ def members_mail_merge_google_sheet():
 		m['first_name'] or ''
 	))
 	values = [['FirstName', 'LastName', 'Email']]
-	values.extend([
-		[member['first_name'] or '', member['last_name'] or '', member['email'] or '']
-		for member in exported_members
-	])
+	for member in exported_members:
+		email = (member['email'] or '').strip() or (member['email2'] or '').strip()
+		if email:
+			values.append([member['first_name'] or '', member['last_name'] or '', email])
 	title = f'Mail Merge - {member_type} - {datetime.datetime.now().strftime("%Y-%m-%d %H%M")}'
 	try:
 		spreadsheet = service.spreadsheets().create(body={
