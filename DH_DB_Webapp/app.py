@@ -98,6 +98,12 @@ env = os.environ.get('FLASK_ENV', 'development')
 from config import config
 app.config.from_object(config[env])
 
+def get_google_oauth_redirect_uri():
+	base_url = app.config.get('APP_BASE_URL')
+	if base_url:
+		return f"{base_url.rstrip('/')}{url_for('oauth2callback')}"
+	return url_for('oauth2callback', _external=True)
+
 # Document descriptions management
 DESCRIPTIONS_FILE = os.path.join(app.root_path, 'document_descriptions.json')
 
@@ -3865,7 +3871,7 @@ def get_google_calendar_service():
                 credentials_path,
                 scopes=SCOPES
             )
-            flow.redirect_uri = url_for('oauth2callback', _external=True)
+            flow.redirect_uri = get_google_oauth_redirect_uri()
 
             authorization_url, state = flow.authorization_url(
                 access_type='offline',
@@ -3911,7 +3917,7 @@ def get_google_sheets_service(member_type=None):
 			credentials_path,
 			scopes=SCOPES + [GOOGLE_SHEETS_SCOPE]
 		)
-		flow.redirect_uri = url_for('oauth2callback', _external=True)
+		flow.redirect_uri = get_google_oauth_redirect_uri()
 		authorization_url, state = flow.authorization_url(
 			access_type='offline',
 			include_granted_scopes='true'
@@ -4088,7 +4094,7 @@ def oauth2callback():
 			scopes=session['oauth_scopes'],
 			state=session['oauth_state']
 		)
-		flow.redirect_uri = url_for('oauth2callback', _external=True)
+		flow.redirect_uri = get_google_oauth_redirect_uri()
 		flow.fetch_token(code=authorization_code)
 		creds = flow.credentials
 
