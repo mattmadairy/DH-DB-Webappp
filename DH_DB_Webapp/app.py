@@ -3881,6 +3881,7 @@ def get_google_calendar_service():
             # Store the flow in session for later use
             session['oauth_state'] = state
             session['oauth_scopes'] = SCOPES
+            session['oauth_code_verifier'] = flow.code_verifier
 
             return None, f"OAUTH_REDIRECT:{authorization_url}"
 
@@ -3924,6 +3925,7 @@ def get_google_sheets_service(member_type=None):
 		)
 		session['oauth_state'] = state
 		session['oauth_scopes'] = SCOPES + [GOOGLE_SHEETS_SCOPE]
+		session['oauth_code_verifier'] = flow.code_verifier
 		if member_type:
 			session['oauth_sheets_member_type'] = member_type
 			session.pop('oauth_sheets_authorization_only', None)
@@ -4074,7 +4076,7 @@ def sync_google_calendar_events():
 @app.route('/oauth2callback')
 def oauth2callback():
 	"""Handle OAuth2 callback from Google"""
-	if 'oauth_scopes' not in session or 'oauth_state' not in session:
+	if 'oauth_scopes' not in session or 'oauth_state' not in session or 'oauth_code_verifier' not in session:
 		flash('OAuth session expired. Please try again.', 'error')
 		return redirect(url_for('admin_dashboard'))
 
@@ -4092,7 +4094,8 @@ def oauth2callback():
 		flow = Flow.from_client_secrets_file(
 			credentials_path,
 			scopes=session['oauth_scopes'],
-			state=session['oauth_state']
+			state=session['oauth_state'],
+			code_verifier=session['oauth_code_verifier']
 		)
 		flow.redirect_uri = get_google_oauth_redirect_uri()
 		flow.fetch_token(code=authorization_code)
@@ -4104,6 +4107,7 @@ def oauth2callback():
 
 		session.pop('oauth_state', None)
 		session.pop('oauth_scopes', None)
+		session.pop('oauth_code_verifier', None)
 		sheets_member_type = session.pop('oauth_sheets_member_type', None)
 		if sheets_member_type:
 			return redirect(url_for('members_mail_merge_google_sheet', member_type=sheets_member_type))
