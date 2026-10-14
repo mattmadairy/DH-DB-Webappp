@@ -88,6 +88,15 @@ def validate_member_badge(membership_type, badge_number, exclude_member_id=None)
 	if badge_number and database.is_badge_number_in_use(badge_number, exclude_member_id):
 		raise ValueError(f'Badge number {badge_number} is already assigned to another member.')
 
+def sort_wait_list(members):
+	"""Oldest application first, then last/first name; members without an application date go last."""
+	return sorted(members, key=lambda m: (
+		not m['application_submitted'],
+		m['application_submitted'] or '',
+		(m['last_name'] or '').lower(),
+		(m['first_name'] or '').lower(),
+	))
+
 def assign_badge_on_prospective_promotion(old_membership_type, new_membership_type, badge_number):
 	if old_membership_type == 'Prospective' and new_membership_type in BADGE_ASSIGNMENT_MEMBERSHIP_TYPES:
 		return database.get_lowest_available_badge_number()
@@ -655,10 +664,11 @@ def login():
 	
 	return render_template('login.html')
 
-def send_email(to_email, subject, body):
-	"""Send a plain-text email using the configured SMTP server. Returns True on success."""
+def send_email(to_email, subject, body, bcc=None, html_body=None):
+	"""Send an email using the configured SMTP server. Returns True on success."""
 	import smtplib
 	from email.mime.text import MIMEText
+	from email.mime.multipart import MIMEMultipart
 
 	mail_server = app.config.get('MAIL_SERVER')
 	sender = app.config.get('MAIL_DEFAULT_SENDER')
@@ -666,10 +676,16 @@ def send_email(to_email, subject, body):
 		app.logger.error('Email not sent: MAIL_SERVER/MAIL_DEFAULT_SENDER not configured.')
 		return False
 
-	msg = MIMEText(body)
+	if html_body:
+		msg = MIMEMultipart('alternative')
+		msg.attach(MIMEText(body, 'plain'))
+		msg.attach(MIMEText(html_body, 'html'))
+	else:
+		msg = MIMEText(body)
 	msg['Subject'] = subject
 	msg['From'] = sender
 	msg['To'] = to_email
+	recipients = [to_email] + list(bcc or [])
 
 	try:
 		with smtplib.SMTP(mail_server, app.config.get('MAIL_PORT', 587), timeout=10) as server:
@@ -679,7 +695,7 @@ def send_email(to_email, subject, body):
 			password = app.config.get('MAIL_PASSWORD')
 			if username and password:
 				server.login(username, password)
-			server.sendmail(sender, [to_email], msg.as_string())
+			server.sendmail(sender, recipients, msg.as_string())
 		return True
 	except Exception as e:
 		app.logger.error(f'Failed to send email to {to_email}: {e}')
@@ -1201,11 +1217,29 @@ def admin_users():
 def admin_applications():
 	# Get pending applications
 	applications = database.get_all_applications(status='pending')
+
+	invites = []
+	for entry in database.get_audit_entries_by_action('application_invite'):
+		match = re.fullmatch(r'(.*) <([^<>]+)>', entry['target_user'] or '')
+		name, invite_email = match.groups() if match else (entry['target_user'] or '', '')
+		sent_at = entry['timestamp']
+		try:
+			sent_at = json.loads(entry['details'])['sent_at']
+		except (TypeError, ValueError, KeyError):
+			pass
+		sort_key = 0
+		try:
+			sent_dt = datetime.datetime.fromisoformat(sent_at)
+			sent_at = sent_dt.strftime('%m-%d-%Y %I:%M %p')
+			sort_key = (sent_dt if sent_dt.tzinfo else TIMEZONE.localize(sent_dt)).timestamp()
+		except (TypeError, ValueError):
+			pass
+		invites.append({'name': name, 'email': invite_email, 'sent_at': sent_at, 'sort_key': sort_key})
 	
 	member_stats = get_member_stats()
 	pending_applications = get_pending_application_count()
 	
-	return render_template('admin_applications.html', applications=applications, active_page='admin_applications', member_stats=member_stats, pending_applications=pending_applications)
+	return render_template('admin_applications.html', applications=applications, invites=invites, active_page='admin_applications', member_stats=member_stats, pending_applications=pending_applications)
 
 # Before request handler to check for password change requirement
 @app.before_request
@@ -1810,6 +1844,9 @@ def index():
 				return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
 			members = [m for m in members if member_matches(m)]
 		
+		if member_type == 'Wait List':
+			members = sort_wait_list(members)
+		
 		# Calculate member counts for each type
 		member_types_list = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
 		member_counts = {}
@@ -1854,6 +1891,9 @@ def admin_dashboard():
 		def member_matches(m):
 			return any(search_lower in str(m[col]).lower() if m[col] is not None else False for col in m.keys())
 		members = [m for m in members if member_matches(m)]
+	
+	if member_type == 'Wait List':
+		members = sort_wait_list(members)
 	
 	# Calculate member counts for each type
 	member_types_list = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
@@ -4339,18 +4379,15 @@ def approve_application(app_id):
 		flash('Access denied. Only administrators can approve applications.', 'error')
 		return redirect(url_for('admin_applications'))
 	
-	badge_number = request.form.get('badge_number', '').strip()
+	membership_type = request.form.get('membership_type', 'Prospective')
+	if membership_type not in ('Prospective', 'Wait List'):
+		return jsonify({'success': False, 'message': 'Invalid membership type.'}), 400
 	
-	success = database.approve_application(app_id, current_user.id, badge_number)
+	success = database.approve_application(app_id, current_user.id, membership_type=membership_type, received_date=datetime.datetime.now(TIMEZONE).strftime('%Y-%m-%d'))
 	if success:
+		message = 'Application added to the wait list! Member created.' if membership_type == 'Wait List' else 'Application approved! Member created.'
 		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-			message = 'Application approved! Member created.'
-			if badge_number:
-				message = f'Application approved! Member created with badge number {badge_number}.'
 			return jsonify({'success': True, 'message': message})
-		message = 'Application approved! Member created.'
-		if badge_number:
-			message = f'Application approved! Member created with badge number {badge_number}.'
 		flash(message, 'info')
 	else:
 		if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -4381,6 +4418,127 @@ def reject_application(app_id):
 			return jsonify({'success': False, 'message': 'Failed to reject application.'}), 500
 		flash('Failed to reject application.', 'error')
 	return redirect(url_for('admin_applications'))
+
+MEETING_ADDRESS = '4100 Wine Rd Westminster, MD 21158'
+MEETING_MAP_URL = 'https://www.google.com/maps/search/4100+Wine+Rd+Westminster,+MD+21158?entry=gmail&source=g'
+INVITE_SUBJECT = 'Dug Hill Rod & Gun Club Membership Invitation'
+
+def get_next_regular_meeting():
+	"""Return (meeting dict, error) for the next 'Regular Club Meeting' calendar event."""
+	events, error = fetch_calendar_events()
+	if error:
+		return None, error
+	now = datetime.datetime.now(TIMEZONE)
+	for event in events:
+		if event['summary'].strip().lower() != 'regular club meeting':
+			continue
+		if event['all_day']:
+			day = event['event_date']
+			if day < now.date():
+				continue
+			time_text = None
+		else:
+			start = event['start'].astimezone(TIMEZONE)
+			if start < now:
+				continue
+			day = start.date()
+			time_text = f"{start.hour % 12 or 12}:{start.minute:02d} {'AM' if start.hour < 12 else 'PM'}"
+		date_text = f"{day.strftime('%A, %B')} {day.day}, {day.year}"
+		text = f'{date_text} at {time_text}' if time_text else date_text
+		return {'text': text}, None
+	return None, 'No upcoming "Regular Club Meeting" event was found on the calendar.'
+
+@app.route('/admin/invite/next-meeting')
+@login_required
+@admin_required
+def invite_next_meeting():
+	meeting, error = get_next_regular_meeting()
+	if error:
+		return jsonify({'success': False, 'message': error}), 404
+	return jsonify({'success': True, 'meeting': meeting['text']})
+
+@app.route('/admin/invite', methods=['POST'])
+@login_required
+@admin_required
+@limiter.limit("30 per hour")
+def send_membership_invite():
+	from markupsafe import escape
+
+	first_name = request.form.get('first_name', '').strip()
+	last_name = request.form.get('last_name', '').strip()
+	email = request.form.get('email', '').strip()
+	if not first_name or not last_name or not email:
+		return jsonify({'success': False, 'message': 'First name, last name, and email are required.'}), 400
+	if len(first_name) > 100 or len(last_name) > 100 or len(email) > 254 or not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]{2,}', email):
+		return jsonify({'success': False, 'message': 'Please enter a valid name and email address.'}), 400
+
+	meeting, error = get_next_regular_meeting()
+	if error:
+		return jsonify({'success': False, 'message': error}), 400
+
+	base_url = app.config.get('APP_BASE_URL')
+	application_url = f"{base_url.rstrip('/')}{url_for('membership_application')}" if base_url else url_for('membership_application', _external=True)
+
+	body = (
+		f"Dear {first_name}\n\n"
+		"You have been invited to apply for membership to The Dug Hill Rod & Gun Club, Inc. You may follow this link to apply:\n"
+		"(This privilege is by invitation only. Please do not share the link with others.)\n\n"
+		f"{application_url}\n\n"
+		"This invitation expires in 30 days.\n\n"
+		"Please use the link on the application to pay the $75 initiation fee. Please note: membership is not guaranteed and the $75 application fee is non-refundable. "
+		"A condition of membership is that you must be able to legally possess a firearm and a background check WILL be conducted. "
+		"If you cannot pass, or aren't sure if you will pass, please reach out to discuss your situation prior to applying. "
+		"You will be required to attend 2 meetings prior to being voted in for membership, the first of which you have already attended. "
+		"You will be required to pay your prorated dues after being voted in to the club. Meetings are held on the 2nd Monday of each month. "
+		"The meeting information is listed below. Let me know if you plan on attending.\n\n"
+		"MEETING INFORMATION:\n"
+		f"{meeting['text']}\n"
+		f"{MEETING_ADDRESS}\n"
+		f"{MEETING_MAP_URL}\n\n"
+		"Respectfully,\n"
+		"Matthew Madairy\n"
+		"Vice President, Dug Hill Rod & Gun Club\n"
+		"443-605-3180\n\n"
+		"\"A republic, if you can keep it.\"\n"
+		"-Benjamin Franklin\n"
+	)
+	html_body = (
+		f"<p>Dear {escape(first_name)}</p>"
+		"<p>You have been invited to apply for membership to The Dug Hill Rod &amp; Gun Club, Inc. You may follow this link to apply:<br>"
+		"(This privilege is by invitation only. Please do not share the link with others.)</p>"
+		f'<p><a href="{escape(application_url)}">{escape(application_url)}</a></p>'
+		"<p>This invitation expires in 30 days.</p>"
+		"<p>Please use the link on the application to pay the $75 initiation fee. Please note: membership is not guaranteed and the $75 application fee is non-refundable. "
+		"A condition of membership is that you must be able to legally possess a firearm and a background check WILL be conducted. "
+		"If you cannot pass, or aren't sure if you will pass, please reach out to discuss your situation prior to applying. "
+		"You will be required to attend 2 meetings prior to being voted in for membership, the first of which you have already attended. "
+		"You will be required to pay your prorated dues after being voted in to the club. Meetings are held on the 2nd Monday of each month. "
+		"The meeting information is listed below. Let me know if you plan on attending.</p>"
+		"<p><strong>MEETING INFORMATION:</strong><br>"
+		f"{escape(meeting['text'])}<br>"
+		f'<a href="{MEETING_MAP_URL.replace("&", "&amp;")}">{MEETING_ADDRESS}</a></p>'
+		"<p>Respectfully,<br>Matthew Madairy<br>Vice President, Dug Hill Rod &amp; Gun Club<br>443-605-3180</p>"
+		"<p><em>\"A republic, if you can keep it.\"</em><br>-Benjamin Franklin</p>"
+	)
+
+	bcc = sorted({
+		user['email'] for user in database.get_all_users()
+		if user['role'] == 'BDFL' and user['is_active'] and user['email'] and user['email'].lower() != email.lower()
+	})
+	if not send_email(email, INVITE_SUBJECT, body, bcc=bcc, html_body=html_body):
+		return jsonify({'success': False, 'message': 'The invitation email could not be sent. Check the mail settings and try again.'}), 500
+
+	database.log_audit(
+		user_id=current_user.id,
+		username=current_user.username,
+		action='application_invite',
+		target_user=f'{first_name} {last_name} <{email}>',
+		ip_address=request.remote_addr,
+		user_agent=request.headers.get('User-Agent'),
+		success=True,
+		details=json.dumps({'meeting': meeting['text'], 'sent_at': datetime.datetime.now(TIMEZONE).isoformat()}),
+	)
+	return jsonify({'success': True, 'message': f'Invitation sent to {email}.'})
 
 def fetch_calendar_events():
     """Fetch and parse events from Google Calendar iCal feed"""

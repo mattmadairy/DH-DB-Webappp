@@ -1052,6 +1052,15 @@ def log_audit(user_id, username, action, target_user=None, ip_address=None, user
     conn.commit()
     conn.close()
 
+def get_audit_entries_by_action(action):
+    """Get successful audit log entries for an action, newest first"""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT target_user, timestamp, details FROM audit_log WHERE action = ? AND success = 1 ORDER BY id DESC", (action,))
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
 def increment_failed_login(username):
     """Increment failed login attempts"""
     conn = get_connection()
@@ -1379,8 +1388,8 @@ def get_application_by_id(app_id):
 	conn.close()
 	return row
 
-def approve_application(app_id, user_id, badge_number):
-	"""Approve an application and create a member record"""
+def approve_application(app_id, user_id, badge_number='', membership_type='Prospective', received_date=None):
+	"""Approve an application (or wait-list it) and create a member record"""
 	from datetime import datetime
 	conn = get_connection()
 	c = conn.cursor()
@@ -1395,7 +1404,7 @@ def approve_application(app_id, user_id, badge_number):
 	# Create member record
 	member_data = (
 		badge_number,
-		'Prospective',
+		membership_type,
 		app['first_name'],
 		app['middle_name'],
 		app['last_name'],
@@ -1410,18 +1419,19 @@ def approve_application(app_id, user_id, badge_number):
 		app['city'],
 		app['state'],
 		app['zip'],
-		datetime.now().strftime('%Y-%m-%d'),
+		'',  # join_date is set when the member joins, not on approval
 		app['sponsor'],
 		'',  # card_internal
         '',  # card_external
         ''   # qualifications
 	)
 	member_id = add_member(member_data)
-	
+	c.execute("UPDATE members SET application_submitted = ? WHERE id = ?", (received_date or datetime.now().strftime('%Y-%m-%d'), member_id))
+	conn.commit()	
 	# Create or update user account
 	# Determine if user should be active based on membership type
 	active_statuses = ['Probationary', 'Associate', 'Active', 'Life']
-	is_active = 'Prospective' in active_statuses  # False for Prospective
+	is_active = membership_type in active_statuses  # False for Prospective and Wait List
 	
 	# Check if user already exists
 	existing_user = get_user_by_email(app['email'])
@@ -1439,9 +1449,9 @@ def approve_application(app_id, user_id, badge_number):
 	# Update application status
 	c.execute("""
 		UPDATE applications 
-		SET status = 'approved', reviewed_at = ?, reviewed_by = ?
+		SET status = ?, reviewed_at = ?, reviewed_by = ?
 		WHERE id = ?
-	""", (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_id, app_id))
+	""", ('wait_listed' if membership_type == 'Wait List' else 'approved', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), user_id, app_id))
 	conn.commit()
 	conn.close()
 	return True

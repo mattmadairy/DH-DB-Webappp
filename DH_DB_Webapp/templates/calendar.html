@@ -48,7 +48,7 @@
 
         .event-time-small { font-size: 0.7em; opacity: 0.9; margin-bottom: 2px; }
         .event-title-small { font-weight: bold; font-size: 0.8em; line-height: 1.1; }
-        .side-menu { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; display: flex; flex-direction: column; align-items: center; padding-top: 120px; background-color: #2c332b; box-shadow: 2px 0 8px rgba(0,0,0,0.08); overflow-y: auto; z-index: 100; transition: width 0.25s ease, transform 0.25s ease; }
+        .side-menu { position: fixed; top: 0; left: 0; width: 210px; height: 100vh; display: flex; flex-direction: column; align-items: center; padding-top: 120px; padding-bottom: 48px; box-sizing: border-box; background-color: #2c332b; box-shadow: 2px 0 8px rgba(0,0,0,0.08); overflow-y: auto; z-index: 100; transition: width 0.25s ease, transform 0.25s ease; }
         .side-menu.collapsed { width: 0; transform: translateX(-100%); overflow: hidden; padding-left: 0; padding-right: 0; }
         .side-menu.collapsed a, .side-menu.collapsed .menu-toggle { width: 54px !important; overflow: hidden; white-space: nowrap; padding-left: 0 !important; padding-right: 0 !important; }
         .side-menu.collapsed .submenu { display: none !important; }

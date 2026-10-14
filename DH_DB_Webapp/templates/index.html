@@ -500,16 +500,24 @@ document.addEventListener('click', function(event) {
             }
             </script>
             <!-- Only one tab section above the search/menu row -->
+            {% if member_type == 'Wait List' %}
+            <div style="width:100%; max-width:1100px; margin:0 auto 12px; box-sizing:border-box; padding:10px 14px; background-color:rgba(255,255,255,0.12); border-radius:6px; color:#f5f5f5; font-size:0.95em; line-height:1.4;">
+                The Wait List is listed by application date, oldest first. When two applicants share the same application date, they are listed alphabetically by last name (then first name). This list is fixed and cannot be re-sorted.
+            </div>
+            {% endif %}
             <table border="1" cellpadding="5" cellspacing="0" style="margin:auto; width:100%; max-width:1100px; background-color:#f5f5f5;">
+                {% set status_tab = member_type in ['Prospective', 'Wait List'] %}
+                {% set locked = member_type == 'Wait List' %}
                 <tr>
-                    <th onclick="sortTable(0)" id="th0">Badge</th>
-                    <th onclick="sortTable(1)" id="th1">Type</th>
-                    <th onclick="sortTable(2)" id="th2">First Name</th>
-                    <th onclick="sortTable(3)" id="th3">Last Name</th>
-                    <th onclick="sortTable(4)" id="th4">Primary Email</th>
-                    <th onclick="sortTable(5)" id="th5">Primary Phone</th>
-                    <th onclick="sortTable(6)" id="th6">Join Date</th>
-                    {% if member_type == 'Prospective' %}<th onclick="sortTable(7)" id="th7">Status</th>{% endif %}
+                    <th {% if not locked %}onclick="sortTable(0)"{% endif %} id="th0">Badge</th>
+                    <th {% if not locked %}onclick="sortTable(1)"{% endif %} id="th1">Type</th>
+                    <th {% if not locked %}onclick="sortTable(2)"{% endif %} id="th2">First Name</th>
+                    <th {% if not locked %}onclick="sortTable(3)"{% endif %} id="th3">Last Name</th>
+                    <th {% if not locked %}onclick="sortTable(4)"{% endif %} id="th4">Primary Email</th>
+                    <th {% if not locked %}onclick="sortTable(5)"{% endif %} id="th5">Primary Phone</th>
+                    {% if locked %}<th id="th6">Application Date</th>{% endif %}
+                    {% if not status_tab %}<th onclick="sortTable(6, 'date')" id="th6">Join Date</th>{% endif %}
+                    {% if status_tab %}<th {% if not locked %}onclick="sortTable(6, 'status')"{% endif %} id="th7">Status</th>{% endif %}
                     <th>Actions</th>
                 </tr>
                 {% for member in members %}
@@ -527,15 +535,19 @@ document.addEventListener('click', function(event) {
                             </div>
                         </td>
                         <td style="min-width:130px; text-align:center;">{{ member['phone'] }}</td>
+                        {% if member_type == 'Wait List' %}
+                        <td style="min-width:100px; text-align:center; white-space:nowrap;">{{ member['application_submitted']|format_mmddyyyy if member['application_submitted'] else '' }}</td>
+                        {% endif %}
+                        {% if member_type not in ['Prospective', 'Wait List'] %}
                         <td style="min-width:100px; text-align:center; white-space:nowrap;">{{ member['join_date']|format_mmddyyyy if member['join_date'] else '' }}</td>
-                        {% if member_type == 'Prospective' %}
-                        {% set all_done = member['application_submitted'] and member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}
+                        {% endif %}
+                        {% if member_type in ['Prospective', 'Wait List'] %}
+                        {% set all_done = member['introduced_date'] and member['background_check_submitted'] and member['background_check_passed'] %}
                         <td style="font-weight:bold; color:#111; background-color:{% if all_done %}#3ec96b{% else %}#ffe600{% endif %}; text-align:left; padding:6px 8px;">
                             <span class="status-sort-value" style="display:none;">{% if all_done %}1{% else %}0{% endif %}</span>
                             {% if all_done %}
                                 <span style="font-weight:bold; color:#111;">Eligible</span>
                             {% else %}
-                                <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['application_submitted'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['application_submitted'] %}✔{% else %}✗{% endif %}</span> Application Received</span>
                                 <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['introduced_date'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['introduced_date'] %}✔{% else %}✗{% endif %}</span> Introduced</span>
                                 <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['background_check_submitted'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['background_check_submitted'] %}✔{% else %}✗{% endif %}</span> Background Submitted</span>
                                 <span style="display:flex; align-items:center; gap:6px;"><span style="color:{% if member['background_check_passed'] %}#3ec96b{% else %}#c00{% endif %}; font-size:1.2em;">{% if member['background_check_passed'] %}✔{% else %}✗{% endif %}</span> Background Completed</span>
@@ -576,19 +588,19 @@ document.addEventListener('click', function(event) {
             });
 
             // Sortable table columns with arrow indicators
-            function sortTable(n) {
+            function sortTable(n, type) {
                 var table = document.querySelector('table');
                 var rows = Array.from(table.rows).slice(1); // skip header
                 var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
                 rows.sort(function(a, b) {
                     var x, y;
-                    // Special handling for Status column (index 7 for Prospective)
-                    if (n === 7) {
+                    // Special handling for the Status column (Prospective and Wait List tabs)
+                    if (type === 'status') {
                         x = a.cells[n].querySelector('.status-sort-value')?.innerText || '0';
                         y = b.cells[n].querySelector('.status-sort-value')?.innerText || '0';
                         x = parseInt(x); y = parseInt(y);
-                    } else if (n === 6) {
-                        // Special handling for Join Date column (index 6) - parse as dates
+                    } else if (type === 'date') {
+                        // Special handling for Join Date column - parse as dates
                         x = a.cells[n].innerText.trim();
                         y = b.cells[n].innerText.trim();
                         if (x && y) {
@@ -625,7 +637,7 @@ document.addEventListener('click', function(event) {
                     if (th) th.innerHTML = th.innerText.replace(/\s*[▲▼]$/, '');
                 }
                 // Add arrow to sorted column
-                let th = document.getElementById('th'+n);
+                let th = document.getElementById(type === 'status' ? 'th7' : 'th' + n);
                 if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
             }
             </script>
