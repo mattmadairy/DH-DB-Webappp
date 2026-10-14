@@ -3874,7 +3874,7 @@ def get_google_calendar_service():
 
             # Store the flow in session for later use
             session['oauth_state'] = state
-            session['oauth_flow'] = pickle.dumps(flow).decode('latin1')
+            session['oauth_scopes'] = SCOPES
 
             return None, f"OAUTH_REDIRECT:{authorization_url}"
 
@@ -3917,7 +3917,7 @@ def get_google_sheets_service(member_type=None):
 			include_granted_scopes='true'
 		)
 		session['oauth_state'] = state
-		session['oauth_flow'] = pickle.dumps(flow).decode('latin1')
+		session['oauth_scopes'] = SCOPES + [GOOGLE_SHEETS_SCOPE]
 		if member_type:
 			session['oauth_sheets_member_type'] = member_type
 			session.pop('oauth_sheets_authorization_only', None)
@@ -4067,56 +4067,51 @@ def sync_google_calendar_events():
 
 @app.route('/oauth2callback')
 def oauth2callback():
-    """Handle OAuth2 callback from Google"""
-    if 'oauth_flow' not in session or 'oauth_state' not in session:
-        flash('OAuth session expired. Please try again.', 'error')
-        return redirect(url_for('admin_dashboard'))
+	"""Handle OAuth2 callback from Google"""
+	if 'oauth_scopes' not in session or 'oauth_state' not in session:
+		flash('OAuth session expired. Please try again.', 'error')
+		return redirect(url_for('admin_dashboard'))
 
-    # Get the authorization code from the request
-    authorization_code = request.args.get('code')
-    state = request.args.get('state')
+	authorization_code = request.args.get('code')
+	state = request.args.get('state')
+	if not authorization_code:
+		flash('Authorization failed - no code received.', 'error')
+		return redirect(url_for('admin_dashboard'))
+	if state != session['oauth_state']:
+		flash('Authorization failed - state mismatch.', 'error')
+		return redirect(url_for('admin_dashboard'))
 
-    if not authorization_code:
-        flash('Authorization failed - no code received.', 'error')
-        return redirect(url_for('admin_dashboard'))
+	try:
+		credentials_path = os.path.join(app.root_path, 'credentials.json')
+		flow = Flow.from_client_secrets_file(
+			credentials_path,
+			scopes=session['oauth_scopes'],
+			state=session['oauth_state']
+		)
+		flow.redirect_uri = url_for('oauth2callback', _external=True)
+		flow.fetch_token(code=authorization_code)
+		creds = flow.credentials
 
-    if state != session['oauth_state']:
-        flash('Authorization failed - state mismatch.', 'error')
-        return redirect(url_for('admin_dashboard'))
+		token_path = os.path.join(app.root_path, 'token.pickle')
+		with open(token_path, 'wb') as token:
+			pickle.dump(creds, token)
 
-    try:
-        # Reconstruct the flow
-        flow = pickle.loads(session['oauth_flow'].encode('latin1'))
+		session.pop('oauth_state', None)
+		session.pop('oauth_scopes', None)
+		sheets_member_type = session.pop('oauth_sheets_member_type', None)
+		if sheets_member_type:
+			return redirect(url_for('members_mail_merge_google_sheet', member_type=sheets_member_type))
 
-        # Exchange authorization code for credentials
-        flow.fetch_token(code=authorization_code)
+		sheets_authorization_only = session.pop('oauth_sheets_authorization_only', False)
+		if sheets_authorization_only:
+			flash('Google Sheets authorization successful. You can now create a Sheet.', 'success')
+			return redirect(url_for('index'))
 
-        creds = flow.credentials
-
-        # Save credentials for future use
-        token_path = os.path.join(app.root_path, 'token.pickle')
-        with open(token_path, 'wb') as token:
-            pickle.dump(creds, token)
-
-        # Clear session
-        session.pop('oauth_flow', None)
-        session.pop('oauth_state', None)
-
-        sheets_member_type = session.pop('oauth_sheets_member_type', None)
-        if sheets_member_type:
-            return redirect(url_for('members_mail_merge_google_sheet', member_type=sheets_member_type))
-
-        sheets_authorization_only = session.pop('oauth_sheets_authorization_only', False)
-        if sheets_authorization_only:
-            flash('Google Sheets authorization successful. You can now create a Sheet.', 'success')
-            return redirect(url_for('index'))
-
-        flash('Google Calendar authentication successful! You can now sync events.', 'success')
-        return redirect(url_for('admin_dashboard'))
-
-    except Exception as e:
-        flash(f'OAuth authentication failed: {str(e)}', 'error')
-        return redirect(url_for('admin_dashboard'))
+		flash('Google Calendar authentication successful! You can now sync events.', 'success')
+		return redirect(url_for('admin_dashboard'))
+	except Exception as e:
+		flash(f'OAuth authentication failed: {str(e)}', 'error')
+		return redirect(url_for('admin_dashboard'))
 
 @app.route('/test_oauth')
 @login_required
