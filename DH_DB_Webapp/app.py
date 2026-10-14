@@ -1955,18 +1955,21 @@ MEMBER_EDITABLE_FIELDS = (
 	'email2', 'phone', 'phone2', 'address', 'city', 'state', 'zip',
 )
 
-def notify_bdfl_member_self_edit(member, changes):
-	member_name = f"{member['first_name']} {member['last_name']}"
+def log_member_change(action, member, changes):
 	database.log_audit(
 		user_id=current_user.id,
 		username=current_user.username,
-		action='member_self_edit',
-		target_user=member_name,
+		action=action,
+		target_user=f"{member['first_name']} {member['last_name']}",
 		ip_address=request.remote_addr,
 		user_agent=request.headers.get('User-Agent'),
 		success=True,
-		details=json.dumps(changes),
+		details=json.dumps({**changes, '_member_id': member['id']}),
 	)
+
+def notify_bdfl_member_self_edit(member, changes):
+	member_name = f"{member['first_name']} {member['last_name']}"
+	log_member_change('member_self_edit', member, changes)
 	lines = [f"{member_name} (badge {member['badge_number'] or 'n/a'}) updated their information:", ""]
 	lines += [f"{k}: '{v['old']}' -> '{v['new']}'" for k, v in changes.items()]
 	for user in database.get_all_users():
@@ -2929,7 +2932,13 @@ def edit_member(member_id):
 			request.form['card_external'],
 			qualifications_from_form(request.form),
 		)
+		columns = ('badge_number', 'membership_type', 'first_name', 'middle_name', 'last_name', 'suffix', 'nickname', 'dob',
+			'email', 'email2', 'phone', 'phone2', 'address', 'city', 'state', 'zip', 'join_date', 'sponsor',
+			'card_internal', 'card_external', 'qualifications')
+		changes = {col: {'old': member[col] or '', 'new': new or ''} for col, new in zip(columns, data) if (member[col] or '') != (new or '')}
 		database.update_member(member_id, data)
+		if changes:
+			log_member_change('member_admin_edit', member, changes)
 		return redirect(url_for('index'))
 	return render_template('edit_member.html', member=member, member_qualifications=parse_qualifications(member['qualifications']))
 
