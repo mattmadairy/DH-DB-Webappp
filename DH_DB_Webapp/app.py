@@ -3886,7 +3886,7 @@ def get_google_calendar_service():
     except Exception as e:
         return None, f"Failed to build calendar service: {str(e)}"
 
-def get_google_sheets_service(member_type):
+def get_google_sheets_service(member_type=None):
 	if not GOOGLE_CALENDAR_AVAILABLE:
 		return None, 'Google API libraries are unavailable.'
 
@@ -3916,13 +3916,32 @@ def get_google_sheets_service(member_type):
 		)
 		session['oauth_state'] = state
 		session['oauth_flow'] = pickle.dumps(flow).decode('latin1')
-		session['oauth_sheets_member_type'] = member_type
+		if member_type:
+			session['oauth_sheets_member_type'] = member_type
+			session.pop('oauth_sheets_authorization_only', None)
+		else:
+			session.pop('oauth_sheets_member_type', None)
+			session['oauth_sheets_authorization_only'] = True
 		return None, f'OAUTH_REDIRECT:{authorization_url}'
 
 	try:
 		return build('sheets', 'v4', credentials=creds), None
 	except Exception as e:
 		return None, f'Failed to build Google Sheets service: {str(e)}'
+
+@app.route('/authorize_google_sheets')
+@login_required
+@admin_required
+def authorize_google_sheets():
+	_, error = get_google_sheets_service()
+	if error and error.startswith('OAUTH_REDIRECT:'):
+		return redirect(error.replace('OAUTH_REDIRECT:', '', 1))
+	if error:
+		app.logger.error(error)
+		flash(f'Could not start Google Sheets authorization: {error}', 'error')
+	else:
+		flash('Google Sheets is already authorized.', 'success')
+	return redirect(url_for('index'))
 
 @app.route('/members_mail_merge_google_sheet')
 @login_required
@@ -4084,6 +4103,11 @@ def oauth2callback():
         sheets_member_type = session.pop('oauth_sheets_member_type', None)
         if sheets_member_type:
             return redirect(url_for('members_mail_merge_google_sheet', member_type=sheets_member_type))
+
+        sheets_authorization_only = session.pop('oauth_sheets_authorization_only', False)
+        if sheets_authorization_only:
+            flash('Google Sheets authorization successful. You can now create a Sheet.', 'success')
+            return redirect(url_for('index'))
 
         flash('Google Calendar authentication successful! You can now sync events.', 'success')
         return redirect(url_for('admin_dashboard'))
