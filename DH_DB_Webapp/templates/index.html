@@ -76,6 +76,39 @@ function copyEmail(inputId) {
     .side-menu.collapsed .sidebar-stat-box {
         display: none !important;
     }
+    .export-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        overflow-y: auto;
+        padding: 20px;
+        background: rgba(0,0,0,0.55);
+        z-index: 2000;
+    }
+    .export-modal-content {
+        max-width: 440px;
+        margin: 12vh auto;
+        padding: 24px;
+        border-radius: 8px;
+        background: #fff;
+        color: #333;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    }
+    .export-options { display: grid; gap: 12px; margin-top: 20px; }
+    .export-option, .export-cancel {
+        display: block;
+        padding: 12px 16px;
+        border: 1px solid #384839;
+        border-radius: 5px;
+        color: #384839;
+        background: #f5f5f5;
+        font: inherit;
+        font-weight: bold;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .export-cancel { width: 100%; margin-top: 12px; background: #fff; }
     .sidebar-toggle {
         position: absolute;
         top: 18px;
@@ -318,7 +351,7 @@ document.addEventListener('click', function(event) {
             <!-- Search Bar -->
             <div style="width:100%; display:flex; justify-content:center; align-items:center; margin-bottom:18px;">
                 <a href="{{ url_for('email_list', member_type=member_type) }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-right:16px;">📧 Email List</a>
-                <a href="{{ url_for('members_name_address_export_csv') }}" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-right:16px;">📥 Name/Address Export</a>
+                <button type="button" onclick="openModal('exportModal')" style="display:inline-block; padding:8px 22px; border-radius:6px; border:1px solid #384839; background-color:#eaeaea; color:#384839; text-decoration:none; font-weight:bold; font-size:1.1em; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-right:16px; cursor:pointer;">📥 Export</button>
                 <div style="display:inline-flex; align-items:center;">
                     <input id="dynamicSearch" type="text" placeholder="Search members..." style="width:340px; padding:8px 14px; border-radius:6px; border:1px solid #ccc; font-size:1.1em; margin-right:8px; background-color:#f5f5f5;">
                     <button type="button" id="searchBtn" style="padding:8px 18px; border-radius:6px; border:1px solid #ccc; background-color:#eaeaea; color:#384839; font-size:1.1em; font-weight:bold; cursor:pointer; margin-right:8px;">Search</button>
@@ -333,6 +366,18 @@ document.addEventListener('click', function(event) {
                         {{ mt }} ({{ member_counts[mt] }})
                     </a>
                 {% endfor %}
+            </div>
+            <div id="exportModal" class="export-modal" role="dialog" aria-modal="true" aria-labelledby="exportModalTitle" onclick="if (event.target === this) closeModal('exportModal')">
+                <div class="export-modal-content">
+                    <h2 id="exportModalTitle" style="margin-top:0; color:#384839;">Export {{ member_type }}</h2>
+                    <p>Choose an export format for the active member tab.</p>
+                    <div class="export-options">
+                        <a class="export-option" href="{{ url_for('members_name_address_export_csv', member_type=member_type, format='name_address') }}">Name and Address CSV</a>
+                        <a class="export-option" href="{{ url_for('members_name_address_export_csv', member_type=member_type, format='mail_merge') }}">Mail Merge Excel (.xlsx)</a>
+                        <a class="export-option" href="{{ url_for('members_mail_merge_google_sheet', member_type=member_type) }}">Create Google Sheet</a>
+                    </div>
+                    <button type="button" class="export-cancel" onclick="closeModal('exportModal')">Cancel</button>
+                </div>
             </div>
             <script>
             function openModal(id) {
@@ -432,10 +477,6 @@ document.addEventListener('click', function(event) {
                     alert('Network error: ' + error.message + '\nCheck browser console for details.');
                 });
             };
-                var memberType = '{{ member_type }}';
-                window.location.href = '{{ url_for("email_list") }}?member_type=' + encodeURIComponent(memberType);
-            }
-
             function copyEmailText(spanId) {
                 var span = document.getElementById(spanId);
                 if (span) {

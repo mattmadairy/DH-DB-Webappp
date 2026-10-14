@@ -66,6 +66,7 @@ except ImportError as e:
 
 # Google Calendar API scopes
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+GOOGLE_SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 
 # Disable template caching in development
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -1421,12 +1422,17 @@ def dues_unpaid_export_csv():
 @admin_required
 def members_name_address_export_csv():
 	all_members = database.get_all_members()
+	member_types = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
+	member_type = request.args.get('member_type', 'All Members')
+	export_format = request.args.get('format', 'name_address')
+	if member_type not in member_types or export_format not in ('name_address', 'mail_merge'):
+		return 'Invalid export option', 400
 
-	# Exclude non-active statuses requested for mailing export.
-	exported_members = [
-		member for member in all_members
-		if member['membership_type'] not in ['Former', 'Wait List']
-	]
+	if member_type == 'All Members':
+		active_types = ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']
+		exported_members = [member for member in all_members if member['membership_type'] in active_types]
+	else:
+		exported_members = [member for member in all_members if member['membership_type'] == member_type]
 
 	# Keep ordering consistent with other member exports.
 	exported_members.sort(key=lambda m: (
@@ -1435,22 +1441,34 @@ def members_name_address_export_csv():
 		m['first_name'] or ''
 	))
 
+	if export_format == 'mail_merge':
+		from openpyxl import Workbook
+		from io import BytesIO
+
+		workbook = Workbook()
+		worksheet = workbook.active
+		worksheet.title = 'Mail Merge'
+		worksheet.append(['FirstName', 'LastName', 'Email'])
+		for member in exported_members:
+			worksheet.append([
+				member['first_name'] or '',
+				member['last_name'] or '',
+				member['email'] or ''
+			])
+			for cell in worksheet[worksheet.max_row]:
+				cell.data_type = 's'
+		output = BytesIO()
+		workbook.save(output)
+		response = make_response(output.getvalue())
+		response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+		response.headers['Content-Disposition'] = 'attachment; filename=members_mail_merge.xlsx'
+		return response
+
 	import csv
 	import io
-
 	output = io.StringIO()
 	writer = csv.writer(output)
-
-	writer.writerow([
-		'Badge Number',
-		'First Name',
-		'Last Name',
-		'Address',
-		'City',
-		'State',
-		'Zip'
-	])
-
+	writer.writerow(['Badge Number', 'First Name', 'Last Name', 'Address', 'City', 'State', 'Zip'])
 	for member in exported_members:
 		writer.writerow([
 			member['badge_number'] or '',
@@ -3868,6 +3886,95 @@ def get_google_calendar_service():
     except Exception as e:
         return None, f"Failed to build calendar service: {str(e)}"
 
+def get_google_sheets_service(member_type):
+	if not GOOGLE_CALENDAR_AVAILABLE:
+		return None, 'Google API libraries are unavailable.'
+
+	token_path = os.path.join(app.root_path, 'token.pickle')
+	credentials_path = os.path.join(app.root_path, 'credentials.json')
+	creds = None
+	if os.path.exists(token_path):
+		with open(token_path, 'rb') as token:
+			creds = pickle.load(token)
+
+	if creds and creds.expired and creds.refresh_token and creds.has_scopes([GOOGLE_SHEETS_SCOPE]):
+		creds.refresh(Request())
+		with open(token_path, 'wb') as token:
+			pickle.dump(creds, token)
+
+	if not creds or not creds.valid or not creds.has_scopes([GOOGLE_SHEETS_SCOPE]):
+		if not os.path.exists(credentials_path):
+			return None, 'Google credentials.json file not found.'
+		flow = Flow.from_client_secrets_file(
+			credentials_path,
+			scopes=SCOPES + [GOOGLE_SHEETS_SCOPE]
+		)
+		flow.redirect_uri = url_for('oauth2callback', _external=True)
+		authorization_url, state = flow.authorization_url(
+			access_type='offline',
+			include_granted_scopes='true'
+		)
+		session['oauth_state'] = state
+		session['oauth_flow'] = pickle.dumps(flow).decode('latin1')
+		session['oauth_sheets_member_type'] = member_type
+		return None, f'OAUTH_REDIRECT:{authorization_url}'
+
+	try:
+		return build('sheets', 'v4', credentials=creds), None
+	except Exception as e:
+		return None, f'Failed to build Google Sheets service: {str(e)}'
+
+@app.route('/members_mail_merge_google_sheet')
+@login_required
+@admin_required
+def members_mail_merge_google_sheet():
+	member_types = ["All Members", "Probationary", "Associate", "Active", "Life", "Honorary", "Prospective", "Wait List", "Suspended", "Former"]
+	member_type = request.args.get('member_type', 'All Members')
+	if member_type not in member_types:
+		return 'Invalid member type', 400
+
+	service, error = get_google_sheets_service(member_type)
+	if error:
+		if error.startswith('OAUTH_REDIRECT:'):
+			return redirect(error.replace('OAUTH_REDIRECT:', '', 1))
+		app.logger.error(error)
+		flash(f'Could not create Google Sheet: {error}', 'error')
+		return redirect(url_for('index', member_type=member_type))
+
+	all_members = database.get_all_members()
+	if member_type == 'All Members':
+		active_types = ['Probationary', 'Associate', 'Active', 'Life', 'Honorary']
+		exported_members = [member for member in all_members if member['membership_type'] in active_types]
+	else:
+		exported_members = [member for member in all_members if member['membership_type'] == member_type]
+	exported_members.sort(key=lambda m: (
+		int(m['badge_number']) if str(m['badge_number']).isdigit() else 0,
+		m['last_name'] or '',
+		m['first_name'] or ''
+	))
+	values = [['FirstName', 'LastName', 'Email']]
+	values.extend([
+		[member['first_name'] or '', member['last_name'] or '', member['email'] or '']
+		for member in exported_members
+	])
+	title = f'Mail Merge - {member_type} - {datetime.datetime.now().strftime("%Y-%m-%d %H%M")}'
+	try:
+		spreadsheet = service.spreadsheets().create(body={
+			'properties': {'title': title},
+			'sheets': [{'properties': {'title': 'Mail Merge'}}]
+		}).execute()
+		service.spreadsheets().values().update(
+			spreadsheetId=spreadsheet['spreadsheetId'],
+			range='Mail Merge!A1',
+			valueInputOption='RAW',
+			body={'values': values}
+		).execute()
+		return redirect(spreadsheet['spreadsheetUrl'])
+	except Exception as e:
+		app.logger.exception('Failed to create Google Sheets mail-merge export')
+		flash(f'Could not create Google Sheet: {e}', 'error')
+		return redirect(url_for('index', member_type=member_type))
+
 def sync_google_calendar_events():
     """Sync events from Google Calendar"""
     if not GOOGLE_CALENDAR_AVAILABLE:
@@ -3973,6 +4080,10 @@ def oauth2callback():
         # Clear session
         session.pop('oauth_flow', None)
         session.pop('oauth_state', None)
+
+        sheets_member_type = session.pop('oauth_sheets_member_type', None)
+        if sheets_member_type:
+            return redirect(url_for('members_mail_merge_google_sheet', member_type=sheets_member_type))
 
         flash('Google Calendar authentication successful! You can now sync events.', 'success')
         return redirect(url_for('admin_dashboard'))
