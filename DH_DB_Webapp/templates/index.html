@@ -380,8 +380,8 @@ document.addEventListener('click', function(event) {
                     <p>Choose an export format for the active member tab.</p>
                     <div class="export-options">
                         <a class="export-option" href="{{ url_for('members_name_address_export_csv', member_type=member_type, format='name_address') }}">Name and Address CSV</a>
-                        <a class="export-option" href="{{ url_for('members_name_address_export_csv', member_type=member_type, format='mail_merge') }}">Mail Merge Excel (.xlsx)</a>
-                        <a class="export-option" href="{{ url_for('members_mail_merge_google_sheet', member_type=member_type) }}">Create Google Sheet</a>
+                        <a class="export-option" href="{{ url_for('members_name_address_export_csv', member_type=member_type, format='mail_merge') }}">Mail Merge - Excel</a>
+                        <a class="export-option" href="{{ url_for('members_mail_merge_google_sheet', member_type=member_type) }}">Mail Merge - Google Sheets</a>
                     </div>
                     <button type="button" class="export-cancel" onclick="closeModal('exportModal')">Cancel</button>
                 </div>
