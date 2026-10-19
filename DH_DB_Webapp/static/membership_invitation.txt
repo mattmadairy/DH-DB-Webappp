@@ -1,0 +1,25 @@
+Subject: Dug Hill Rod & Gun Club Membership Invitation
+
+Dear {{FIRST_NAME}},
+
+You have been invited to apply for membership to The Dug Hill Rod & Gun Club, Inc. You may follow this link to apply:
+(This privilege is by invitation only. Please do not share the link with others.)
+
+{{APPLICATION_URL}}
+
+This invitation expires in 30 days.
+
+Please use the link on the application to pay the $75 initiation fee. Please note: membership is not guaranteed and the $75 application fee is non-refundable. A condition of membership is that you must be able to legally possess a firearm and a background check WILL be conducted. If you cannot pass, or aren't sure if you will pass, please reach out to discuss your situation prior to applying. You will be required to attend 2 meetings prior to being voted in for membership, the first of which you have already attended. You will be required to pay your prorated dues after being voted in to the club. Meetings are held on the 2nd Monday of each month. The meeting information is listed below. Let me know if you plan on attending.
+
+MEETING INFORMATION:
+{{MEETING_TEXT}}
+4100 Wine Rd Westminster, MD 21158
+https://www.google.com/maps/search/4100+Wine+Rd+Westminster,+MD+21158?entry=gmail&source=g
+
+Respectfully,
+Matthew Madairy
+Vice President, Dug Hill Rod & Gun Club
+443-605-3180
+
+"A republic, if you can keep it."
+-Benjamin Franklin

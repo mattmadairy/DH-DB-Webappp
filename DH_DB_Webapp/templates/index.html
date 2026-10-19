@@ -1,15 +1,3 @@
-</script>
-<script>
-function copyEmail(inputId) {
-    var input = document.getElementById(inputId);
-    if (input) {
-        input.select();
-        input.setSelectionRange(0, 99999); // For mobile
-        document.execCommand('copy');
-        alert('Email copied to clipboard!');
-    }
-}
-</script>
 <!DOCTYPE html>
 <html>
 <head>
@@ -484,20 +472,6 @@ document.addEventListener('click', function(event) {
                     alert('Network error: ' + error.message + '\nCheck browser console for details.');
                 });
             };
-            function copyEmailText(spanId) {
-                var span = document.getElementById(spanId);
-                if (span) {
-                    var text = span.innerText || span.textContent;
-                    var tempInput = document.createElement('input');
-                    tempInput.value = text;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    tempInput.setSelectionRange(0, 99999);
-                    document.execCommand('copy');
-                    document.body.removeChild(tempInput);
-                    alert('Email copied to clipboard!');
-                }
-            }
             </script>
             <!-- Only one tab section above the search/menu row -->
             {% if member_type == 'Wait List' %}
@@ -672,11 +646,6 @@ document.addEventListener('click', function(event) {
                     var text = row.textContent.toLowerCase();
                     row.style.display = text.includes(query) ? '' : 'none';
                 });
-            }
-
-            function generateEmailList() {
-                var memberType = '{{ member_type }}';
-                window.location.href = '{{ url_for("email_list") }}?member_type=' + encodeURIComponent(memberType);
             }
 
             function copyEmailText(spanId) {

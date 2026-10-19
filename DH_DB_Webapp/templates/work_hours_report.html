@@ -277,13 +277,6 @@ function toggleSignInSubmenu() {
     submenu.classList.toggle('active');
     arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
 }
-function openModal(id) {
-    document.getElementById(id).style.display = 'block';
-    document.getElementById(id).style.zIndex = 2000;
-}
-function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
 function printReport() {
     window.print();
 }

@@ -119,13 +119,7 @@ def get_all_dues_by_year(year=None):
     rows = c.fetchall()
     conn.close()
     return rows
-def get_all_dues():
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT d.*, m.first_name, m.last_name, m.badge_number FROM dues d JOIN members m ON d.member_id = m.id WHERE m.deleted=0 ORDER BY CAST(m.badge_number AS INTEGER), m.last_name, m.first_name")
-    rows = c.fetchall()
-    conn.close()
-    return rows
+
 def update_member_committees(member_id, updates):
     print(f"Updating committees for member_id={member_id} with updates={updates}")
     conn = get_connection()
@@ -387,20 +381,6 @@ def init_database():
 		)
 	""")
 	
-	# Create events table for event management
-	c.execute("""
-		CREATE TABLE IF NOT EXISTS events (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			name TEXT NOT NULL,
-			event_date DATE NOT NULL,
-			coordinator_id INTEGER,
-			status TEXT NOT NULL DEFAULT 'open',
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			closed_at TIMESTAMP,
-			FOREIGN KEY (coordinator_id) REFERENCES users(id)
-		)
-	""")
-	
 	# Create event_signins table for public event sign-ins
 	c.execute("""
 		CREATE TABLE IF NOT EXISTS event_signins (
@@ -458,6 +438,18 @@ def init_database():
 			reviewed_by INTEGER,
 			notes TEXT,
 			FOREIGN KEY (reviewed_by) REFERENCES users(id)
+		)
+	""")
+
+	c.execute("""
+		CREATE TABLE IF NOT EXISTS membership_invites (
+			token_hash TEXT PRIMARY KEY,
+			email TEXT NOT NULL,
+			first_name TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			sent_at TEXT,
+			expires_at TEXT NOT NULL,
+			used_at TEXT
 		)
 	""")
 	
@@ -877,25 +869,10 @@ def get_meeting_guests(meeting_date=None):
     conn.close()
     return rows
 
-def get_meeting_guest_by_id(guest_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM meeting_guests WHERE id=?", (guest_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
-
 def sign_out_meeting_guest(guest_id):
     conn = get_connection()
     c = conn.cursor()
     c.execute("UPDATE meeting_guests SET signed_out_at = CURRENT_TIMESTAMP WHERE id = ?", (guest_id,))
-    conn.commit()
-    conn.close()
-
-def delete_meeting_guest(guest_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("DELETE FROM meeting_guests WHERE id=?", (guest_id,))
     conn.commit()
     conn.close()
 
@@ -991,14 +968,6 @@ def get_user_by_email(email):
     conn.close()
     return user
 
-def get_all_users():
-    """Get all users"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT id, username, name, email, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC")
-    users = c.fetchall()
-    conn.close()
-    return users
 
 def update_user_password(user_id, password_hash):
     """Update user password and clear must_change_password flag"""
@@ -1149,18 +1118,6 @@ def check_password_history(user_id, new_password_hash, history_count=5):
             return True
     return False
 
-def get_audit_logs(limit=100, user_id=None):
-    """Get recent audit logs"""
-    conn = get_connection()
-    c = conn.cursor()
-    if user_id:
-        c.execute("SELECT * FROM audit_log WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?", (user_id, limit))
-    else:
-        c.execute("SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ?", (limit,))
-    logs = c.fetchall()
-    conn.close()
-    return logs
-
 # ========== Kiosk Check-in Functions ==========
 
 def get_active_checkin_for_member(member_number):
@@ -1214,22 +1171,6 @@ def get_all_checkins(date=None):
     conn.close()
     return rows
 
-def get_today_checkins():
-    """Get today's check-ins that haven't been signed out"""
-    conn = get_connection()
-    c = conn.cursor()
-    # Get today's date in YYYY-MM-DD format from Python to ensure consistency
-    today = datetime.now().date().strftime('%Y-%m-%d')
-    c.execute("""
-        SELECT * FROM check_ins 
-        WHERE DATE(check_in_time) = ?
-        AND (sign_out_time IS NULL OR sign_out_time = '')
-        ORDER BY check_in_time DESC
-    """, (today,))
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
 def get_today_checkins_by_date(date_str):
     """Get check-ins for a specific date that haven't been signed out"""
     conn = get_connection()
@@ -1253,15 +1194,6 @@ def sign_out_checkin(checkin_id, sign_out_time):
     affected = c.rowcount
     conn.close()
     return affected > 0
-
-def get_checkin_by_id(checkin_id):
-    """Get a specific check-in by ID"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM check_ins WHERE id = ?", (checkin_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
 
 def get_checkins_by_date_range(start_date, end_date):
     """Get check-ins within a date range"""
@@ -1323,34 +1255,8 @@ def get_member_checkins_by_year(member_badge_number, year=None):
     conn.close()
     return rows
 
-def add_event_signin(name, email, event_type, signin_type='attendee', skills=None, member_number=None):
-	"""Add a new event sign-in record"""
-	conn = get_connection()
-	c = conn.cursor()
-	c.execute("""
-		INSERT INTO event_signins (name, email, member_number, event_type, signin_type, skills)
-		VALUES (?, ?, ?, ?, ?, ?)
-	""", (name, email, member_number, event_type, signin_type, skills))
-	conn.commit()
-	conn.close()
-
-def get_all_event_signins():
-    """Get all event sign-ins"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT * FROM event_signins
-        ORDER BY signed_in_at DESC
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-def add_application(data):
-	"""Add a new membership application"""
+def _insert_application(c, data):
 	from datetime import datetime
-	conn = get_connection()
-	c = conn.cursor()
 	c.execute("""
 		INSERT INTO applications (
 			first_name, middle_name, last_name, suffix, nickname, sex, dob,
@@ -1362,10 +1268,95 @@ def add_application(data):
 			status, submitted_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
 	""", data + (datetime.now().strftime('%Y-%m-%d %H:%M:%S'),))
+	return c.lastrowid
+
+def add_application(data):
+	"""Add a new membership application"""
+	conn = get_connection()
+	c = conn.cursor()
+	app_id = _insert_application(c, data)
 	conn.commit()
-	app_id = c.lastrowid
 	conn.close()
 	return app_id
+
+def create_membership_invite(token_hash, email, first_name):
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO membership_invites (token_hash, email, first_name, created_at, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (token_hash, email, first_name, now.isoformat(), (now + timedelta(days=30)).isoformat()))
+    conn.commit()
+    conn.close()
+
+def activate_membership_invite(token_hash):
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        UPDATE membership_invites SET sent_at = ?, expires_at = ?
+        WHERE token_hash = ? AND sent_at IS NULL AND used_at IS NULL
+    """, (now.isoformat(), (now + timedelta(days=30)).isoformat(), token_hash))
+    activated = c.rowcount == 1
+    conn.commit()
+    conn.close()
+    return activated
+
+def cancel_membership_invite(token_hash):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM membership_invites WHERE token_hash = ? AND sent_at IS NULL", (token_hash,))
+    conn.commit()
+    conn.close()
+
+def _membership_invite_error(invite, email=None):
+    from datetime import datetime, timezone
+    if not invite or not invite['sent_at']:
+        return 'invalid'
+    if invite['used_at']:
+        return 'used'
+    expires_at = datetime.fromisoformat(invite['expires_at'])
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at <= datetime.now(timezone.utc):
+        return 'expired'
+    if email and invite['email'].strip().lower() != email.strip().lower():
+        return 'email_mismatch'
+    return None
+
+def get_membership_invite(token_hash):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM membership_invites WHERE token_hash = ?", (token_hash,))
+    invite = c.fetchone()
+    conn.close()
+    error = _membership_invite_error(invite)
+    return (invite, None) if not error else (None, error)
+
+def add_application_from_invite(data, token_hash, email):
+    from datetime import datetime, timezone
+    conn = get_connection()
+    c = conn.cursor()
+    try:
+        c.execute('BEGIN IMMEDIATE')
+        c.execute("SELECT * FROM membership_invites WHERE token_hash = ?", (token_hash,))
+        invite = c.fetchone()
+        error = _membership_invite_error(invite, email)
+        if error:
+            conn.rollback()
+            return None, error
+        app_id = _insert_application(c, data)
+        c.execute("UPDATE membership_invites SET used_at = ? WHERE token_hash = ?", (datetime.now(timezone.utc).isoformat(), token_hash))
+        conn.commit()
+        return app_id, None
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 def get_all_applications(status='pending'):
 	"""Get all applications, optionally filtered by status"""
@@ -1479,14 +1470,6 @@ def get_all_committees():
     conn.close()
     return rows
 
-def get_committee_by_id(committee_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM committees WHERE id=?", (committee_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
-
 def get_committee_members(committee_id):
     conn = get_connection()
     c = conn.cursor()
@@ -1510,27 +1493,6 @@ def get_member_committees_new(member_id):
     rows = c.fetchall()
     conn.close()
     return rows
-
-def add_member_to_committee(member_id, committee_id, role=None):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("INSERT INTO committee_memberships (member_id, committee_id, role) VALUES (?, ?, ?)", (member_id, committee_id, role))
-    conn.commit()
-    conn.close()
-
-def remove_member_from_committee(member_id, committee_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("DELETE FROM committee_memberships WHERE member_id=? AND committee_id=?", (member_id, committee_id))
-    conn.commit()
-    conn.close()
-
-def update_member_committee_role(member_id, committee_id, role):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("UPDATE committee_memberships SET role=? WHERE member_id=? AND committee_id=?", (role, member_id, committee_id))
-    conn.commit()
-    conn.close()
 
 # Meeting Minutes Functions
 def get_all_meeting_minutes():
@@ -1570,14 +1532,6 @@ def get_available_years():
     rows = c.fetchall()
     conn.close()
     return [row['year'] for row in rows]
-
-def get_meeting_minutes_by_id(minutes_id):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM meeting_minutes WHERE id=?", (minutes_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
 
 def add_meeting_minutes(title, meeting_date, description, content, pdf_filename=None):
     conn = get_connection()
@@ -1621,28 +1575,6 @@ def delete_meeting_minutes(minutes_id):
 
 # ========== Event Sign-in Functions ==========
 
-def add_event_signin(name, email, event_type=None, signin_type='attendee', skills=None, member_number=None, waiver_agreed=0, is_shooter=0, is_guest=0):
-    """Add a new event sign-in"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO event_signins (name, email, event_type, signin_type, skills, member_number, waiver_agreed, is_shooter, is_guest)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, email, event_type, signin_type, skills, member_number, 1 if waiver_agreed else 0, 1 if is_shooter else 0, 1 if is_guest else 0))
-    conn.commit()
-    signin_id = c.lastrowid
-    conn.close()
-    return signin_id
-
-def get_all_event_signins():
-    """Get all event sign-ins"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT * FROM event_signins ORDER BY signed_in_at DESC")
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
 def get_current_volunteers():
     """Get all volunteers for today's event (both signed in and signed out)"""
     conn = get_connection()
@@ -1673,20 +1605,6 @@ def sign_out_volunteer(signin_id):
     conn.commit()
     conn.close()
     return success
-
-def get_current_attendees():
-    """Get all patrons for today's event (both signed in and signed out)"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT * FROM event_signins 
-        WHERE signin_type = 'attendee' 
-        AND DATE(signed_in_at) = DATE('now')
-        ORDER BY signed_in_at ASC
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows
 
 def clear_all_volunteers():
     """Clear all volunteer sign-in records"""
@@ -1720,74 +1638,6 @@ def clear_all_event_signins():
 
 # ========== Event Management Functions ==========
 
-def create_event(name, event_date, coordinator_id):
-    """Create a new event"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO events (name, event_date, coordinator_id, status)
-        VALUES (?, ?, ?, 'open')
-    """, (name, event_date, coordinator_id))
-    event_id = c.lastrowid
-    conn.commit()
-    conn.close()
-    return event_id
-
-def get_all_events():
-    """Get all events with coordinator information"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT e.*, u.name as coordinator_name
-        FROM events e
-        LEFT JOIN users u ON e.coordinator_id = u.id
-        ORDER BY e.event_date DESC, e.created_at DESC
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-def get_event_by_id(event_id):
-    """Get a specific event by ID"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT e.*, u.name as coordinator_name
-        FROM events e
-        LEFT JOIN users u ON e.coordinator_id = u.id
-        WHERE e.id = ?
-    """, (event_id,))
-    row = c.fetchone()
-    conn.close()
-    return row
-
-def get_open_events():
-    """Get all open events"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT e.*, u.name as coordinator_name
-        FROM events e
-        LEFT JOIN users u ON e.coordinator_id = u.id
-        WHERE e.status = 'open'
-        ORDER BY e.event_date ASC
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows
-
-def close_event(event_id):
-    """Close an event"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        UPDATE events
-        SET status = 'closed', closed_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-    """, (event_id,))
-    conn.commit()
-    conn.close()
-
 def get_event_volunteers(event_id):
     """Get all volunteers for a specific event"""
     conn = get_connection()
@@ -1813,15 +1663,6 @@ def get_event_attendees(event_id):
     rows = c.fetchall()
     conn.close()
     return rows
-
-def update_event_signins(event_id):
-    """Update existing event signins to use the new event_id (for migration)"""
-    conn = get_connection()
-    c = conn.cursor()
-    # This is for migrating existing signins to the first event
-    c.execute("UPDATE event_signins SET event_id = ? WHERE event_id IS NULL OR event_id = 0", (event_id,))
-    conn.commit()
-    conn.close()
 
 def get_current_attendees(event_id=None):
     """Get all patrons for an event (both signed in and signed out)"""
@@ -1871,24 +1712,3 @@ def get_event_signin(signin_id):
         return dict(zip(columns, row))
     return None
 
-def get_event_statistics():
-    """Get statistics for all events grouped by event_id"""
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-        SELECT 
-            event_id,
-            COUNT(*) as total_signins,
-            COUNT(CASE WHEN signin_type = 'volunteer' THEN 1 END) as volunteer_count,
-            COUNT(CASE WHEN signin_type = 'attendee' THEN 1 END) as attendee_count,
-            COUNT(CASE WHEN signed_out_at IS NOT NULL THEN 1 END) as completed_signins,
-            MIN(signed_in_at) as first_signin,
-            MAX(signed_in_at) as last_signin,
-            COUNT(DISTINCT member_number) as unique_members
-        FROM event_signins
-        GROUP BY event_id
-        ORDER BY first_signin DESC
-    """)
-    rows = c.fetchall()
-    conn.close()
-    return rows

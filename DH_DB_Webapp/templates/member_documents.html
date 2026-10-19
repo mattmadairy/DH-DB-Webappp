@@ -472,48 +472,6 @@
             return true;
         }
 
-        // Meeting Minutes functions
-        function openAddMinutesModal() {
-            document.getElementById('addMinutesModal').style.display = 'block';
-        }
-
-        function closeAddMinutesModal() {
-            document.getElementById('addMinutesModal').style.display = 'none';
-            // Reset form
-            document.getElementById('minutes_title').value = '';
-            document.getElementById('minutes_date').value = '';
-            document.getElementById('minutes_file').value = '';
-        }
-
-        function editMinutes(minutesId, title, date, description, content) {
-            // Populate edit modal with existing data
-            document.getElementById('edit_minutes_id').value = minutesId;
-            document.getElementById('edit_minutes_title').value = title;
-            document.getElementById('edit_minutes_date').value = date;
-            // Set form action dynamically
-            document.getElementById('editMinutesForm').action = '/edit_meeting_minutes/' + minutesId;
-            // Show edit modal
-            document.getElementById('editMinutesModal').style.display = 'block';
-        }
-
-        function closeEditMinutesModal() {
-            document.getElementById('editMinutesModal').style.display = 'none';
-        }
-
-        function viewMinutes(content, title) {
-            // Create a modal to display the minutes content
-            const modal = document.createElement('div');
-            modal.style.cssText = 'position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);';
-            modal.innerHTML = `
-                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); width: 90%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
-                    <h3 style="margin-top: 0; color: #384839;">${title}</h3>
-                    <div style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 20px;">${content.replace(/\\n/g, '\n').replace(/\\'/g, '\'')}</div>
-                    <button onclick="this.parentElement.parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Close</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
             updateButtonStates();

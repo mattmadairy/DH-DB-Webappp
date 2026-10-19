@@ -101,23 +101,5 @@ function sortCommitteeTable(n) {
     if (th) th.innerHTML = th.innerText + (asc ? ' ▲' : ' ▼');
 }
 </script>
-    <script>
-    // Sortable table columns with arrow indicators
-    function sortTable(n) {
-        var table = document.getElementById("committee-table");
-        var rows = Array.from(table.rows).slice(1); // skip header
-        var asc = table.getAttribute('data-sort-col') == n && table.getAttribute('data-sort-dir') == 'asc' ? false : true;
-        rows.sort(function(a, b) {
-            var x = a.cells[n].innerText.toLowerCase();
-            var y = b.cells[n].innerText.toLowerCase();
-            if (!isNaN(x) && !isNaN(y)) {
-                x = parseFloat(x); y = parseFloat(y);
-            }
-            if (x < y) return asc ? -1 : 1;
-            if (x > y) return asc ? 1 : -1;
-        });
-        rows.forEach(function(row) { table.tBodies[0].appendChild(row); });
-    }
-    </script>
 {% endblock %}
             if (x < y) return asc ? -1 : 1;

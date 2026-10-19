@@ -344,20 +344,5 @@ window.addEventListener('afterprint', function() {
         }
     }
     </script>
-    <script>
-    function toggleSubmenu() {
-        var submenu = document.getElementById('reports-submenu');
-        var arrow = document.getElementById('submenu-arrow');
-        submenu.classList.toggle('active');
-        arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
-    }
-    
-    function toggleSignInSubmenu() {
-        var submenu = document.getElementById('signin-submenu');
-        var arrow = document.getElementById('signin-submenu-arrow');
-        submenu.classList.toggle('active');
-        arrow.textContent = submenu.classList.contains('active') ? '▲' : '▼';
-    }
-    </script>
 </body>
 </html>

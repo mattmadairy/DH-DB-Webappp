@@ -5,8 +5,6 @@ import json
 import re
 import logging
 
-# Place this after 'app = Flask(__name__)' and all app config
-
 # Context processor to inject applications into all templates
 def register_context_processors(app):
 	@app.context_processor
@@ -22,7 +20,6 @@ def register_context_processors(app):
 			applications = []
 		return dict(applications=applications)
 
-# After all imports and before any route definitions:
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 register_context_processors(app)
@@ -51,15 +48,10 @@ def exempt_csrf_for_event_signin():
 # Google Calendar API imports
 GOOGLE_CALENDAR_IMPORT_ERROR = None
 try:
-    import sys
-    # Add system Python path to find Google packages
-    sys.path.insert(0, r'C:\Users\Matt\AppData\Local\Programs\Python\Python311\Lib\site-packages')
     from googleapiclient.discovery import build
-    from google_auth_oauthlib.flow import InstalledAppFlow, Flow
+    from google_auth_oauthlib.flow import Flow
     from google.auth.transport.requests import Request
     import pickle
-    import os.path
-    import webbrowser
     GOOGLE_CALENDAR_AVAILABLE = True
 except ImportError as e:
     GOOGLE_CALENDAR_IMPORT_ERROR = str(e)
@@ -1632,14 +1624,6 @@ def meeting_attendance_export_csv():
 	response.headers['Content-Disposition'] = f'attachment; filename={filename}'
 	return response
 
-def add_work_hours(member_id):
-	date = request.form['date']
-	activity = request.form['activity']
-	hours = request.form['hours']
-	notes = request.form['notes']
-	database.add_work_hours(member_id, date, activity, hours, notes)
-	return ('', 204)
-
 # Work Hours Report route
 @app.route('/work_hours_report')
 @login_required
@@ -2339,7 +2323,6 @@ def update_description(filename):
 		flash('Access denied. Only administrators can update documents.', 'danger')
 		return redirect(url_for('member_documents'))
 	
-	new_title = request.form.get('title', '').strip()
 	new_description = request.form.get('description', '').strip()
 	doc_key = filename.replace('.pdf', '').lower().replace('_', ' ').replace('-', ' ')
 	
@@ -3808,11 +3791,6 @@ def event_signin():
 		# Create a unique ID for each event (using index + timestamp for uniqueness)
 		event_id = f"cal_{i}_{int(event['start'].timestamp())}"
 
-		# Get sign-in counts for this event
-		volunteers = database.get_event_volunteers(event_id)
-		attendees = database.get_event_attendees(event_id)
-		total_signins = len(volunteers) + len(attendees)
-
 		# Include all today's events for sign-in
 		# Format the event date for display
 		local_start = event['start'].astimezone(TIMEZONE)
@@ -3884,7 +3862,7 @@ def event_signin_submit():
 		signin_label = "Patron" if signin_type == "attendee" else "Volunteer"
 		return jsonify({'success': True, 'message': f'Successfully signed in as {signin_label}!'})
 		
-	except Exception as e:
+	except Exception:
 		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
 
 def get_google_calendar_service():
@@ -4043,75 +4021,6 @@ def members_mail_merge_google_sheet():
 		app.logger.exception('Failed to create Google Sheets mail-merge export')
 		flash(f'Could not create Google Sheet: {e}', 'error')
 		return redirect(url_for('index', member_type=member_type))
-
-def sync_google_calendar_events():
-    """Sync events from Google Calendar"""
-    if not GOOGLE_CALENDAR_AVAILABLE:
-        return False, "Google Calendar API not available. Please install required packages."
-    
-    try:
-        # Google Calendar ID from the provided URL
-        calendar_id = 'c_ca2e41cc4854724b0399d8e956d58e33a525336b60a3bcbe38732cbc04527109@group.calendar.google.com'
-        
-        # Get authenticated service
-        service, auth_error = get_google_calendar_service()
-        if auth_error:
-            return False, auth_error
-        
-        # Get events from the next 6 months
-        now = datetime.datetime.utcnow()
-        time_min = now.isoformat() + 'Z'
-        time_max = (now + datetime.timedelta(days=180)).isoformat() + 'Z'
-        
-        # Fetch events from Google Calendar
-        events_result = service.events().list(
-            calendarId=calendar_id,
-            timeMin=time_min,
-            timeMax=time_max,
-            singleEvents=True,
-            orderBy='startTime'
-        ).execute()
-        
-        events_data = events_result.get('items', [])
-        events_created = 0
-        
-        # Get all users to assign as coordinators (use first admin as default)
-        users = database.get_all_users()
-        default_coordinator = None
-        for user in users:
-            if user.get('is_admin', False) or user.get('is_bdfl', False):
-                default_coordinator = user['id']
-                break
-        if not default_coordinator and users:
-            default_coordinator = users[0]['id']
-        
-        for event in events_data:
-            event_name = event.get('summary', 'Unnamed Event')
-            start_time = event.get('start', {}).get('dateTime') or event.get('start', {}).get('date')
-            
-            if start_time:
-                try:
-                    # Parse the datetime
-                    if 'T' in start_time:
-                        event_date = datetime.datetime.fromisoformat(start_time.replace('Z', '+00:00')).date()
-                    else:
-                        event_date = datetime.datetime.strptime(start_time, '%Y-%m-%d').date()
-                    
-                    # Check if event already exists
-                    existing_events = database.get_all_events()
-                    event_exists = any(e['name'] == event_name and str(e['event_date']) == str(event_date) for e in existing_events)
-                    
-                    if not event_exists and default_coordinator:
-                        database.create_event(event_name, event_date, default_coordinator)
-                        events_created += 1
-                        
-                except Exception as e:
-                    continue  # Skip events with invalid dates
-        
-        return True, f"Successfully synced {events_created} events from Google Calendar"
-        
-    except Exception as e:
-        return False, f"Error syncing calendar: {str(e)}"
 
 @app.route('/oauth2callback')
 def oauth2callback():
@@ -4283,7 +4192,7 @@ def clear_volunteers():
 	try:
 		deleted_count = database.clear_all_volunteers()
 		return jsonify({'success': True, 'message': f'Cleared {deleted_count} volunteer records'})
-	except Exception as e:
+	except Exception:
 		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
 
 @app.route('/event_signin/clear_patrons', methods=['POST'])
@@ -4293,7 +4202,7 @@ def clear_patrons():
 	try:
 		deleted_count = database.clear_all_attendees()
 		return jsonify({'success': True, 'message': f'Cleared {deleted_count} patron records'})
-	except Exception as e:
+	except Exception:
 		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
 
 @app.route('/event_signin/clear_all', methods=['POST'])
@@ -4303,7 +4212,7 @@ def clear_all_event_signins():
 	try:
 		deleted_count = database.clear_all_event_signins()
 		return jsonify({'success': True, 'message': f'Cleared {deleted_count} event sign-in records'})
-	except Exception as e:
+	except Exception:
 		return jsonify({'success': False, 'message': 'An error occurred. Please try again.'}), 500
 
 # Confirmation page route
@@ -4315,6 +4224,27 @@ def application_confirmation():
 @app.route('/membership_application', methods=['GET', 'POST'])
 @csrf.exempt
 def membership_application():
+	import hashlib
+	invite_token = (request.values.get('invite_token') or request.args.get('invite') or '').strip()
+	token_hash = hashlib.sha256(invite_token.encode('utf-8')).hexdigest() if invite_token else None
+	invite = None
+	invite_error = 'This invitation link is invalid, expired, or has already been used.'
+	admin_access = current_user.is_authenticated and current_user.is_admin_or_bdfl()
+	if invite_token:
+		invite, error = database.get_membership_invite(token_hash)
+		if error:
+			return render_template('membership_application.html', invitation_error=invite_error), 410
+	elif not admin_access:
+		return render_template('membership_application.html', invitation_error=invite_error), 410
+
+	if request.method == 'GET':
+		return render_template(
+			'membership_application.html',
+			invite_token=invite_token,
+			invite_first_name=invite['first_name'] if invite else '',
+			invite_email=invite['email'] if invite else '',
+		)
+
 	if request.method == 'POST':
 		data = (
 			request.form['first_name'],
@@ -4347,7 +4277,12 @@ def membership_application():
 			'on' if request.form.get('payment_confirmation') else '',
 			'on' if request.form.get('waiver_agreement') else ''
 		)
-		database.add_application(data)
+		if invite_token:
+			_, error = database.add_application_from_invite(data, token_hash, request.form['email'])
+			if error:
+				return render_template('membership_application.html', invitation_error=invite_error), 410
+		else:
+			database.add_application(data)
 		return redirect(url_for('application_confirmation'))
 	return render_template('membership_application.html', success=False)
 
@@ -4419,10 +4354,6 @@ def reject_application(app_id):
 		flash('Failed to reject application.', 'error')
 	return redirect(url_for('admin_applications'))
 
-MEETING_ADDRESS = '4100 Wine Rd Westminster, MD 21158'
-MEETING_MAP_URL = 'https://www.google.com/maps/search/4100+Wine+Rd+Westminster,+MD+21158?entry=gmail&source=g'
-INVITE_SUBJECT = 'Dug Hill Rod & Gun Club Membership Invitation'
-
 def get_next_regular_meeting():
 	"""Return (meeting dict, error) for the next 'Regular Club Meeting' calendar event."""
 	events, error = fetch_calendar_events()
@@ -4462,7 +4393,7 @@ def invite_next_meeting():
 @admin_required
 @limiter.limit("30 per hour")
 def send_membership_invite():
-	from markupsafe import escape
+	from html import escape
 
 	first_name = request.form.get('first_name', '').strip()
 	last_name = request.form.get('last_name', '').strip()
@@ -4476,57 +4407,59 @@ def send_membership_invite():
 	if error:
 		return jsonify({'success': False, 'message': error}), 400
 
-	base_url = app.config.get('APP_BASE_URL')
-	application_url = f"{base_url.rstrip('/')}{url_for('membership_application')}" if base_url else url_for('membership_application', _external=True)
+	import hashlib
+	import secrets
+	invite_token = secrets.token_urlsafe(32)
+	token_hash = hashlib.sha256(invite_token.encode('utf-8')).hexdigest()
+	try:
+		database.create_membership_invite(token_hash, email, first_name)
+	except Exception:
+		app.logger.exception('Failed to store membership invitation')
+		return jsonify({'success': False, 'message': 'Could not create the invitation. Please try again.'}), 500
 
-	body = (
-		f"Dear {first_name}\n\n"
-		"You have been invited to apply for membership to The Dug Hill Rod & Gun Club, Inc. You may follow this link to apply:\n"
-		"(This privilege is by invitation only. Please do not share the link with others.)\n\n"
-		f"{application_url}\n\n"
-		"This invitation expires in 30 days.\n\n"
-		"Please use the link on the application to pay the $75 initiation fee. Please note: membership is not guaranteed and the $75 application fee is non-refundable. "
-		"A condition of membership is that you must be able to legally possess a firearm and a background check WILL be conducted. "
-		"If you cannot pass, or aren't sure if you will pass, please reach out to discuss your situation prior to applying. "
-		"You will be required to attend 2 meetings prior to being voted in for membership, the first of which you have already attended. "
-		"You will be required to pay your prorated dues after being voted in to the club. Meetings are held on the 2nd Monday of each month. "
-		"The meeting information is listed below. Let me know if you plan on attending.\n\n"
-		"MEETING INFORMATION:\n"
-		f"{meeting['text']}\n"
-		f"{MEETING_ADDRESS}\n"
-		f"{MEETING_MAP_URL}\n\n"
-		"Respectfully,\n"
-		"Matthew Madairy\n"
-		"Vice President, Dug Hill Rod & Gun Club\n"
-		"443-605-3180\n\n"
-		"\"A republic, if you can keep it.\"\n"
-		"-Benjamin Franklin\n"
-	)
-	html_body = (
-		f"<p>Dear {escape(first_name)}</p>"
-		"<p>You have been invited to apply for membership to The Dug Hill Rod &amp; Gun Club, Inc. You may follow this link to apply:<br>"
-		"(This privilege is by invitation only. Please do not share the link with others.)</p>"
-		f'<p><a href="{escape(application_url)}">{escape(application_url)}</a></p>'
-		"<p>This invitation expires in 30 days.</p>"
-		"<p>Please use the link on the application to pay the $75 initiation fee. Please note: membership is not guaranteed and the $75 application fee is non-refundable. "
-		"A condition of membership is that you must be able to legally possess a firearm and a background check WILL be conducted. "
-		"If you cannot pass, or aren't sure if you will pass, please reach out to discuss your situation prior to applying. "
-		"You will be required to attend 2 meetings prior to being voted in for membership, the first of which you have already attended. "
-		"You will be required to pay your prorated dues after being voted in to the club. Meetings are held on the 2nd Monday of each month. "
-		"The meeting information is listed below. Let me know if you plan on attending.</p>"
-		"<p><strong>MEETING INFORMATION:</strong><br>"
-		f"{escape(meeting['text'])}<br>"
-		f'<a href="{MEETING_MAP_URL.replace("&", "&amp;")}">{MEETING_ADDRESS}</a></p>'
-		"<p>Respectfully,<br>Matthew Madairy<br>Vice President, Dug Hill Rod &amp; Gun Club<br>443-605-3180</p>"
-		"<p><em>\"A republic, if you can keep it.\"</em><br>-Benjamin Franklin</p>"
-	)
+	base_url = app.config.get('APP_BASE_URL')
+	application_path = url_for('membership_application', invite=invite_token)
+	application_url = f"{base_url.rstrip('/')}{application_path}" if base_url else url_for('membership_application', invite=invite_token, _external=True)
+	template_path = os.path.join(app.static_folder, 'membership_invitation.txt')
+	try:
+		with open(template_path, encoding='utf-8') as invitation_file:
+			template_text = invitation_file.read()
+		subject_line, separator, body_template = template_text.partition('\n')
+		if not separator or not subject_line.startswith('Subject:'):
+			raise ValueError('Invitation template must start with a Subject: line.')
+		subject = subject_line[len('Subject:'):].strip()
+		values = {
+			'FIRST_NAME': first_name,
+			'APPLICATION_URL': application_url,
+			'MEETING_TEXT': meeting['text'],
+		}
+		body = re.sub(
+			r'\{\{([A-Z_]+)\}\}',
+			lambda match: values[match.group(1)],
+			body_template.lstrip('\r\n'),
+		)
+	except (OSError, ValueError, KeyError):
+		database.cancel_membership_invite(token_hash)
+		app.logger.exception('Failed to load or render membership invitation template')
+		return jsonify({'success': False, 'message': 'The invitation template could not be loaded. Please contact an administrator.'}), 500
+
+	escaped_body = escape(body)
+	html_body = re.sub(
+		r'(https?://[^\s<]+)',
+		lambda match: f'<a href="{match.group(1)}">{match.group(1)}</a>',
+		escaped_body,
+	).replace('\n', '<br>\n')
 
 	bcc = sorted({
 		user['email'] for user in database.get_all_users()
 		if user['role'] == 'BDFL' and user['is_active'] and user['email'] and user['email'].lower() != email.lower()
 	})
-	if not send_email(email, INVITE_SUBJECT, body, bcc=bcc, html_body=html_body):
+	if not send_email(email, subject, body, bcc=bcc, html_body=html_body):
+		database.cancel_membership_invite(token_hash)
 		return jsonify({'success': False, 'message': 'The invitation email could not be sent. Check the mail settings and try again.'}), 500
+	if not database.activate_membership_invite(token_hash):
+		app.logger.error('Invitation sent to %s but its token could not be activated.', email)
+		return jsonify({'success': False, 'message': 'The email was sent, but its invitation link could not be activated. Please contact an administrator.'}), 500
 
 	database.log_audit(
 		user_id=current_user.id,

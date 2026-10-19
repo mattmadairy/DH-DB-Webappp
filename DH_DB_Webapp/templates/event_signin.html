@@ -888,32 +888,6 @@
             `}).join('');
         }
 
-        async function signOutPatron(signinId) {
-            const button = event.target;
-            button.disabled = true;
-            button.textContent = 'Signing out...';
-
-            try {
-                const response = await fetch(`/event_signin/sign_out/${signinId}`, {
-                    method: 'POST'
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    // Reload patrons list
-                    loadPatrons();
-                } else {
-                    alert('Failed to sign out: ' + result.message);
-                    button.disabled = false;
-                    button.textContent = 'Sign Out';
-                }
-            } catch (error) {
-                alert('Error signing out. Please try again.');
-                button.disabled = false;
-                button.textContent = 'Sign Out';
-            }
-        }
-
         function formatDateTime(dateTimeStr) {
             // Assume the input is in UTC format (YYYY-MM-DD HH:MM:SS)
             // Append 'Z' to indicate UTC timezone

@@ -105,14 +105,18 @@
 		
 		<!-- Success message removed: now handled by confirmation page -->
 		
+		{% if invitation_error %}
+		<div role="alert" style="padding:16px; margin:20px 0; border:1px solid #d99; border-radius:5px; background:#fff0f0; color:#742c2c; text-align:center;">{{ invitation_error }}</div>
+		{% else %}
 		<form method="POST">
 			<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+			<input type="hidden" name="invite_token" value="{{ invite_token or '' }}">
 			
 			<div class="form-section">
 				<div class="section-title">Personal Information</div>
 				<div class="form-grid">
 					<label for="first_name" class="required">First Name:</label>
-					<input type="text" id="first_name" name="first_name" required>
+					<input type="text" id="first_name" name="first_name" value="{{ invite_first_name or '' }}" required>
 					
 					<label for="middle_name">Middle Name:</label>
 					<input type="text" id="middle_name" name="middle_name">
@@ -145,7 +149,7 @@
 				<div class="section-title">Contact Information</div>
 				<div class="form-grid">
 					<label for="email" class="required">Primary Email:</label>
-					<input type="email" id="email" name="email" required>
+					<input type="email" id="email" name="email" value="{{ invite_email or '' }}" {% if invite_email %}readonly{% endif %} required>
 					
 					<label for="email2">Secondary Email:</label>
 					<input type="email" id="email2" name="email2">
@@ -378,6 +382,7 @@
 			<button type="submit" id="submitButton" disabled style="opacity:0.5; cursor:not-allowed;">Submit Application</button>
 		</div>
 	</form>
+		{% endif %}
 </div>
 
 <!-- Liability Waiver Modal -->
